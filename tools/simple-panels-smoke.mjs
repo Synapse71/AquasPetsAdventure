@@ -1,0 +1,164 @@
+// Real Electron integration checks in an isolated profile; never touch the player's save.
+import { spawn } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import electron from 'electron';
+
+const port = 9500 + process.pid % 400;
+const settingsOnly = process.argv.includes('--settings-only');
+const profile = mkdtempSync(join(tmpdir(), 'idle-simple-panels-smoke-'));
+const out = resolve('artifacts/simple-panels-smoke');
+mkdirSync(out, { recursive: true });
+const child = spawn(electron, [`--user-data-dir=${profile}`, `--remote-debugging-port=${port}`, 'desktop/main.cjs'], { stdio: ['ignore', 'pipe', 'pipe'] });
+let logs = '';
+child.stdout.on('data', data => { logs += data; });
+child.stderr.on('data', data => { logs += data; });
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+let ws;
+try {
+  let target;
+  for (let i = 0; i < 80; i++) {
+    try { target = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(t => t.type === 'page' && t.url.includes('index.html')); } catch {}
+    if (target) break;
+    if (child.exitCode !== null) throw new Error(`Electron exited ${child.exitCode}: ${logs}`);
+    await sleep(150);
+  }
+  if (!target) throw new Error('No Electron renderer: ' + logs);
+  ws = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+  let id = 0;
+  const pending = new Map(), errors = [];
+  ws.onmessage = event => {
+    const message = JSON.parse(event.data);
+    if (message.id) { const callback = pending.get(message.id); pending.delete(message.id); callback?.(message); }
+    if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails);
+  };
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const key = ++id;
+    const timeout = setTimeout(() => reject(new Error(`Timed out: ${method}`)), 8000);
+    pending.set(key, message => { clearTimeout(timeout); if (message.error) reject(new Error(JSON.stringify(message.error))); else resolve(message.result); });
+    ws.send(JSON.stringify({ id: key, method, params }));
+  });
+  const evaluate = async expression => {
+    const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+    if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
+    return result.result.value;
+  };
+  const assert = (value, message) => { if (!value) throw new Error(message); console.log('✓ ' + message); };
+  const waitFor = async expression => {
+    for (let i = 0; i < 300; i++) { if (await evaluate(expression)) return; await sleep(100); }
+    throw new Error('Condition not met: ' + expression);
+  };
+  const click = async selector => {
+    // Keep native hover from replacing the tooltip selected by the synthetic click.
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 0, y: 0 });
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center', inline:'center'})`);
+    await sleep(100);
+    // Target the renderer element directly: native mouse passthrough/focus can race CDP clicks.
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+    await sleep(450);
+  };
+  const shot = async name => {
+    const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+    writeFileSync(join(out, name + '.png'), Buffer.from(capture.data, 'base64'));
+  };
+
+
+
+  await send('Runtime.enable'); await send('Page.enable');
+  const loaded=()=>waitFor(`!!document.querySelector('.pet-hit canvas[data-pose]')`);
+  const open=async label=>{await click('.pet-hit');await click('.pet-bubbles button[aria-label="'+label+'"]');};
+  const stored=()=>evaluate(`JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1'))`);
+  const textButton=async text=>{await evaluate(`Array.from(document.querySelectorAll('.pet-panel-host button')).find(b=>b.textContent===${JSON.stringify(text)}).click()`);await sleep(150);};
+  const input=async (selector,value)=>{await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);await sleep(200);};
+  await loaded();
+  const initial=await stored(),fixture=structuredClone(initial),petId=Object.keys(initial.pets)[0];
+  fixture.inventory={};fixture.itemAcquisitionCounts={'cloth-strip':12,'card-stoat':3};fixture.discoveredItemIds=['cloth-strip','card-stoat'];
+  fixture.currency=4321;fixture.pets[petId].baseStats.fitness=40;
+  fixture.log=[{id:'settings-log-1',createdAt:Date.now(),message:'测试记录：队伍已抵达节点。'},{id:'settings-log-2',createdAt:Date.now()-60000,message:'测试记录：伙伴开始探险。'}];
+  await evaluate(`localStorage.setItem('idle-pet-adventure.demo.v1',${JSON.stringify(JSON.stringify(fixture))})`);
+  await send('Page.reload');await loaded();
+  if (!settingsOnly) {
+  await open('图鉴');
+  assert(await evaluate(`document.querySelector('.window-codex').getBoundingClientRect().width===760&&document.querySelector('.window-codex').getBoundingClientRect().height===614`),'codex keeps the fixed 760x614 frame');
+  assert(await evaluate(`document.querySelector('.cd-group').dataset.group==='collectible' && !document.querySelector('.cd-cell[data-item-id="paper"]')`),'collectibles stay first and unknown ordinary items are absent');
+  assert(await evaluate(`!document.querySelector('.cd-cell .cd-count') && !document.querySelector('.cd-cell[data-item-id="cloth-strip"]').textContent.match(/\\d/)`),'codex item icons do not display lifetime count badges');
+  await shot('01-codex');
+  const unknown=await evaluate(`document.querySelector('.cd-cell.unknown').dataset.itemId`);
+  await click('.cd-cell[data-item-id="'+unknown+'"]');
+  assert(await evaluate(`document.querySelector('.cd-tip').textContent==='？？？' && !document.querySelector('.cd-cell.unknown .cd-count') && !document.querySelector('.cd-cell.unknown').getAttribute('style')`),'unknown collectible exposes no name, rarity, count, or tags');
+  await shot('02-unknown');
+  await click('.cd-cell[data-item-id="card-stoat"]');
+  assert(await evaluate(`document.querySelector('.cd-tip').textContent.includes('累计获得 3 件')&&document.querySelector('.cd-tip').textContent.includes('收藏品')`),'known item tooltip includes tags and lifetime count');
+  await shot('03-known');
+  assert(await evaluate(`!document.querySelector('.codex-panel').textContent.match(/已登记|完成率|收藏品进度|收集进度/)`),'codex contains no collection progress');
+  await textButton('宠物');
+  assert(await evaluate(`document.querySelector('.cd-pet-stats').textContent.includes('体能 2')&&!document.querySelector('.cd-pet-stats').textContent.includes('40')`),'pet codex uses template stats, not current growth');
+  await shot('04-pets');
+  await click('.sp-close');
+  }
+  await open('设置');
+  const dimensions=()=>evaluate(`(()=>{const r=document.querySelector('.window-settings').getBoundingClientRect();return [r.width,r.height]})()`);
+  assert(JSON.stringify(await dimensions())==='[760,614]','settings uses the fixed 760x614 frame');
+  await shot('05-settings');
+  assert(await evaluate(`!document.querySelector('.st-about')&&!document.querySelector('.st-dev')&&document.querySelectorAll('.settings-panel .sp-tabs button').length===3`), 'about is a peer tab and absent from general settings');
+  await textButton('关于');
+  await waitFor(`document.querySelector('.st-game-logo')?.naturalWidth > 0`);
+  assert(await evaluate(`document.querySelector('.st-about').textContent.includes('版本信息')&&document.querySelector('.st-game-name').textContent==='咕嘎搜撤没有打 v0.1.0 Demo'&&document.querySelector('.st-about').textContent.includes('Aquamarine Studio')&&!document.querySelector('.st-dev')&&!document.querySelector('.st-row')&&!document.querySelector('.st-about').textContent.match(/Windows|macOS|策划配置台/)`), 'about shows the requested game name, version, logo and studio without old content');
+  assert(await evaluate(`document.querySelector('.st-game-logo').getAttribute('src').endsWith('icons/aquamarine-1024.png')`), 'about reuses the same logo source as the native menu bar');
+  await shot('09-about');
+  await send('Page.reload');await loaded();await open('设置');
+  assert(await evaluate(`document.querySelector('.settings-panel .sp-tabs button:nth-child(3)').getAttribute('aria-pressed')==='true'&&!!document.querySelector('.st-about')`), 'about tab selection survives reload');
+  await textButton('设置');
+  await input('input[aria-label="桌宠大小"]','260');
+  await waitFor(`document.querySelector('.st-row output').textContent==='260px'`);
+  assert(await evaluate(`document.querySelector('.st-preview .sp-warning').textContent.includes('21.2px')`),'small bubble size gives a real-pixel readability warning');
+  assert(await evaluate(`Math.abs(document.querySelector('.st-menu-preview>span').getBoundingClientRect().width-21.24)<0.1`),'bubble preview is drawn at its actual pixel diameter');
+  await input('input[aria-label="桌宠大小"]','300');
+  await click('input[aria-label="始终置顶"]');
+  assert((await evaluate(`window.desktopPet.getState()`)).alwaysOnTop===false,'always-on-top setting reaches the native window');
+  await send('Page.reload');await loaded();await open('设置');
+  assert(await evaluate(`!document.querySelector('input[aria-label="始终置顶"]').checked`),'native settings survive renderer reload');
+  await click('input[aria-label="始终置顶"]');
+  const downloads=join(profile,'downloads');mkdirSync(downloads,{recursive:true});
+  await send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:downloads});
+  const beforeExport=await stored();
+  await textButton('导出存档');
+  let file;
+  for(let i=0;i<100;i++){file=readdirSync(downloads).find(name=>name.endsWith('.json'));if(file)break;await sleep(100);}
+  assert(!!file,'export produces a real JSON download');
+  const backup=JSON.parse(readFileSync(join(downloads,file),'utf8'));
+  assert(backup.format==='idle-pet-save'&&JSON.stringify(backup.game)===JSON.stringify(beforeExport),'export is a lossless game snapshot');
+  await textButton('清空本地存档');
+  assert(await evaluate(`document.querySelector('.st-reset-dialog').textContent.includes('无法找回')&&document.querySelector('.st-reset-actions .st-danger').disabled`),'reset warns about data loss and requires explicit confirmation text');
+  await shot('06-reset-confirm');
+  await input('input[aria-label="清档确认文字"]','错误文字');
+  assert(await evaluate(`document.querySelector('.st-reset-actions .st-danger').disabled`),'incorrect confirmation cannot clear the save');
+  await textButton('取消');
+  assert((await stored()).currency===4321,'cancel reset leaves the save unchanged');
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
+  await shot('07-dark-settings');
+  assert(JSON.stringify(await dimensions())==='[760,614]','preview, confirmation, and theme never change panel size');
+  await textButton('行动记录');
+  assert(await evaluate(`!!document.querySelector('.settings-panel .sp-tabs button[aria-pressed="true"]')&&!!document.querySelector('.st-content > .log-list')&&!document.querySelector('.st-content .panel')&&!document.querySelector('.st-content h2')&&!document.querySelector('.st-content .eyebrow')&&!document.querySelector('.st-content').textContent.includes('LOG')`),'action log is only a list without the old card or duplicated heading');
+  await shot('10-action-log');
+  assert(await evaluate(`document.querySelectorAll('.st-content > .log-list li').length===2&&document.querySelector('.log-list').textContent.includes('队伍已抵达节点')`),'action list preserves recorded timestamps and messages');
+  await textButton('设置');await textButton('清空本地存档');
+  await input('input[aria-label="清档确认文字"]','重新开始');await textButton('确认清空');
+  await waitFor(`document.querySelector('.pet-panel-host').hidden`);
+  const reset=await stored();
+  assert(reset.currency===initial.currency&&reset.pets[petId].baseStats.fitness===initial.pets[petId].baseStats.fitness,'confirmed reset creates a fresh game only in the isolated test profile');
+  if (!settingsOnly) {
+  await open('图鉴');await textButton('物品');
+  assert(await evaluate(`getComputedStyle(document.querySelector('.cd-cell.unknown img')).filter.includes('invert(1)')`),'unknown silhouettes remain visible in dark mode');
+  await shot('08-dark-codex');
+  await click('.sp-close');
+  }
+  await open('设置');
+  assert(await evaluate(`Array.from(document.querySelectorAll('.window-settings button')).some(b=>b.textContent==='退出游戏'&&!b.disabled)`),'settings exposes the real quit action');
+  assert(errors.length===0,'simple panels have no renderer exceptions');
+  writeFileSync(join(out,settingsOnly?'settings-result.json':'result.json'),JSON.stringify({passed:true,scope:settingsOnly?'settings':'all-simple-panels',profile,errors},null,2));
+  console.log('Screenshots: '+out);
+} catch(error){console.error(error);console.error(logs);process.exitCode=1;}
+finally{ws?.close();child.kill();}

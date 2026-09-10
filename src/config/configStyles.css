@@ -1,0 +1,2366 @@
+.config-app {
+  --config-ink: #252a24;
+  --config-muted: #71786e;
+  --config-line: #d9ddd4;
+  --config-accent: #4d6547;
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  color: var(--config-ink);
+  background: #eff0eb;
+}
+
+.config-app button,
+.config-app input,
+.config-app textarea {
+  font: inherit;
+}
+
+.config-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  padding: 13px 18px;
+  color: #f4f6ef;
+  border-bottom: 1px solid #384336;
+  background: #242d23;
+}
+
+.config-title,
+.config-actions,
+.config-editor-head,
+.config-section-head,
+.config-issues > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.config-title h1,
+.config-section-head h2,
+.config-editor-head h2,
+.config-issues h2 {
+  margin: 0;
+}
+
+.config-title h1 {
+  font-size: 17px;
+}
+
+.config-title p {
+  margin: 1px 0 0;
+  color: #aeb9a9;
+  font-size: 10px;
+}
+
+.config-back,
+.config-actions button,
+.config-editor-head button,
+.config-add {
+  padding: 7px 10px;
+  color: inherit;
+  border: 1px solid #52604f;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.config-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.config-actions .config-primary {
+  color: #263022;
+  border-color: #c4d0bd;
+  background: #dce8d6;
+}
+
+.config-health {
+  padding: 6px 9px;
+  color: #d8e6d2;
+  border-radius: 999px;
+  background: #344431;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.config-health.error {
+  color: #ffe0d8;
+  background: #653c32;
+}
+
+.config-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 18px;
+  color: #657060;
+  border-bottom: 1px solid var(--config-line);
+  background: #f8f8f4;
+  font-size: 10px;
+}
+
+.config-source {
+  flex: none;
+  padding: 2px 8px;
+  color: #4a5747;
+  border: 1px solid #cfd6ca;
+  border-radius: 999px;
+  background: white;
+}
+
+/* 偏离内置时用琥珀色，和"配置检查"的红色错误区分开。 */
+.config-source.diverged {
+  color: #8a6316;
+  border-color: #ddc99a;
+  background: #fbf6e9;
+}
+
+.config-bundled-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 18px;
+  border-bottom: 1px solid #e0d3ae;
+  background: #fbf4e2;
+}
+
+.config-bundled-banner > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.config-bundled-banner strong {
+  color: #6f5210;
+  font-size: 11px;
+}
+
+.config-bundled-banner span {
+  color: #7d6a3a;
+  font-size: 10px;
+}
+
+.config-bundled-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.config-bundled-actions button {
+  padding: 5px 11px;
+  color: #4d5949;
+  border: 1px solid #cfc09a;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.config-bundled-actions .config-primary {
+  color: white;
+  border-color: transparent;
+  background: var(--config-accent);
+}
+
+.config-publish-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(25, 30, 24, 0.52);
+}
+
+.config-publish-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: min(780px, calc(100vh - 48px));
+  padding: 18px;
+  overflow-y: auto;
+  border: 1px solid #cfd5ca;
+  border-radius: 13px;
+  background: #f8f9f5;
+  box-shadow: 0 20px 70px rgba(22, 28, 21, 0.3);
+}
+
+.config-publish-head,
+.config-publish-validation,
+.config-publish-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.config-publish-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.config-publish-head span {
+  color: #778171;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.config-publish-head h2,
+.config-publish-changes h3 {
+  margin: 0;
+}
+
+.config-publish-head h2 {
+  font-size: 18px;
+}
+
+.config-publish-head > button {
+  width: 30px;
+  height: 30px;
+  color: #657060;
+  border: 1px solid #d2d8cd;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+}
+
+.config-publish-target,
+.config-publish-warning,
+.config-publish-changes > p,
+.config-publish-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.config-publish-target {
+  color: #657060;
+}
+
+.config-publish-validation {
+  padding: 10px 12px;
+  border: 1px solid #cdd8c8;
+  border-radius: 9px;
+  background: #edf4e9;
+}
+
+.config-publish-validation strong {
+  color: #385032;
+  font-size: 12px;
+}
+
+.config-publish-validation span {
+  color: #697765;
+  font-size: 10px;
+}
+
+.config-publish-issues {
+  display: grid;
+  gap: 5px;
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.config-publish-issues li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border-left: 3px solid #bc9a58;
+  border-radius: 6px;
+  background: #fff8e8;
+}
+
+.config-publish-issues li.error {
+  border-left-color: #ae5b4b;
+  background: #fff0ec;
+}
+
+.config-publish-issues code {
+  color: #7a6c50;
+  font-size: 9px;
+}
+
+.config-publish-issues span {
+  color: #554f43;
+  font-size: 10px;
+}
+
+.config-publish-changes {
+  display: grid;
+  gap: 7px;
+}
+
+.config-publish-changes h3 {
+  font-size: 13px;
+}
+
+.config-publish-changes article {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid #dce0d7;
+  border-radius: 8px;
+  background: white;
+}
+
+.config-publish-changes article > strong {
+  color: #394536;
+  font-size: 11px;
+}
+
+.config-publish-changes article p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #6c7468;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.config-publish-changes article p.added {
+  color: #3d6c42;
+}
+
+.config-publish-changes article p.removed {
+  color: #9a4e41;
+}
+
+.config-publish-changes article p.changed {
+  color: #82621f;
+}
+
+.config-publish-warning,
+.config-publish-error {
+  padding: 8px 10px;
+  border-radius: 7px;
+}
+
+.config-publish-warning {
+  color: #745a24;
+  background: #fbf1d8;
+}
+
+.config-publish-error {
+  color: #8b4033;
+  background: #fdebe6;
+}
+
+.config-publish-actions {
+  justify-content: flex-end;
+}
+
+.config-publish-actions button {
+  padding: 8px 13px;
+  color: #4b5747;
+  border: 1px solid #cbd2c6;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.config-publish-actions button.config-primary {
+  color: white;
+  border-color: #4d6547;
+  background: #4d6547;
+}
+
+.config-publish-actions button:disabled,
+.config-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.config-workspace {
+  display: grid;
+  grid-template-columns: 180px 260px minmax(360px, 1fr) 300px;
+  min-height: 0;
+  padding: 0;
+}
+
+.config-categories,
+.config-records,
+.config-editor,
+.config-issues {
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--config-line);
+}
+
+.config-categories {
+  padding: 10px 8px;
+  overflow-y: auto;
+  background: #e5e8e1;
+}
+
+.config-categories button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 10px;
+  color: #4f584c;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+}
+
+.config-categories button:hover,
+.config-categories button.active {
+  color: #263022;
+  background: #f7f8f4;
+}
+
+.config-categories button > span {
+  display: grid;
+  gap: 1px;
+}
+
+.config-categories strong {
+  font-size: 12px;
+}
+
+.config-categories small {
+  color: #838a7f;
+  font-size: 9px;
+}
+
+.config-categories i {
+  min-width: 22px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: #d4d9cf;
+  font-size: 9px;
+  font-style: normal;
+  text-align: center;
+}
+
+.config-records {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  padding: 12px 10px;
+  background: #f5f6f2;
+}
+
+.config-item-filters {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.config-rarity-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.config-rarity-filter button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  color: var(--config-muted);
+  border: 1px solid #d5dacf;
+  border-radius: 999px;
+  background: white;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.config-rarity-filter button:hover {
+  border-color: #a9b3a3;
+}
+
+.config-rarity-filter button.active {
+  border-color: var(--config-accent);
+  background: #e6ece2;
+}
+
+.config-rarity-filter em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.config-rarity-filter i {
+  color: #7b8377;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.config-rarity-filter button.active i {
+  color: #3f4c3b;
+}
+
+.config-item-tag-filter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: var(--config-muted);
+  font-size: 9px;
+}
+
+.config-item-tag-filter select {
+  min-width: 0;
+  padding: 5px 7px;
+  color: #424c3f;
+  border: 1px solid #ccd1c8;
+  border-radius: 6px;
+  outline: none;
+  background: white;
+  font-size: 10px;
+}
+
+.config-item-tag-filter select:focus {
+  border-color: #809278;
+}
+
+.config-section-head {
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.config-section-head h2,
+.config-editor-head h2,
+.config-issues h2 {
+  font-size: 15px;
+}
+
+.config-section-head span,
+.config-editor-head span,
+.config-issues > div > span {
+  color: var(--config-muted);
+  font-size: 9px;
+}
+
+.config-add {
+  color: #41543c;
+  border-color: #b9c5b3;
+  background: #e8eee4;
+}
+
+.config-search {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 9px;
+  border: 1px solid #ccd1c8;
+  border-radius: 7px;
+  outline: none;
+  background: white;
+  font-size: 11px;
+}
+
+.config-search:focus {
+  border-color: #809278;
+}
+
+.config-record-list {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  overflow-y: auto;
+}
+
+.config-record-list button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 9px;
+  color: #343a32;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+}
+
+/* 物品分类多一列缩略图 */
+.config-record-list button.with-icon {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.config-record-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.config-record-icon {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dfe3db;
+  border-radius: 7px;
+  background: #f2f4ef;
+  object-fit: contain;
+}
+
+.config-record-icon.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8afa3;
+  border-style: dashed;
+  font-size: 12px;
+}
+
+.config-icon-preview {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid #dfe3db;
+  border-radius: 9px;
+  background: white;
+}
+
+.config-icon-preview img {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+}
+
+.config-icon-preview .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  color: #a8afa3;
+  border: 1px dashed #ccd1c8;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.config-icon-preview small {
+  color: var(--config-muted);
+  font-size: 9px;
+  word-break: break-all;
+}
+
+.config-record-list button:hover,
+.config-record-list button.active {
+  border-color: #ced5ca;
+  background: white;
+}
+
+/* 名称与分类标签同行：名称过长时省略号只吃名称，标签不参与收缩。 */
+.config-record-list strong {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+}
+
+.config-record-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-record-tag {
+  flex: none;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #5c6458;
+  background: #e7ebe3;
+  /* em 默认斜体，标签要正体 */
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.config-record-list code,
+.config-record-list small {
+  overflow: hidden;
+  color: #7a8177;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-editor {
+  display: grid;
+  grid-template-rows: auto auto minmax(180px, 1fr) auto auto;
+  padding: 15px;
+  background: #fbfbf8;
+}
+
+.config-editor-head {
+  justify-content: space-between;
+}
+
+.config-editor-head > div:first-child {
+  display: grid;
+}
+
+.config-editor-head button {
+  color: #4d5949;
+  border-color: #c8cec4;
+}
+
+.config-editor-head .config-delete {
+  color: #934a3d;
+  border-color: #dfbbb3;
+}
+
+.config-editor-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  color: var(--config-muted);
+  font-size: 10px;
+}
+
+.config-modes {
+  display: flex;
+  flex: none;
+  padding: 2px;
+  border: 1px solid #d3d8cf;
+  border-radius: 7px;
+  background: #eceee7;
+}
+
+.config-modes button {
+  padding: 4px 10px;
+  color: var(--config-muted);
+  border: none;
+  border-radius: 5px;
+  background: none;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.config-modes button.active {
+  color: #22301f;
+  background: white;
+  box-shadow: 0 1px 2px rgba(40, 50, 38, 0.14);
+}
+
+/* ── 物品表单 ────────────────────────────────────────────── */
+
+.config-form {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid #cdd2c9;
+  border-radius: 9px;
+  background: #f4f6f1;
+}
+
+.config-field {
+  display: grid;
+  gap: 4px;
+}
+
+.config-field > span {
+  color: #3c473a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.config-field small,
+.config-check small {
+  color: var(--config-muted);
+  font-size: 10px;
+}
+
+.config-field input,
+.config-field select,
+.config-field textarea {
+  width: 100%;
+  padding: 7px 9px;
+  color: #243023;
+  border: 1px solid #ccd1c8;
+  border-radius: 7px;
+  outline: none;
+  background: white;
+  font-size: 11px;
+}
+
+.config-field textarea {
+  resize: vertical;
+  line-height: 1.55;
+  font-family: inherit;
+}
+
+.config-field input:focus,
+.config-field select:focus,
+.config-field textarea:focus {
+  border-color: #809278;
+}
+
+.config-field input:disabled {
+  color: #a0a69c;
+  background: #eef0ea;
+}
+
+.config-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* 重量 / 每格堆叠 / 出售价值：物品的三个数值字段并排，方便对照着调。 */
+.config-field-row.triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.config-growth-effect {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #ccd4c7;
+  border-radius: 9px;
+  background: #f9faf7;
+}
+
+.config-growth-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.config-growth-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.config-growth-title strong {
+  color: #34422f;
+  font-size: 12px;
+}
+
+.config-growth-title small {
+  color: var(--config-muted);
+  font-size: 9px;
+}
+
+.config-growth-title > span {
+  padding: 3px 7px;
+  color: #52644b;
+  border-radius: 999px;
+  background: #e7eee2;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.config-growth-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.config-growth-modes button {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  color: #596255;
+  border: 1px solid #d3d9cf;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+}
+
+.config-growth-modes button.active {
+  color: #2e4528;
+  border-color: #879d7d;
+  background: #eaf2e6;
+  box-shadow: inset 0 0 0 1px #b8c9b1;
+}
+
+.config-growth-modes button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.config-growth-modes strong {
+  font-size: 10px;
+}
+
+.config-growth-modes small {
+  color: inherit;
+  font-size: 8px;
+  opacity: 0.75;
+}
+
+/* 宠物的主属性 / 次要属性：每项一格，标题在上、数值居中、说明在下。 */
+.config-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.config-stat-grid label {
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+  border: 1px solid #e2e5dd;
+  border-radius: 8px;
+  background: #fbfcf9;
+  text-align: center;
+}
+
+.config-stat-grid b {
+  color: #46503f;
+  font-size: 11px;
+}
+
+.config-stat-grid input {
+  width: 100%;
+  text-align: center;
+}
+
+.config-stat-grid em {
+  color: #8a9184;
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.3;
+}
+
+.config-rarity {
+  font-weight: 600;
+}
+
+.config-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 7px;
+}
+
+.config-check input {
+  width: 13px;
+  height: 13px;
+}
+
+.config-check > span {
+  color: #3c473a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.config-check small {
+  grid-column: 2;
+}
+
+.config-tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.config-tag-picker label,
+.config-tag-picker .custom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  color: var(--config-muted);
+  border: 1px solid #ccd1c8;
+  border-radius: 999px;
+  background: white;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.config-tag-picker label.active {
+  color: #2c3a29;
+  border-color: var(--config-accent);
+  background: #e6ece2;
+  font-weight: 600;
+}
+
+.config-tag-picker input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
+/* 自定义标签：不在已知列表里，用琥珀色和已知标签区分开。 */
+.config-tag-picker .custom {
+  color: #8a6316;
+  border-color: #ddc99a;
+  border-style: dashed;
+  background: #fbf6e9;
+}
+
+.config-form-note {
+  margin: 0;
+  padding: 7px 9px;
+  color: var(--config-muted);
+  border: 1px dashed #ccd1c8;
+  border-radius: 7px;
+  font-size: 10px;
+}
+
+/* ── 地图节点掉落表单 ────────────────────────────────────── */
+
+.config-map-form {
+  gap: 10px;
+  padding: 10px;
+}
+
+.config-map-form-intro {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d8ddd3;
+  border-radius: 8px;
+  background: #fbfcf9;
+}
+
+.config-map-form-intro > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.config-map-form-intro strong {
+  font-size: 12px;
+}
+
+.config-map-form-intro span,
+.config-map-form-intro p {
+  color: var(--config-muted);
+  font-size: 10px;
+}
+
+.config-map-form-intro p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.config-map-basics {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(70px, 0.7fr) minmax(150px, 1.5fr) repeat(2, minmax(100px, 0.8fr));
+  gap: 9px;
+}
+
+.config-node-create {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 3px;
+}
+
+.config-map-graph {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #cfd6ca;
+  border-radius: 9px;
+  background: #f9faf7;
+}
+
+.config-map-graph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.config-map-graph-head > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.config-map-graph-head strong {
+  color: #394636;
+  font-size: 11px;
+}
+
+.config-map-graph-head > div:first-child span {
+  color: var(--config-muted);
+  font-size: 9px;
+}
+
+.config-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.config-graph-legend span {
+  padding: 2px 6px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 8px;
+}
+
+.config-graph-legend .entry {
+  color: #41623b;
+  border-color: #9fba97;
+  background: #e4efdf;
+}
+
+.config-graph-legend .normal {
+  color: #4d5a49;
+  border-color: #bdc7b8;
+  background: #f3f5f0;
+}
+
+.config-graph-legend .terminal {
+  color: #755818;
+  border-color: #d6c17f;
+  background: #faf2d8;
+}
+
+.config-graph-legend .extractable {
+  color: #526f69;
+  border-color: #9db7b0;
+  background: #edf6f3;
+}
+
+.config-graph-legend .hidden {
+  color: #665084;
+  border-color: #c6b5dd;
+  border-style: dashed;
+  background: #f3eef9;
+}
+
+.config-graph-legend .unreachable {
+  color: #8d493d;
+  border-color: #dcafa6;
+  background: #fff0ec;
+}
+
+.config-map-graph-scroll {
+  overflow: auto;
+  border: 1px solid #e0e4dc;
+  border-radius: 7px;
+  background-color: white;
+  background-image: radial-gradient(#dfe4db 0.7px, transparent 0.7px);
+  background-size: 12px 12px;
+}
+
+.config-map-graph svg {
+  display: block;
+  width: 100%;
+  min-height: 170px;
+}
+
+.config-map-graph marker path {
+  fill: #7b8975;
+}
+
+.config-graph-edge > path {
+  fill: none;
+  stroke: #879380;
+  stroke-width: 1.5;
+}
+
+.config-graph-edge.hidden > path {
+  stroke: #8b76a5;
+  stroke-dasharray: 5 4;
+}
+
+.config-graph-edge.hidden text {
+  fill: #765f92;
+  font-style: italic;
+}
+
+.config-graph-edge text {
+  fill: #6d7868;
+  paint-order: stroke;
+  stroke: white;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  text-anchor: middle;
+  font-size: 8px;
+}
+
+.config-graph-node rect {
+  fill: #f5f7f2;
+  stroke: #9fac99;
+  stroke-width: 1.3;
+}
+
+.config-graph-node.entry rect {
+  fill: #e5f0e0;
+  stroke: #6f9066;
+  stroke-width: 2;
+}
+
+.config-graph-node.terminal rect {
+  fill: #fbf2d6;
+  stroke: #b99a43;
+  stroke-width: 1.8;
+}
+
+.config-graph-node.extractable rect {
+  fill: #edf6f3;
+  stroke: #7eaaa0;
+}
+
+.config-graph-node.unreachable rect {
+  fill: #fff0ec;
+  stroke: #c77a6c;
+  stroke-dasharray: 4 3;
+}
+
+.config-graph-node text {
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.config-graph-node .name {
+  fill: #344131;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.config-graph-node .id {
+  fill: #7d8778;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 7px;
+}
+
+.config-graph-warning {
+  margin: 0;
+  padding: 6px 8px;
+  color: #984d40;
+  border: 1px solid #e3bdb5;
+  border-radius: 6px;
+  background: #fff3ef;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.config-node-create > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.config-node-create strong {
+  color: #3c473a;
+  font-size: 11px;
+}
+
+.config-node-create small {
+  color: var(--config-muted);
+  font-size: 9px;
+}
+
+.config-node-create > div:last-child {
+  display: flex;
+  gap: 6px;
+}
+
+.config-node-create input {
+  width: 145px;
+  padding: 6px 8px;
+  border: 1px solid #ccd1c8;
+  border-radius: 7px;
+  outline: none;
+  background: white;
+  font-size: 10px;
+}
+
+.config-node-create button {
+  padding: 6px 9px;
+  color: white;
+  border: 0;
+  border-radius: 7px;
+  background: var(--config-accent);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.config-node-loot {
+  border: 1px solid #cfd5cb;
+  border-radius: 9px;
+  overflow: visible;
+  background: white;
+}
+
+.config-node-loot > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: #e9ede5;
+  cursor: pointer;
+  list-style: none;
+}
+
+.config-node-loot > summary::-webkit-details-marker {
+  display: none;
+}
+
+.config-node-loot > summary span {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.config-node-loot > summary strong {
+  font-size: 11px;
+}
+
+.config-node-loot > summary code {
+  overflow: hidden;
+  color: #7d8579;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.config-node-loot > summary em {
+  flex: none;
+  padding: 2px 7px;
+  color: #4d6547;
+  border: 1px solid #c5d0c0;
+  border-radius: 999px;
+  background: #f5f8f2;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.config-node-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.config-node-actions button {
+  padding: 3px 7px;
+  color: #934a3d;
+  border: 1px solid #dfbbb3;
+  border-radius: 6px;
+  background: #fff7f4;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.config-node-loot-body {
+  display: grid;
+  gap: 13px;
+  padding: 12px;
+}
+
+.config-node-terminal {
+  align-self: center;
+  padding: 7px 9px;
+  border: 1px solid #dce1d8;
+  border-radius: 8px;
+  background: #f8f9f6;
+}
+
+.config-node-roles {
+  display: grid;
+  gap: 6px;
+}
+
+.config-start-role {
+  display: grid;
+  align-self: center;
+  gap: 3px;
+  padding: 8px 10px;
+  color: #4d6048;
+  border: 1px solid #d4ddd0;
+  border-radius: 8px;
+  background: #f2f6ef;
+}
+
+.config-start-role strong {
+  font-size: 11px;
+}
+
+.config-start-role small {
+  color: #74806f;
+  font-size: 9px;
+}
+
+.config-start-node-note {
+  padding: 11px 12px;
+  color: #4d6048;
+  border: 1px solid #cbd7c5;
+  border-radius: 8px;
+  background: #edf3e9;
+}
+
+.config-start-node-note strong {
+  font-size: 11px;
+}
+
+.config-start-node-note p {
+  margin: 3px 0 0;
+  color: #6a7865;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.config-loot-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.config-loot-mode-switch button {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  color: #5f685a;
+  border: 1px solid #d3d8cf;
+  border-radius: 8px;
+  background: #f6f7f3;
+  cursor: pointer;
+  text-align: left;
+}
+
+.config-loot-mode-switch button.active {
+  color: #2f412b;
+  border-color: #819478;
+  background: #e8efe4;
+  box-shadow: inset 0 0 0 1px #c9d7c3;
+}
+
+.config-loot-mode-switch strong {
+  font-size: 11px;
+}
+
+.config-loot-mode-switch small {
+  color: inherit;
+  opacity: 0.72;
+  font-size: 9px;
+}
+
+.config-loot-weight-grid,
+.config-count-weight-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(55px, 1fr));
+  gap: 6px;
+}
+
+.config-loot-weight-grid label,
+.config-count-weight-grid label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #e0e4dc;
+  border-radius: 7px;
+  background: #fbfcf9;
+  text-align: center;
+}
+
+.config-loot-weight-grid b,
+.config-count-weight-grid b {
+  overflow: hidden;
+  color: #505a4d;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-loot-weight-grid input,
+.config-count-weight-grid input {
+  min-width: 0;
+  padding: 5px 3px;
+  text-align: center;
+}
+
+.config-loot-weight-grid em,
+.config-count-weight-grid em {
+  color: #698061;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.config-count-weights {
+  padding: 8px;
+  border: 1px dashed #d5dacf;
+  border-radius: 8px;
+}
+
+.config-count-weight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  margin-top: 7px;
+}
+
+.config-loot-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.config-loot-picker {
+  align-content: start;
+  padding: 8px;
+  border: 1px solid #dde1d9;
+  border-radius: 8px;
+  background: #f8f9f6;
+}
+
+.config-loot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.config-loot-chips button {
+  padding: 3px 6px;
+  color: #4a5b45;
+  border: 1px solid #c8d2c3;
+  border-radius: 999px;
+  background: #edf2ea;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.config-loot-chips i {
+  color: #956052;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.config-loot-tag-chips button {
+  color: #5f4c78;
+  border-color: #d2c5df;
+  background: #f2edf7;
+}
+
+.config-loot-tag-chips code {
+  color: #87769b;
+  font-size: 8px;
+}
+
+.config-event-pools {
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #dde1d9;
+  border-radius: 8px;
+  background: #f8f9f6;
+}
+
+.config-event-pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 6px;
+}
+
+.config-event-pool-grid .config-check {
+  padding: 7px;
+  border: 1px solid #d8ded4;
+  border-radius: 7px;
+  background: white;
+}
+
+.config-loot-search {
+  display: grid;
+  gap: 4px;
+}
+
+.config-loot-search > input {
+  padding-left: 27px;
+  background-image: radial-gradient(circle, transparent 4px, #7f8b79 4px, #7f8b79 5px, transparent 5.5px),
+    linear-gradient(45deg, transparent 46%, #7f8b79 47%, #7f8b79 54%, transparent 55%);
+  background-position: 8px 50%, 17px calc(50% + 5px);
+  background-repeat: no-repeat;
+  background-size: 12px 12px, 7px 7px;
+}
+
+.config-item-picker-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(105px, 0.42fr);
+  gap: 5px;
+}
+
+.config-item-picker-controls input,
+.config-item-picker-controls select {
+  min-width: 0;
+  width: 100%;
+  padding: 7px 8px;
+  color: #2f392d;
+  border: 1px solid #ccd1c8;
+  border-radius: 7px;
+  outline: none;
+  background-color: white;
+  font-size: 10px;
+}
+
+.config-item-picker-controls input {
+  padding-left: 27px;
+  background-image: radial-gradient(circle, transparent 4px, #7f8b79 4px, #7f8b79 5px, transparent 5.5px),
+    linear-gradient(45deg, transparent 46%, #7f8b79 47%, #7f8b79 54%, transparent 55%);
+  background-position: 8px 50%, 17px calc(50% + 5px);
+  background-repeat: no-repeat;
+  background-size: 12px 12px, 7px 7px;
+}
+
+.config-item-picker-controls input:focus,
+.config-item-picker-controls select:focus {
+  border-color: #809278;
+}
+
+.config-loot-search-results {
+  display: grid;
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid #ccd4c7;
+  border-radius: 7px;
+  background: white;
+  box-shadow: 0 5px 14px rgba(48, 60, 44, 0.1);
+}
+
+.config-loot-search-results button {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto;
+  gap: 1px 7px;
+  padding: 6px 8px;
+  color: #394536;
+  border: 0;
+  border-bottom: 1px solid #edf0e9;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+}
+
+.config-loot-search-results button:hover,
+.config-loot-search-results button:focus {
+  background: #edf3e9;
+  outline: none;
+}
+
+.config-loot-search-results strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-loot-search-results small {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: #71806b;
+  font-size: 8px;
+}
+
+.config-loot-search-results code {
+  overflow: hidden;
+  color: #91988d;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-loot-search-results > span {
+  padding: 7px 8px;
+  color: #858d81;
+  font-size: 9px;
+}
+
+.config-loot-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.config-loot-section-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.config-loot-section-title > div > span {
+  color: #3c473a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.config-loot-section-title button {
+  flex: none;
+  padding: 5px 8px;
+  color: #4b6145;
+  border: 1px solid #bdcbb7;
+  border-radius: 6px;
+  background: #eef3eb;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.config-first-clear-rewards {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d8dfd3;
+  border-radius: 9px;
+  background: #f6f9f3;
+}
+
+.config-first-clear-rewards small {
+  color: #6a7865;
+  font-size: 9px;
+}
+
+.config-first-clear-list {
+  display: grid;
+  gap: 5px;
+}
+
+.config-first-clear-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto auto;
+  align-items: end;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid #e0e6dc;
+  border-radius: 7px;
+  background: white;
+}
+
+.config-first-clear-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.config-first-clear-row strong {
+  color: #3e4c3a;
+  font-size: 10px;
+}
+
+.config-first-clear-row code,
+.config-first-clear-quantity {
+  color: #7a8575;
+  font-size: 8px;
+}
+
+.config-task-form {
+  gap: 10px;
+}
+
+.config-task-heading {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-left: 3px solid #71866a;
+  background: #edf2ea;
+}
+
+.config-task-heading strong {
+  color: #394735;
+  font-size: 12px;
+}
+
+.config-task-heading small,
+.config-task-block small {
+  color: #707b6c;
+  font-size: 9px;
+}
+
+.config-task-block {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #dce1d7;
+  border-radius: 8px;
+  background: #f8faf6;
+}
+
+.config-task-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 5px;
+}
+
+.config-task-check-grid .config-check {
+  padding: 7px;
+  border: 1px solid #dce1d7;
+  border-radius: 7px;
+  background: white;
+}
+
+.config-task-item-list {
+  display: grid;
+  gap: 5px;
+}
+
+.config-task-item-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 90px auto;
+  align-items: end;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid #dfe4da;
+  border-radius: 7px;
+  background: white;
+}
+
+.config-task-item-row > div,
+.config-task-item-row label {
+  display: grid;
+  gap: 2px;
+}
+
+.config-task-item-row strong {
+  color: #3e493a;
+  font-size: 10px;
+}
+
+.config-task-item-row code,
+.config-task-item-row label {
+  color: #788174;
+  font-size: 8px;
+}
+
+.config-task-item-row input,
+.config-task-number-toggle > input[type="number"] {
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid #cdd3c8;
+  border-radius: 6px;
+}
+
+.config-task-number-toggle > input[type="number"] {
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.config-task-item-row button {
+  padding: 5px 8px;
+  color: #934c3e;
+  border: 1px solid #dfbcb4;
+  border-radius: 6px;
+  background: #fff5f2;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.config-task-number-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr) 120px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid #dce1d7;
+  border-radius: 8px;
+  background: #f8faf6;
+}
+
+/* ── 事件与事件池表单 ────────────────────────────────────── */
+
+.config-event-form,
+.config-event-pool-form {
+  gap: 10px;
+}
+
+.config-event-gate,
+.config-event-outcomes {
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #dce1d7;
+  border-radius: 8px;
+  background: #f8faf6;
+}
+
+.config-event-gate > .config-check {
+  padding-bottom: 3px;
+}
+
+.config-event-outcomes > strong {
+  color: #394735;
+  font-size: 11px;
+}
+
+.config-event-outcomes > p {
+  margin: 0;
+  color: #6f796b;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.config-event-outcomes > div {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 4px 8px;
+}
+
+.config-event-outcomes span {
+  color: #44533f;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.config-event-outcomes small {
+  color: #707b6c;
+  font-size: 9px;
+}
+
+.config-event-choice-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.config-event-choice-heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.config-event-choice-heading button {
+  padding: 5px 8px;
+  color: #40553b;
+  border: 1px solid #bfcbb9;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.config-event-choice {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #cfd7ca;
+  border-radius: 9px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(45, 57, 41, 0.06);
+}
+
+.config-event-choice > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #e5e9e1;
+}
+
+.config-event-choice > header > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.config-event-choice > header strong {
+  overflow: hidden;
+  color: #33402f;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-event-choice > header code {
+  color: #879080;
+  font-size: 8px;
+}
+
+.config-event-choice-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.config-event-choice-actions button {
+  padding: 4px 6px;
+  color: #596554;
+  border: 1px solid #d1d7cd;
+  border-radius: 5px;
+  background: #f8faf6;
+  cursor: pointer;
+  font-size: 8px;
+}
+
+.config-event-choice-actions button.danger {
+  color: #934c3e;
+  border-color: #dfbcb4;
+  background: #fff5f2;
+}
+
+.config-event-choice-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.config-event-reward-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.config-event-secondary-resolution {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid #cad6c4;
+  border-radius: 8px;
+  background: #f4f8f1;
+}
+
+.config-event-secondary-resolution > small {
+  color: #687663;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.config-event-leave-note {
+  padding: 9px 10px;
+  color: #687067;
+  border: 1px solid #d6d9d3;
+  border-radius: 8px;
+  background: #f5f6f3;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.config-event-pool-list {
+  align-content: start;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+@media (max-width: 980px) {
+  .config-event-reward-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.config-composition-scroll {
+  overflow-x: auto;
+  border: 1px solid #d9ded5;
+  border-radius: 7px;
+}
+
+.config-composition-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  background: white;
+  font-size: 9px;
+}
+
+.config-composition-table th,
+.config-composition-table td {
+  padding: 5px 4px;
+  border-bottom: 1px solid #e5e8e1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.config-composition-table th {
+  color: #687164;
+  background: #f0f2ed;
+  font-weight: 700;
+}
+
+.config-composition-table th:first-child,
+.config-composition-table td:first-child {
+  width: 130px;
+  text-align: left;
+}
+
+.config-composition-table input {
+  width: 46px;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid #d3d8cf;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.config-composition-table td:first-child input {
+  width: 120px;
+  text-align: left;
+}
+
+.config-composition-table .config-probability {
+  color: #597052;
+  font-weight: 700;
+}
+
+.config-composition-table .config-total {
+  color: #4d6547;
+  font-weight: 800;
+}
+
+.config-composition-table .config-total.invalid {
+  color: #a1493a;
+  background: #fff0ec;
+}
+
+.config-row-delete {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: #a1493a;
+  border: 1px solid #e1bbb3;
+  border-radius: 5px;
+  background: #fff6f3;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.config-route-editor {
+  padding-top: 12px;
+  border-top: 1px solid #e0e4dc;
+}
+
+.config-loot-section-title button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.config-route-list {
+  display: grid;
+  gap: 7px;
+}
+
+.config-route-row {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid #dce1d8;
+  border-radius: 8px;
+  background: #f9faf7;
+}
+
+.config-route-row-head {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(110px, 1.2fr) minmax(140px, 1.5fr) 75px 24px;
+  gap: 7px;
+  align-items: end;
+}
+
+.config-route-row-head .config-row-delete {
+  margin-bottom: 1px;
+}
+
+.config-route-duration input {
+  text-align: center;
+}
+
+.config-route-conditions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.config-route-condition {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid #dce2d8;
+  border-radius: 7px;
+  background: white;
+}
+
+.config-route-condition-fields {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto 58px;
+  align-items: center;
+  gap: 5px;
+}
+
+.config-route-condition-fields > span {
+  color: #687464;
+  text-align: center;
+  font-size: 10px;
+}
+
+.config-route-condition-fields input {
+  text-align: center;
+}
+
+.config-route-tag-fields {
+  display: grid;
+  gap: 7px;
+}
+
+.config-route-tag-fields .compact {
+  display: flex;
+  padding: 5px 7px;
+  border: 1px dashed #cbd4c6;
+  border-radius: 6px;
+  background: #f4f7f1;
+}
+
+.config-route-tag-fields .compact span {
+  font-size: 9px;
+}
+
+@media (max-width: 980px) {
+  .config-map-basics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .config-map-basics .config-field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .config-loot-filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .config-route-row-head {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .config-route-conditions {
+    grid-template-columns: 1fr;
+  }
+
+  .config-route-row-head .config-row-delete {
+    align-self: end;
+  }
+}
+
+.config-editor textarea {
+  width: 100%;
+  min-height: 0;
+  padding: 13px;
+  resize: none;
+  color: #243023;
+  border: 1px solid #cdd2c9;
+  border-radius: 9px;
+  outline: none;
+  background: #f4f6f1;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.config-editor textarea:focus {
+  border-color: #82927b;
+  background: white;
+}
+
+.config-editor-error {
+  margin: 7px 0 0;
+  color: #a1493a;
+  font-size: 10px;
+}
+
+.config-save {
+  margin-top: 9px;
+  padding: 9px 12px;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  background: var(--config-accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.config-issues {
+  padding: 13px 11px;
+  overflow-y: auto;
+  border-right: 0;
+  background: #eceee8;
+}
+
+.config-issues > div {
+  justify-content: space-between;
+}
+
+.config-issues ol {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-issues li {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-left: 3px solid #ad5747;
+  border-radius: 5px;
+  background: #fff5f1;
+  font-size: 9px;
+}
+
+.config-issues li.warning {
+  border-color: #a98243;
+  background: #fff8e9;
+}
+
+.config-issues code {
+  overflow-wrap: anywhere;
+  color: #765149;
+}
+
+.config-ok {
+  padding: 11px;
+  color: #4f6848;
+  border-radius: 7px;
+  background: #e1ecdc;
+  font-size: 10px;
+}
+
+.config-empty {
+  padding: 18px 10px;
+  color: #81877e;
+  text-align: center;
+  font-size: 11px;
+}
+
+@media (max-width: 1100px) {
+  .config-workspace {
+    grid-template-columns: 150px 220px minmax(340px, 1fr);
+  }
+
+  .config-issues {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .config-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .config-workspace {
+    grid-template-columns: 120px 1fr;
+  }
+
+  .config-records {
+    display: none;
+  }
+
+  .config-editor {
+    grid-column: 2;
+  }
+}

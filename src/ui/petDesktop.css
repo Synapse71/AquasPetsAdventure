@@ -1,0 +1,35 @@
+.pet-client { position: fixed; inset: 0; overflow: hidden; }
+.pet-anchor { position: absolute; --body: calc(var(--canvas) * .47); --bubble: calc((var(--body) - 16px) / 5); user-select: none; }
+.pet-hit { position: absolute; top: 48px; left: 0; width: var(--canvas); height: calc(var(--canvas) * .94); background: none; border: 0; padding: 0; touch-action: none; outline: none; }
+.pet-hit canvas { display: block; width: 100%; height: 100%; transition: transform 140ms ease; }
+.pet-hit:active canvas { transform: scale(.96); }
+.pet-hit:focus,.pet-hit:focus-visible { outline: none; }
+.pet-bubbles { position: absolute; top: calc(48px + var(--canvas) * .94); left: 50%; transform: translateX(-50%); display: flex; gap: 4px; width: var(--body); pointer-events: none; }
+.pet-bubbles button { width: var(--bubble); height: var(--bubble); flex: none; border-radius: 50%; border: 1px solid #c9c6bd; padding: 0; display: grid; place-items: center; background: #fffefaeb; opacity: 0; transform: scale(.4) translateY(-8px); transition: transform 170ms cubic-bezier(.4,0,1,1), opacity 170ms; transition-delay: calc((4 - var(--i)) * 30ms); }
+.pet-bubbles.open button { opacity: 1; transform: none; pointer-events: auto; transition: transform 240ms cubic-bezier(.34,1.56,.64,1), opacity 240ms; transition-delay: calc(var(--i) * 45ms); }
+.pet-bubbles button:hover { background: #fff; box-shadow: 0 2px 6px #38332933; }
+.pet-bubbles img { width: 92%; height: 92%; object-fit: contain; pointer-events: none; }
+.pet-bulb { position: absolute; left: 79.375%; top: calc(48px + var(--canvas) * .93958 * .051); width: 13.333%; aspect-ratio: 128 / 190; border: 0; padding: 0; background: none; }
+.pet-bulb img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.pet-bulb:hover { transform: scale(1.06); }
+.pet-travel { position: absolute; width: var(--body); left: 50%; top: calc(48px + var(--canvas) * .94 * .037 - 8px); transform: translate(-50%, -100%); padding: 6px 7px; border: 1px solid #d3d0c5; border-radius: 9px; background: #fffefaeb; color: #49463e; font-size: 10px; pointer-events: none; }
+.pet-travel > div:first-child { display: flex; gap: 6px; justify-content: space-between; align-items: center; }
+.pet-travel span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pet-travel time { font-variant-numeric: tabular-nums; flex: none; }
+.pet-travel-track { height: 3px; border-radius: 3px; background: #d6d8cc; margin-top: 4px; overflow: hidden; }
+.pet-travel-track i { display: block; height: 100%; background: #81906a; }
+.pet-panel-host { position: absolute; z-index: 10; }
+.pet-panel-host[hidden], .pet-panel-host [hidden] { display: none !important; }
+.pet-panel-host .window-layer { position: absolute; inset: 0; animation: none; }
+.pet-panel-host .game-window { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; transform: none; animation: none; border-radius: 14px; background: #f9f8f2; }
+.pet-panel-host .window-content { padding: 16px; }
+.pet-panel-host .window-titlebar { padding: 12px 16px; }
+.pet-panel-host .window-icon img { width: 28px; height: 28px; }
+.pet-panel-host .window-titlebar h1 { font-family: inherit; font-weight: 600; }
+.pet-panel-host .window-titlebar p { font-size: 11px; }
+.pet-asset-error { position: absolute; top: 12px; width: 100%; color: #a33; text-align: center; }
+.desktop-settings { display: grid; gap: 18px; }
+.desktop-settings label { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.desktop-settings input[type=range] { width: 200px; }
+.desktop-notice { position: absolute; z-index: 100; bottom: 12px; left: 12px; right: 12px; padding: 12px; background: #fff2d8; border: 1px solid #dfbb78; border-radius: 10px; }
+.desktop-notice button { float: right; border: 0; background: none; }

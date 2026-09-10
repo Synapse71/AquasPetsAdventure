@@ -1,0 +1,119 @@
+{
+  "idle-magnifier": {
+    "file": "idle-magnifier.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "idle-digging": {
+    "file": "idle-digging.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "blink-plain": {
+    "file": "blink-plain.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "blink-breath": {
+    "file": "blink-breath.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "blink-tilt": {
+    "file": "blink-tilt.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "walk": {
+    "file": "walk.webp",
+    "frames": 115,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": true
+  },
+  "sleep-start": {
+    "file": "sleep-start.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "sleep-loop": {
+    "file": "sleep-loop.webp",
+    "frames": 110,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": true
+  },
+  "sleep-end": {
+    "file": "sleep-end.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "win-chest": {
+    "file": "win-chest.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "lose-bag": {
+    "file": "lose-bag.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "bulb-hint": {
+    "file": "bulb-hint.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "start-explore": {
+    "file": "start-explore.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  }
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>咕咕嘎嘎 · v2 切图验收</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101216;color:#e8e9ed;font:15px system-ui,sans-serif}
+main{max-width:1000px;margin:32px auto;padding:0 24px}h1{font-size:24px}p{color:#aeb5c1;line-height:1.7}
+nav,.controls{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}button,select{font:inherit;color:inherit;background:#272b35;border:1px solid #464d5c;border-radius:8px;padding:9px 14px;cursor:pointer}
+button[aria-pressed=true]{border-color:#90bf9b;background:#33483b}.compare{display:grid;grid-template-columns:1fr 1fr;border:1px solid #353b46;border-radius:12px;overflow:hidden;background:#181b21}
+.panel{display:flex;align-items:center;flex-direction:column;padding:16px 0}.panel+ .panel{border-left:1px solid #505563}.label{color:#fff;background:#171a22cc;padding:5px 14px;border-radius:6px}
+.sprite{width:300px;height:282px;background-repeat:no-repeat;flex-shrink:0}.stage{height:440px;display:flex;align-items:center;justify-content:center;width:100%;overflow:auto}
+input[type=range]{flex:1;min-width:160px}#frame{min-width:110px;font-variant-numeric:tabular-nums}.note{padding:12px 16px;background:#202631;border-radius:8px}a{color:#b3d8b9}
+</style>
+<main><h1>咕咕嘎嘎 · v2 切图验收</h1>
+<p>左侧：游戏现用素材。右侧：新版完整打包。13 段 / 24fps；可暂停拖动进度，或切换背景检查发梢透明缝隙。此页不修改游戏素材。</p>
+<nav><select id="clip" aria-label="动画"></select><select id="scale" aria-label="缩放"><option value="1">原尺寸 300px</option><option value="1.5">放大 1.5×</option></select></nav>
+<div class="controls" id="backgrounds"><button data-bg="#181b21" aria-pressed="true">深色底</button><button data-bg="#686c74">灰底</button><button data-bg="#bf179d">品红底</button><button data-bg="#eeeae2">浅色底</button><button data-bg="checker">透明棋盘</button></div>
+<div class="compare" id="compare"><section class="panel"><span class="label">当前游戏素材</span><div class="stage"><div id="before" class="sprite"></div></div></section><section class="panel"><span class="label">v2 新版</span><div class="stage"><div id="after" class="sprite"></div></div></section></div>
+<div class="controls"><button id="play">暂停</button><button id="prev">上一帧</button><button id="next">下一帧</button><input id="seek" aria-label="帧进度" type="range" min="0" value="0"><span id="frame"></span></div>
+<p class="note" id="note"></p><p><a id="download">打开该段透明动画 WebP</a> · <a href="overview.jpg">全部动作概览</a></p></main>
+<script>
+const manifest=__MANIFEST__, names=__NAMES__;
+const $=id=>document.getElementById(id), selector=$('clip');
+for(const key of Object.keys(manifest)){const o=document.createElement('option');o.value=key;o.textContent=names[key]+' · '+key;selector.append(o)}
+let key='blink-plain',f=0,playing=true,previous=0,elapsed=0;
+function draw(){const m=manifest[key], pos=`${-(f%m.columns)*m.width}px ${-Math.floor(f/m.columns)*m.height}px`;$('before').style.backgroundPosition=pos;$('after').style.backgroundPosition=pos;$('seek').value=f;$('frame').textContent=`${f+1} / ${m.frames}`}
+function choose(){key=selector.value;f=0;elapsed=0;const m=manifest[key];$('before').style.backgroundImage=`url("before/${m.file}")`;$('after').style.backgroundImage=`url("${m.file}")`;$('seek').max=m.frames-1;$('download').href=`animated/${m.file}`;$('note').textContent=['blink-plain','blink-breath','blink-tilt','bulb-hint'].includes(key)?'此段已应用 v2：外轮廓去白边 + 发梢窄缝恢复透明。':'此段沿用旧软透明抠图，母版像素原样保留，仅重新打包；未强行套用硬边修复。';draw()}
+function pause(){playing=false;$('play').textContent='播放'}
+selector.value=key;selector.addEventListener('change',choose);choose();
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'暂停':'播放';elapsed=0};
+$('prev').onclick=()=>{pause();f=(f-1+manifest[key].frames)%manifest[key].frames;draw()};$('next').onclick=()=>{pause();f=(f+1)%manifest[key].frames;draw()};
+$('seek').oninput=()=>{pause();f=Number($('seek').value);draw()};
+$('scale').onchange=()=>{for(const id of ['before','after'])$(id).style.transform=`scale(${$('scale').value})`};
+$('backgrounds').onclick=e=>{const bg=e.target.dataset.bg;if(!bg)return;for(const b of $('backgrounds').children)b.setAttribute('aria-pressed',b===e.target);$('compare').style.background=bg==='checker'?'repeating-conic-gradient(#aaa 0% 25%,#ddd 0% 50%) 0 / 24px 24px':bg};
+function tick(now){if(previous&&playing){elapsed+=Math.min(now-previous,150);const step=1000/manifest[key].fps;if(elapsed>=step){const n=Math.floor(elapsed/step);elapsed-=n*step;f=(f+n)%manifest[key].frames;draw()}}previous=now;requestAnimationFrame(tick)}requestAnimationFrame(tick);
+</script></html>

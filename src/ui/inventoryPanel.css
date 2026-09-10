@@ -1,0 +1,101 @@
+/* Inventory prototype: tabbed cargo view, seven-column warehouse, item details.
+   All overlays stay inside the fixed outer frame; no window shadows. */
+.pet-panel-host .game-window.window-inventory { display:block; background:var(--ip-panel); color:var(--ip-ink); --ip-panel:#fff; --ip-ink:#191c22; --ip-secondary:#5f6573; --ip-muted:#8990a0; --ip-line:#dee0e8; --ip-field:#f4f5f8; --ip-accent:#b47c08; --ip-warn:#c2452a; --ip-ok:#3f8f6a; }
+.inventory-panel { height:100%; min-height:0; display:grid; grid-template-rows:52px minmax(0,1fr); position:relative; font-size:13px; line-height:1.5; color:var(--ip-ink); }
+.inventory-panel button,.inventory-panel input,.inventory-panel select { font:inherit; color:inherit; }
+.inventory-panel button { border:1px solid var(--ip-line); background:var(--ip-panel); border-radius:7px; padding:5px 10px; }
+.inventory-panel button:hover:not(:disabled) { border-color:var(--ip-accent); }
+.inventory-panel button:focus-visible,.inventory-panel input:focus-visible,.inventory-panel select:focus-visible { outline:2px solid var(--ip-accent); outline-offset:2px; }
+.inventory-panel p { margin:0; }
+.ip-warehouse-page { display:grid; grid-template-rows:52px minmax(0,1fr) 46px; min-height:0; }
+.ip-cargo-page { overflow:auto; min-height:0; scrollbar-width:thin; }
+.ip-transit { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:16px; background:var(--ip-field); border-bottom:1px solid var(--ip-line); min-width:0; }
+.ip-idle { color:var(--ip-muted); font-size:13px; padding:70px 0; width:100%; text-align:center; }
+.ip-expedition-label { flex:none; font-size:12px; font-weight:650; }
+.ip-expedition-label select { max-width:140px; background:var(--ip-panel); border:1px solid var(--ip-line); border-radius:5px; }
+.ip-cargo-slots { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:8px; order:1; width:100%; }
+.ip-slot { aspect-ratio:1; min-width:0; border:1px dashed var(--ip-line); border-radius:7px; flex:none; position:relative; background:var(--ip-panel); overflow:hidden; }
+.ip-slot.filled { border-style:solid; border-color:transparent; }
+.ip-slot img,.ip-cell img,.ip-detail-art img { position:absolute; inset:9%; width:82%; height:82%; object-fit:contain; pointer-events:none; }
+.ip-qty { position:absolute; right:3px; bottom:2px; font-size:16px; font-weight:700; line-height:1.2; color:#22252c; background:#ffffffe0; border-radius:5px; padding:0 4px; font-variant-numeric:tabular-nums; pointer-events:none; }
+.ip-slot .ip-qty { font-size:13px; right:2px; bottom:1px; padding:0 3px; }
+.ip-gauge { display:flex; gap:6px; align-items:center; white-space:nowrap; font-size:12px; color:var(--ip-secondary); font-variant-numeric:tabular-nums; }
+.ip-track { width:62px; height:5px; border-radius:4px; overflow:hidden; background:var(--ip-line); }
+.ip-track i { display:block; height:100%; background:var(--ip-ok); }
+.ip-gauge.over,.ip-warning { color:var(--ip-warn); }
+.ip-gauge.over .ip-track i { background:var(--ip-warn); }
+.ip-cargo-list { background:var(--ip-panel); }
+.ip-cargo-heading,.ip-cargo-row { display:flex; gap:12px; align-items:center; padding:7px 16px; border-bottom:1px solid var(--ip-line); }
+.ip-cargo-heading { justify-content:space-between; font-size:12px; color:var(--ip-secondary); }
+.ip-row-art { position:relative; width:28px; height:28px; flex:none; }
+.ip-row-art img { width:100%; height:100%; object-fit:contain; }
+.ip-row-name { flex:1; }
+.ip-cargo-row > span:not(.ip-row-name) { width:70px; text-align:right; font-variant-numeric:tabular-nums; }
+.inventory-panel .ip-drop { color:var(--ip-warn); }
+.inventory-panel .ip-overload { padding:9px 16px; color:var(--ip-warn); background:color-mix(in srgb,var(--ip-warn) 7%,transparent); font-size:12px; }
+.ip-cargo-list > .ip-hint { padding:10px 16px; }
+.ip-header,.ip-toolbar { display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid var(--ip-line); }
+.ip-header h1 { font-size:15px; font-weight:650; margin:0 4px 0 0; }
+.ip-tabs { display:flex; gap:3px; }
+.inventory-panel .ip-tabs button { border-color:transparent; border-radius:999px; font-size:12px; padding:3px 12px; }
+.inventory-panel .ip-tabs button[aria-pressed=true] { border-color:var(--ip-line); background:var(--ip-field); }
+.ip-sort { display:flex; background:var(--ip-field); padding:2px; border-radius:8px; }
+.inventory-panel .ip-sort button { font-size:12px; background:none; border:0; padding:4px 10px; color:var(--ip-secondary); }
+.inventory-panel .ip-sort button[aria-pressed=true] { background:var(--ip-panel); color:var(--ip-ink); font-weight:600; }
+.inventory-panel .ip-direction { background:var(--ip-field); border:0; padding:4px 10px; }
+.ip-bulk-toggle,.ip-reports { font-size:12px !important; }
+.inventory-panel .ip-bulk-toggle[aria-pressed=true] { background:var(--ip-accent); color:#fff; border-color:var(--ip-accent); }
+.ip-coin { display:inline-flex; align-items:center; justify-content:flex-end; gap:5px; font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ip-coin img { width:18px; height:18px; object-fit:contain; }
+.ip-header > .ip-coin { margin-left:auto; font-size:15px; }
+.inventory-panel .ip-close { font-size:24px; border:0; background:none; line-height:1; padding:4px; color:var(--ip-muted); }
+.ip-body { display:grid; grid-template-columns:minmax(0,1fr) 250px; min-height:0; }
+.ip-grid-wrap { padding:14px 16px; overflow:auto; min-width:0; min-height:0; scrollbar-width:thin; }
+.ip-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
+.inventory-panel .ip-cell { aspect-ratio:1; min-width:0; position:relative; border:2px solid transparent; border-radius:9px; padding:0; overflow:hidden; }
+.ip-cell.empty { border:1px dashed var(--ip-line); background:var(--ip-field); }
+.inventory-panel .ip-cell[aria-pressed=true] { border-color:var(--ip-ink); }
+.inventory-panel .ip-cell.picked { border-color:var(--ip-accent); }
+.ip-lock { position:absolute; top:3px; right:3px; width:16px; height:16px; color:#4e5360; background:#ffffffe0; border-radius:4px; }
+.ip-lock svg { width:100%; height:100%; display:block; }
+.ip-tick { position:absolute; top:1px; left:3px; font-weight:800; color:#714d00; background:#ffffffe0; border-radius:3px; padding:0 3px; }
+.ip-missing-art { position:absolute; inset:0; display:grid; place-items:center; font-size:24px; color:#525762; }
+.ip-detail { border-left:1px solid var(--ip-line); padding:16px; overflow:auto; min-height:0; scrollbar-width:thin; }
+.ip-detail-art { position:relative; width:112px; height:112px; border-radius:13px; overflow:hidden; margin:0 auto 10px; }
+.inventory-panel .ip-description { height:39px; margin:0 0 8px; line-height:1.5; font-size:13px; font-style:italic; color:var(--ip-ok); text-align:center; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.ip-detail dl { margin:0; }
+.ip-detail dl > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; border-bottom:1px solid var(--ip-line); padding:6px 0; }
+.ip-detail dt { color:var(--ip-muted); flex:none; font-size:12px; }
+.ip-detail dd { margin:0; text-align:right; font-weight:600; overflow-wrap:anywhere; }
+.ip-detail small { font-size:11px; font-weight:400; color:var(--ip-muted); display:block; }
+.ip-rarity { border-radius:999px; padding:2px 10px; color:#22252c; font-size:12px; }
+.ip-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:10px; }
+.ip-tags span { padding:1px 7px; background:var(--ip-field); color:var(--ip-secondary); border-radius:5px; font-size:11px; }
+.inventory-panel .ip-effect { color:var(--ip-secondary); font-size:11px; margin-top:10px; }
+.ip-footer { display:flex; gap:12px; align-items:center; border-top:1px solid var(--ip-line); padding:0 16px; font-size:12px; white-space:nowrap; }
+.ip-feedback { margin-left:auto; overflow:hidden; text-overflow:ellipsis; color:var(--ip-muted); }
+.ip-footer .ip-bulk-sell { margin-left:auto; }
+.inventory-panel .ip-bulk-note { font-size:11px; color:var(--ip-muted); margin-bottom:8px; }
+.inventory-panel .ip-empty { color:var(--ip-muted); text-align:center; padding:16px 0; }
+.ip-menu { position:absolute; z-index:30; min-width:140px; padding:4px; border:1px solid #aeb2ba; border-radius:9px; background:var(--ip-panel); display:flex; flex-direction:column; }
+.inventory-panel .ip-menu button { text-align:left; border:0; padding:7px 12px; }
+.inventory-panel .ip-menu button:hover:not(:disabled) { background:var(--ip-field); }
+.ip-mask { position:absolute; inset:0; z-index:40; background:#14181e66; display:grid; place-items:center; padding:16px; }
+.ip-dialog { width:370px; max-width:100%; max-height:100%; overflow:auto; border:1px solid #aeb2ba; border-radius:12px; background:var(--ip-panel); padding:18px; }
+.ip-dialog.reports { width:650px; }
+.ip-dialog h2 { font-size:16px; margin:0 0 12px; }
+.ip-dialog .ip-hint,.ip-dialog .ip-warning { font-size:12px; margin:10px 0; }
+.ip-hint { color:var(--ip-secondary); }
+.ip-dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.inventory-panel .ip-primary { background:var(--ip-accent); border-color:var(--ip-accent); color:#fff; font-weight:600; }
+.ip-quantity { display:flex; align-items:center; justify-content:center; gap:8px; margin:12px 0; }
+.ip-quantity input { width:80px; background:var(--ip-field); border:1px solid var(--ip-line); border-radius:7px; padding:5px; text-align:center; }
+.ip-sale-lines { list-style:none; margin:10px 0; padding:0; max-height:210px; overflow:auto; }
+.ip-sale-lines li { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid var(--ip-line); }
+.ip-sale-total { text-align:right; }
+.ip-pet-list { display:flex; flex-direction:column; gap:8px; }
+.inventory-panel .ip-pet-choice { text-align:left; display:flex; flex-direction:column; gap:4px; padding:10px; }
+.inventory-panel .ip-pet-choice[aria-pressed=true] { border-color:var(--ip-accent); background:var(--ip-field); }
+.ip-pet-choice span { color:var(--ip-secondary); font-size:12px; }
+.ip-reports-body { max-height:380px; overflow:auto; }
+@media(prefers-color-scheme:dark) { .pet-panel-host .game-window.window-inventory { --ip-panel:#1a1d24; --ip-ink:#e9ebf1; --ip-secondary:#949bab; --ip-muted:#7b8393; --ip-line:#353b47; --ip-field:#22262f; --ip-accent:#a87606; --ip-warn:#e8735a; --ip-ok:#63b892; } }

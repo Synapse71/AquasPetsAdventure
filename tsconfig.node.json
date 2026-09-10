@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "vite.config.ts",
+    "configPublishPlugin.ts",
+    "src/config/catalogStore.ts",
+    "src/domain/catalog.ts",
+    "src/domain/catalog.bundled.json",
+    "src/domain/engine.ts",
+    "src/domain/itemTags.ts",
+    "src/domain/milestones.ts",
+    "src/domain/rarity.ts",
+    "src/domain/types.ts"
+  ]
+}

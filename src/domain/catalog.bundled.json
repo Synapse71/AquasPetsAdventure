@@ -1,0 +1,2324 @@
+{
+  "items": {
+    "cloth-strip": {
+      "id": "cloth-strip",
+      "name": "布条",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 5,
+      "tags": [
+        "material"
+      ]
+    },
+    "paper": {
+      "id": "paper",
+      "name": "纸张",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 2,
+      "tags": [
+        "material"
+      ]
+    },
+    "glass-shard": {
+      "id": "glass-shard",
+      "name": "玻璃碎片",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 40,
+      "sellable": true,
+      "sellValue": 1
+    },
+    "rubber-block": {
+      "id": "rubber-block",
+      "name": "橡胶块",
+      "rarity": "common",
+      "weight": 0.4,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 10,
+      "tags": [
+        "material"
+      ]
+    },
+    "wood-strip": {
+      "id": "wood-strip",
+      "name": "木条",
+      "rarity": "common",
+      "weight": 1.2,
+      "stackSize": 8,
+      "sellable": true,
+      "sellValue": 9,
+      "tags": [
+        "material"
+      ]
+    },
+    "hemp-rope": {
+      "id": "hemp-rope",
+      "name": "麻绳",
+      "rarity": "common",
+      "weight": 0.3,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 6,
+      "tags": [
+        "material",
+        "tool"
+      ]
+    },
+    "fur": {
+      "id": "fur",
+      "name": "毛皮",
+      "rarity": "common",
+      "weight": 0.6,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 30,
+      "tags": [
+        "material"
+      ]
+    },
+    "iron-sheet": {
+      "id": "iron-sheet",
+      "name": "铁片",
+      "rarity": "common",
+      "weight": 0.5,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 15,
+      "tags": [
+        "material"
+      ]
+    },
+    "keycap": {
+      "id": "keycap",
+      "name": "键帽",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 3
+    },
+    "bulb": {
+      "id": "bulb",
+      "name": "灯泡",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 8,
+      "tags": [
+        "material"
+      ]
+    },
+    "spring": {
+      "id": "spring",
+      "name": "弹簧",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 4,
+      "tags": [
+        "material"
+      ]
+    },
+    "screw": {
+      "id": "screw",
+      "name": "螺丝",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 3,
+      "tags": [
+        "material"
+      ]
+    },
+    "nail": {
+      "id": "nail",
+      "name": "钉子",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 2,
+      "tags": [
+        "material"
+      ]
+    },
+    "battery": {
+      "id": "battery",
+      "name": "电池",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 15,
+      "tags": [
+        "material"
+      ]
+    },
+    "magnet": {
+      "id": "magnet",
+      "name": "磁铁",
+      "rarity": "common",
+      "weight": 0.4,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 9,
+      "tags": [
+        "tool",
+        "material"
+      ]
+    },
+    "bearing": {
+      "id": "bearing",
+      "name": "轴承",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 10,
+      "tags": [
+        "material"
+      ]
+    },
+    "gear": {
+      "id": "gear",
+      "name": "齿轮",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 5,
+      "tags": [
+        "material"
+      ]
+    },
+    "wire-cable": {
+      "id": "wire-cable",
+      "name": "电线",
+      "rarity": "common",
+      "weight": 0.4,
+      "stackSize": 8,
+      "sellable": true,
+      "sellValue": 7,
+      "tags": [
+        "material"
+      ]
+    },
+    "scissors": {
+      "id": "scissors",
+      "name": "剪刀",
+      "rarity": "common",
+      "weight": 0.6,
+      "sellable": true,
+      "sellValue": 15,
+      "tags": [
+        "tool"
+      ]
+    },
+    "screwdriver": {
+      "id": "screwdriver",
+      "name": "螺丝刀",
+      "rarity": "common",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 18,
+      "tags": [
+        "tool"
+      ]
+    },
+    "tape-measure": {
+      "id": "tape-measure",
+      "name": "卷尺",
+      "rarity": "common",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 21,
+      "tags": [
+        "tool"
+      ]
+    },
+    "duct-tape": {
+      "id": "duct-tape",
+      "name": "胶带",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 12,
+      "sellable": true,
+      "sellValue": 7,
+      "tags": [
+        "tool",
+        "material"
+      ]
+    },
+    "wrench": {
+      "id": "wrench",
+      "name": "扳手",
+      "rarity": "common",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 24,
+      "tags": [
+        "tool"
+      ]
+    },
+    "hammer": {
+      "id": "hammer",
+      "name": "锤子",
+      "rarity": "common",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 50,
+      "tags": [
+        "tool"
+      ]
+    },
+    "plastic-cup": {
+      "id": "plastic-cup",
+      "name": "塑料杯子",
+      "rarity": "common",
+      "weight": 0.3,
+      "sellable": true,
+      "sellValue": 20,
+      "tags": [
+        "tool"
+      ]
+    },
+    "soda-can": {
+      "id": "soda-can",
+      "name": "易拉罐",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 5
+    },
+    "empty-bottle": {
+      "id": "empty-bottle",
+      "name": "空塑料瓶",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 2
+    },
+    "poop": {
+      "id": "poop",
+      "name": "便便",
+      "rarity": "common",
+      "weight": 0.2,
+      "stackSize": 20,
+      "sellable": true,
+      "sellValue": 1
+    },
+    "old-newspaper": {
+      "id": "old-newspaper",
+      "name": "旧报纸",
+      "rarity": "common",
+      "weight": 0.4,
+      "stackSize": 8,
+      "sellable": true,
+      "sellValue": 3
+    },
+    "ceramic-shard": {
+      "id": "ceramic-shard",
+      "name": "碎瓷片",
+      "rarity": "common",
+      "weight": 0.1,
+      "stackSize": 40,
+      "sellable": true,
+      "sellValue": 2
+    },
+    "chocolate": {
+      "id": "chocolate",
+      "name": "巧克力",
+      "rarity": "uncommon",
+      "weight": 0.3,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 12,
+      "tags": [
+        "food"
+      ]
+    },
+    "canned-food": {
+      "id": "canned-food",
+      "name": "罐头",
+      "rarity": "uncommon",
+      "weight": 0.5,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 29,
+      "tags": [
+        "food"
+      ]
+    },
+    "coffee-beans": {
+      "id": "coffee-beans",
+      "name": "咖啡豆",
+      "rarity": "uncommon",
+      "weight": 0.2,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 13,
+      "tags": [
+        "material",
+        "food"
+      ]
+    },
+    "honey": {
+      "id": "honey",
+      "name": "蜂蜜",
+      "rarity": "uncommon",
+      "weight": 0.7,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 36,
+      "tags": [
+        "food"
+      ]
+    },
+    "red-wine": {
+      "id": "red-wine",
+      "name": "红酒",
+      "rarity": "uncommon",
+      "weight": 1.2,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 150,
+      "tags": [
+        "food"
+      ]
+    },
+    "thermos": {
+      "id": "thermos",
+      "name": "保温杯",
+      "rarity": "uncommon",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 79
+    },
+    "electric-razor": {
+      "id": "electric-razor",
+      "name": "电动剃须刀",
+      "rarity": "uncommon",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 121
+    },
+    "umbrella": {
+      "id": "umbrella",
+      "name": "雨伞",
+      "rarity": "uncommon",
+      "weight": 1.3,
+      "sellable": true,
+      "sellValue": 79,
+      "tags": [
+        "tool"
+      ]
+    },
+    "hair-dryer": {
+      "id": "hair-dryer",
+      "name": "电吹风",
+      "rarity": "uncommon",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 83
+    },
+    "desk-lamp": {
+      "id": "desk-lamp",
+      "name": "台灯",
+      "rarity": "uncommon",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 50
+    },
+    "cast-iron-pan": {
+      "id": "cast-iron-pan",
+      "name": "铸铁锅",
+      "rarity": "uncommon",
+      "weight": 4,
+      "sellable": true,
+      "sellValue": 85,
+      "tags": [
+        "tool"
+      ]
+    },
+    "f1-model": {
+      "id": "f1-model",
+      "name": "F1 赛车模型",
+      "rarity": "uncommon",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 57
+    },
+    "plush-toy": {
+      "id": "plush-toy",
+      "name": "毛绒玩偶",
+      "rarity": "uncommon",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 61
+    },
+    "jigsaw-puzzle": {
+      "id": "jigsaw-puzzle",
+      "name": "拼图",
+      "rarity": "uncommon",
+      "weight": 0.7,
+      "sellable": true,
+      "sellValue": 139
+    },
+    "toy-drone": {
+      "id": "toy-drone",
+      "name": "无人机玩具",
+      "rarity": "uncommon",
+      "weight": 1.6,
+      "sellable": true,
+      "sellValue": 267
+    },
+    "fishing-rod": {
+      "id": "fishing-rod",
+      "name": "专业钓竿",
+      "rarity": "uncommon",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 215,
+      "tags": [
+        "tool"
+      ]
+    },
+    "rugby-ball": {
+      "id": "rugby-ball",
+      "name": "橄榄球",
+      "rarity": "uncommon",
+      "weight": 1.4,
+      "sellable": true,
+      "sellValue": 213
+    },
+    "skateboard": {
+      "id": "skateboard",
+      "name": "滑板",
+      "rarity": "uncommon",
+      "weight": 2,
+      "sellable": true,
+      "sellValue": 356
+    },
+    "dumbbell": {
+      "id": "dumbbell",
+      "name": "哑铃",
+      "rarity": "uncommon",
+      "weight": 5,
+      "sellable": true,
+      "sellValue": 56
+    },
+    "car-tire": {
+      "id": "car-tire",
+      "name": "汽车轮胎",
+      "rarity": "uncommon",
+      "weight": 9,
+      "sellable": true,
+      "sellValue": 185,
+      "tags": [
+        "material"
+      ]
+    },
+    "smartwatch": {
+      "id": "smartwatch",
+      "name": "智能手表",
+      "rarity": "rare",
+      "weight": 0.7,
+      "sellable": true,
+      "sellValue": 396
+    },
+    "noise-cancelling-headphones": {
+      "id": "noise-cancelling-headphones",
+      "name": "降噪耳机",
+      "rarity": "rare",
+      "weight": 1.1,
+      "sellable": true,
+      "sellValue": 415
+    },
+    "game-controller": {
+      "id": "game-controller",
+      "name": "游戏手柄",
+      "rarity": "rare",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 360
+    },
+    "digital-camera": {
+      "id": "digital-camera",
+      "name": "数码相机",
+      "rarity": "rare",
+      "weight": 1.3,
+      "sellable": true,
+      "sellValue": 571,
+      "tags": [
+        "tool"
+      ]
+    },
+    "tablet": {
+      "id": "tablet",
+      "name": "平板电脑",
+      "rarity": "rare",
+      "weight": 1.8,
+      "sellable": true,
+      "sellValue": 891
+    },
+    "portable-speaker": {
+      "id": "portable-speaker",
+      "name": "便携音箱",
+      "rarity": "rare",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 519
+    },
+    "camera-drone": {
+      "id": "camera-drone",
+      "name": "航拍无人机",
+      "rarity": "rare",
+      "weight": 2.5,
+      "sellable": true,
+      "sellValue": 1967
+    },
+    "mechanical-keyboard": {
+      "id": "mechanical-keyboard",
+      "name": "机械键盘",
+      "rarity": "rare",
+      "weight": 1.7,
+      "sellable": true,
+      "sellValue": 666
+    },
+    "black-truffle": {
+      "id": "black-truffle",
+      "name": "黑松露",
+      "rarity": "rare",
+      "weight": 0.2,
+      "stackSize": 8,
+      "sellable": true,
+      "sellValue": 118,
+      "tags": [
+        "food"
+      ]
+    },
+    "caviar": {
+      "id": "caviar",
+      "name": "鱼子酱",
+      "rarity": "rare",
+      "weight": 0.3,
+      "stackSize": 8,
+      "sellable": true,
+      "sellValue": 155,
+      "tags": [
+        "food"
+      ]
+    },
+    "red-velvet-cake": {
+      "id": "red-velvet-cake",
+      "name": "红色丝绒蛋糕",
+      "rarity": "rare",
+      "weight": 0.7,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 198,
+      "tags": [
+        "food"
+      ]
+    },
+    "whisky": {
+      "id": "whisky",
+      "name": "威士忌",
+      "rarity": "rare",
+      "weight": 1.5,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 630,
+      "tags": [
+        "food"
+      ]
+    },
+    "bluefin-tuna": {
+      "id": "bluefin-tuna",
+      "name": "蓝鳍金枪鱼块",
+      "rarity": "rare",
+      "weight": 0.6,
+      "stackSize": 4,
+      "sellable": true,
+      "sellValue": 399,
+      "tags": [
+        "food"
+      ]
+    },
+    "titanium-ring": {
+      "id": "titanium-ring",
+      "name": "钛合金戒指",
+      "rarity": "rare",
+      "weight": 0.2,
+      "sellable": true,
+      "sellValue": 178
+    },
+    "enamel-brooch": {
+      "id": "enamel-brooch",
+      "name": "珐琅胸针",
+      "rarity": "rare",
+      "weight": 0.2,
+      "sellable": true,
+      "sellValue": 150
+    },
+    "silver-bracelet": {
+      "id": "silver-bracelet",
+      "name": "银手镯",
+      "rarity": "rare",
+      "weight": 0.4,
+      "sellable": true,
+      "sellValue": 198
+    },
+    "cloisonne-ornament": {
+      "id": "cloisonne-ornament",
+      "name": "景泰蓝花瓶",
+      "rarity": "rare",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 669
+    },
+    "fountain-pen": {
+      "id": "fountain-pen",
+      "name": "精品钢笔",
+      "rarity": "rare",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 332,
+      "tags": [
+        "tool"
+      ]
+    },
+    "mechanical-watch": {
+      "id": "mechanical-watch",
+      "name": "机械腕表",
+      "rarity": "rare",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 412
+    },
+    "binoculars": {
+      "id": "binoculars",
+      "name": "望远镜",
+      "rarity": "rare",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 593,
+      "tags": [
+        "tool"
+      ]
+    },
+    "diamond-earrings": {
+      "id": "diamond-earrings",
+      "name": "钻石耳钉",
+      "rarity": "epic",
+      "weight": 0.2,
+      "sellable": true,
+      "sellValue": 1040
+    },
+    "gold-necklace": {
+      "id": "gold-necklace",
+      "name": "黄金项链",
+      "rarity": "epic",
+      "weight": 0.4,
+      "sellable": true,
+      "sellValue": 3958
+    },
+    "violin": {
+      "id": "violin",
+      "name": "小提琴",
+      "rarity": "epic",
+      "weight": 2.5,
+      "sellable": true,
+      "sellValue": 10086
+    },
+    "leather-handbag": {
+      "id": "leather-handbag",
+      "name": "真皮手袋",
+      "rarity": "epic",
+      "weight": 1.4,
+      "sellable": true,
+      "sellValue": 8163
+    },
+    "aged-whisky": {
+      "id": "aged-whisky",
+      "name": "陈年威士忌",
+      "rarity": "epic",
+      "weight": 1.6,
+      "sellable": true,
+      "sellValue": 3932,
+      "tags": [
+        "food"
+      ]
+    },
+    "graphics-card": {
+      "id": "graphics-card",
+      "name": "游戏显卡",
+      "rarity": "epic",
+      "weight": 1.6,
+      "sellable": true,
+      "sellValue": 7799
+    },
+    "telephoto-lens": {
+      "id": "telephoto-lens",
+      "name": "单反长焦镜头",
+      "rarity": "epic",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 4009
+    },
+    "laptop": {
+      "id": "laptop",
+      "name": "笔记本电脑",
+      "rarity": "epic",
+      "weight": 2.2,
+      "sellable": true,
+      "sellValue": 9797
+    },
+    "turntable": {
+      "id": "turntable",
+      "name": "黑胶唱机",
+      "rarity": "epic",
+      "weight": 2.7,
+      "sellable": true,
+      "sellValue": 9980
+    },
+    "telescope": {
+      "id": "telescope",
+      "name": "天文望远镜",
+      "rarity": "epic",
+      "weight": 4,
+      "sellable": true,
+      "sellValue": 11313
+    },
+    "cracked-core": {
+      "id": "cracked-core",
+      "name": "破损核心",
+      "description": "“变废为宝。”",
+      "rarity": "legendary",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 10000,
+      "tags": [
+        "collectible"
+      ]
+    },
+    "florid-postern-statue": {
+      "id": "florid-postern-statue",
+      "name": "绚丽之门雕像",
+      "description": "“它的美丽略带令人心碎的悲伤。”",
+      "rarity": "legendary",
+      "weight": 5,
+      "sellable": true,
+      "sellValue": 46800,
+      "tags": [
+        "collectible"
+      ]
+    },
+    "card-stoat": {
+      "id": "card-stoat",
+      "name": "卡牌：白鼬",
+      "description": "看起来平平无奇的卡片，但仿佛下一秒这张牌上面的白鼬就要开口说话。",
+      "rarity": "legendary",
+      "weight": 0.2,
+      "sellable": true,
+      "sellValue": 3350,
+      "tags": [
+        "collectible"
+      ]
+    },
+    "icarus-mech-model": {
+      "id": "icarus-mech-model",
+      "name": "伊卡洛斯量产机模型",
+      "description": "「报告主脑，任务已完成」 ——编号 IC-0001",
+      "rarity": "legendary",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 11832,
+      "tags": [
+        "collectible"
+      ]
+    },
+    "exploration-manuscripts": {
+      "id": "exploration-manuscripts",
+      "name": "探险手稿",
+      "rarity": "legendary",
+      "weight": 0.3,
+      "sellable": true,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "lore",
+        "amount": 1
+      },
+      "sellValue": 500,
+      "description": "“我所讲述的事物，还不到我看见的一半。”"
+    },
+    "bubugao-dianduji": {
+      "id": "bubugao-dianduji",
+      "name": "布布糕点读机",
+      "rarity": "mythic",
+      "weight": 1.2,
+      "sellable": true,
+      "sellValue": 2000,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "lore",
+        "amount": 2
+      },
+      "description": "“麻麻再也不用担心我的学习！”"
+    },
+    "salesmanship": {
+      "id": "salesmanship",
+      "name": "《销售的自我修养》",
+      "rarity": "legendary",
+      "weight": 0.3,
+      "sellable": true,
+      "sellValue": 500,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "eloquence",
+        "amount": 1
+      },
+      "description": "这本书能教会你怎么把梳子卖给秃子。"
+    },
+    "qiaosheruhuang": {
+      "id": "qiaosheruhuang",
+      "name": "巧舌如簧",
+      "rarity": "mythic",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 2000,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "eloquence",
+        "amount": 2
+      },
+      "description": "“巧舌如簧”的“簧”是指弹簧吗？"
+    },
+    "snow-beer": {
+      "id": "snow-beer",
+      "name": "雪滑勇闯田崖",
+      "rarity": "mythic",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 2000,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "courage",
+        "amount": 2
+      },
+      "description": "俗话说得好，酒壮怂人胆。"
+    },
+    "boxing-registration": {
+      "id": "boxing-registration",
+      "name": "拳击赛报名表",
+      "rarity": "legendary",
+      "weight": 0.1,
+      "sellable": true,
+      "sellValue": 500,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "courage",
+        "amount": 1
+      },
+      "description": "听说泰森也参加了这场比赛。"
+    },
+    "filled-dice": {
+      "id": "filled-dice",
+      "name": "灌铅骰子",
+      "rarity": "mythic",
+      "weight": 0.1,
+      "sellable": true,
+      "sellValue": 2000,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "guile",
+        "amount": 2
+      },
+      "description": "没被发现就不是出千。"
+    },
+    "thirty-six-tricks": {
+      "id": "thirty-six-tricks",
+      "name": "《三十六计》",
+      "rarity": "legendary",
+      "weight": 0.4,
+      "sellable": true,
+      "sellValue": 500,
+      "tags": [
+        "consumable",
+        "secondary-growth"
+      ],
+      "secondaryGrant": {
+        "stat": "guile",
+        "amount": 1
+      },
+      "description": "三十六计，走为上计。"
+    },
+    "ancient-coin": {
+      "id": "ancient-coin",
+      "name": "古旧硬币",
+      "rarity": "legendary",
+      "weight": 0.1,
+      "sellable": true,
+      "sellValue": 1128,
+      "description": "梦开始的地方。",
+      "tags": [
+        "collectible"
+      ]
+    }
+  },
+  "tags": {
+    "tag-lucky": {
+      "id": "tag-lucky",
+      "name": "幸运儿",
+      "description": "事件检定时掷两次骰子并取较高结果；队伍中多个幸运儿不叠加。",
+      "eventRollAdvantage": true
+    },
+    "tags-heartthrob": {
+      "id": "tags-heartthrob",
+      "name": "万人迷",
+      "description": ""
+    }
+  },
+  "maps": {
+    "map-1": {
+      "id": "map-1",
+      "number": 1,
+      "name": "探险者山麓",
+      "description": "大多数探险者会选择这里作为旅途的起点，山麓间的克格纳是一个静谧的村庄，不少旅人选择在这里歇脚。",
+      "startNodeId": "m1-start",
+      "startDurationMs": 30000,
+      "informationThresholds": {
+        "partial": 2,
+        "full": 4
+      },
+      "xpMultiplier": 1,
+      "nodes": {
+        "m1-start": {
+          "id": "m1-start",
+          "name": "起点",
+          "edges": [
+            {
+              "id": "route-1",
+              "label": "前往探险者营地",
+              "description": "",
+              "toNodeId": "m1-point-1",
+              "durationMs": 300000
+            },
+            {
+              "id": "route-3",
+              "label": "去不起眼的树洞看看",
+              "description": "",
+              "toNodeId": "m1-point-2",
+              "durationMs": 1200000,
+              "requirement": {
+                "secondary": {
+                  "stat": "courage",
+                  "value": 2
+                }
+              }
+            }
+          ]
+        },
+        "m1-point-1": {
+          "id": "m1-point-1",
+          "name": "探险者营地",
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 3,
+            "rarityWeights": {
+              "common": 60,
+              "uncommon": 25,
+              "rare": 13,
+              "epic": 2,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "route-2",
+              "label": "前往克格纳",
+              "description": "",
+              "toNodeId": "m1-goal-1",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m1-goal-1": {
+          "id": "m1-goal-1",
+          "name": "克格纳",
+          "loot": {
+            "mode": "independent",
+            "minCount": 5,
+            "maxCount": 5,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 15,
+              "epic": 5,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [],
+          "terminal": true,
+          "firstExtractionRewards": {
+            "ancient-coin": 1
+          }
+        },
+        "m1-point-2": {
+          "id": "m1-point-2",
+          "name": "不起眼的树洞",
+          "loot": {
+            "mode": "composition",
+            "minCount": 1,
+            "maxCount": 2,
+            "compositions": [
+              {
+                "id": "composition-1",
+                "weight": 20,
+                "rarityCounts": {
+                  "common": 0,
+                  "uncommon": 0,
+                  "rare": 0,
+                  "epic": 1,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              },
+              {
+                "id": "composition-2",
+                "weight": 35,
+                "rarityCounts": {
+                  "common": 1,
+                  "uncommon": 0,
+                  "rare": 0,
+                  "epic": 1,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              },
+              {
+                "id": "composition-3",
+                "weight": 35,
+                "rarityCounts": {
+                  "common": 0,
+                  "uncommon": 1,
+                  "rare": 0,
+                  "epic": 1,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              },
+              {
+                "id": "composition-4",
+                "weight": 8,
+                "rarityCounts": {
+                  "common": 0,
+                  "uncommon": 0,
+                  "rare": 1,
+                  "epic": 1,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              },
+              {
+                "id": "composition-5",
+                "weight": 2,
+                "rarityCounts": {
+                  "common": 0,
+                  "uncommon": 0,
+                  "rare": 0,
+                  "epic": 2,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              }
+            ],
+            "whitelistItemIds": [],
+            "whitelistItemTags": [
+              "food",
+              "tool"
+            ],
+            "blacklistItemIds": [],
+            "blacklistItemTags": []
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "route-4",
+              "label": "前往克格纳",
+              "description": "",
+              "toNodeId": "m1-goal-1",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        }
+      }
+    },
+    "map-2": {
+      "id": "map-2",
+      "number": 2,
+      "name": "克格纳",
+      "description": "从克格纳村口向北延伸的乡野地带，河道、磨坊、墓园与山林小路最终汇向北山驿站。",
+      "startNodeId": "m2-start",
+      "startDurationMs": 30000,
+      "informationThresholds": {
+        "partial": 2,
+        "full": 4
+      },
+      "xpMultiplier": 1,
+      "nodes": {
+        "m2-start": {
+          "id": "m2-start",
+          "name": "克格纳南边村口",
+          "edges": [
+            {
+              "id": "m2-route-1",
+              "label": "沿河道前往河边货棚",
+              "description": "",
+              "toNodeId": "m2-point-1",
+              "durationMs": 600000
+            },
+            {
+              "id": "m2-route-2",
+              "label": "穿过村外田埂前往老磨坊",
+              "description": "",
+              "toNodeId": "m2-point-2",
+              "durationMs": 600000
+            },
+            {
+              "id": "m2-route-3",
+              "label": "翻过墓园矮墙",
+              "description": "",
+              "toNodeId": "m2-point-3",
+              "durationMs": 600000,
+              "requirement": {
+                "secondary": {
+                  "stat": "courage",
+                  "value": 2
+                }
+              }
+            }
+          ]
+        },
+        "m2-point-1": {
+          "id": "m2-point-1",
+          "name": "河边货棚",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-4",
+              "label": "沿废弃货道前往石拱桥",
+              "description": "",
+              "toNodeId": "m2-point-4",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-point-2": {
+          "id": "m2-point-2",
+          "name": "老磨坊",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-5",
+              "label": "沿磨坊水渠前往石拱桥",
+              "description": "",
+              "toNodeId": "m2-point-4",
+              "durationMs": 600000
+            },
+            {
+              "id": "m2-route-6",
+              "label": "翻过磨坊后山进入雾松林",
+              "description": "",
+              "toNodeId": "m2-point-5",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-point-3": {
+          "id": "m2-point-3",
+          "name": "荒草墓园",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-7",
+              "label": "沿荒草坡前往山坡牧场",
+              "description": "",
+              "toNodeId": "m2-point-6",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-point-4": {
+          "id": "m2-point-4",
+          "name": "石拱桥",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-8",
+              "label": "沿旧商道前往北山驿站",
+              "description": "",
+              "toNodeId": "m2-goal-1",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-point-5": {
+          "id": "m2-point-5",
+          "name": "雾松林",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-9",
+              "label": "穿过林间山道前往北山驿站",
+              "description": "",
+              "toNodeId": "m2-goal-1",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-point-6": {
+          "id": "m2-point-6",
+          "name": "山坡牧场",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [
+            {
+              "id": "m2-route-10",
+              "label": "沿山坡牧道前往北山驿站",
+              "description": "",
+              "toNodeId": "m2-goal-1",
+              "durationMs": 600000
+            }
+          ],
+          "terminal": false
+        },
+        "m2-goal-1": {
+          "id": "m2-goal-1",
+          "name": "北山驿站",
+          "loot": {
+            "mode": "independent",
+            "minCount": 1,
+            "maxCount": 1,
+            "rarityWeights": {
+              "common": 100,
+              "uncommon": 0,
+              "rare": 0,
+              "epic": 0,
+              "legendary": 0,
+              "mythic": 0
+            },
+            "whitelistItemIds": [],
+            "blacklistItemIds": [
+              "poop"
+            ]
+          },
+          "eventPoolIds": [],
+          "edges": [],
+          "terminal": true
+        }
+      }
+    }
+  },
+  "events": {
+    "event-unclaimed-travel-bag": {
+      "id": "event-unclaimed-travel-bag",
+      "title": "无人认领的旅行包",
+      "description": "一个沾满灰尘的旅行包被压在杂物下面，附近看不到它的主人。包还算完整，但贸然接近似乎并不安全。",
+      "choices": [
+        {
+          "id": "move-debris",
+          "label": "移开压住它的重物",
+          "description": "依靠力量直接清理杂物，把旅行包拖出来。",
+          "resolution": {
+            "type": "primary",
+            "stat": "fitness",
+            "difficulty": 4
+          },
+          "rewards": {
+            "canned-food": 1,
+            "duct-tape": 1
+          },
+          "bonusRewards": {
+            "thermos": 1
+          }
+        },
+        {
+          "id": "recognize-maker-mark",
+          "label": "辨认包上的旧式徽记",
+          "description": "凭借学识辨认旅行包的制作方式，尝试找到制作者惯用的隐藏夹层。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "lore",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "coffee-beans": 1,
+            "paper": 2
+          },
+          "bonusRewards": {
+            "fountain-pen": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不去碰它，默默离开",
+          "description": "这里的东西来历不明，还是继续赶路更稳妥。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-stuck-handcart": {
+      "id": "event-stuck-handcart",
+      "title": "卡在坑里的手推车",
+      "description": "一辆装着货物的手推车陷在坑里，主人正束手无策。",
+      "choices": [
+        {
+          "id": "push-cart-free",
+          "label": "直接把车推出去",
+          "description": "靠力量把沉重的手推车推出坑洼。",
+          "resolution": {
+            "type": "primary",
+            "stat": "fitness",
+            "difficulty": 4
+          },
+          "rewards": {
+            "canned-food": 1,
+            "coffee-beans": 1
+          },
+          "bonusRewards": {
+            "honey": 1
+          }
+        },
+        {
+          "id": "rally-bystanders",
+          "label": "招呼附近的人搭手",
+          "description": "说服附近的人一起帮忙，并提前谈好报酬。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "eloquence",
+            "successThreshold": 2,
+            "extraSuccessThreshold": 4
+          },
+          "rewards": {
+            "coffee-beans": 1,
+            "paper": 2
+          },
+          "bonusRewards": {
+            "thermos": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "绕开手推车继续赶路",
+          "description": "这不是队伍非管不可的麻烦。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-roadside-exchange": {
+      "id": "event-roadside-exchange",
+      "title": "临时交换请求",
+      "description": "一名路人提出用密封包裹交换队伍手中的普通物资。",
+      "choices": [
+        {
+          "id": "inspect-package",
+          "label": "检查包裹是否有问题",
+          "description": "在答应交换之前，先仔细检查包裹的真伪和状态。",
+          "resolution": {
+            "type": "primary",
+            "stat": "perception",
+            "difficulty": 3
+          },
+          "rewards": {
+            "chocolate": 1,
+            "duct-tape": 1
+          },
+          "bonusRewards": {
+            "honey": 1
+          }
+        },
+        {
+          "id": "renegotiate-trade",
+          "label": "重新商量交换条件",
+          "description": "试着让这笔交换变得更有利。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "eloquence",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "canned-food": 1
+          },
+          "bonusRewards": {
+            "red-wine": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "婉拒交换",
+          "description": "不接受来历不明的交易。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-thicket-distress": {
+      "id": "event-thicket-distress",
+      "title": "灌木中的求救声",
+      "description": "灌木深处传来动静，一只小动物似乎被旧绳索和机关缠住了。",
+      "choices": [
+        {
+          "id": "dismantle-trap",
+          "label": "拆开残破机关",
+          "description": "小心拆解缠住小动物的绳索与机关。",
+          "resolution": {
+            "type": "primary",
+            "stat": "technique",
+            "difficulty": 3
+          },
+          "rewards": {
+            "hemp-rope": 1,
+            "spring": 2
+          },
+          "bonusRewards": {
+            "honey": 1
+          }
+        },
+        {
+          "id": "calm-animal",
+          "label": "靠近并安抚它",
+          "description": "顶着灌木中的动静靠近，让受惊的小动物安静下来。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "courage",
+            "successThreshold": 2,
+            "extraSuccessThreshold": 4
+          },
+          "rewards": {
+            "cloth-strip": 2,
+            "hemp-rope": 1
+          },
+          "bonusRewards": {
+            "plush-toy": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不惊动它，安静离开",
+          "description": "不再靠近灌木中的动静。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-unstable-scrap-pile": {
+      "id": "event-unstable-scrap-pile",
+      "title": "摇摇欲坠的杂物堆",
+      "description": "一堆杂物堆得很高，里面露出一些可以回收的零件。",
+      "choices": [
+        {
+          "id": "brace-and-dismantle",
+          "label": "加固后逐层拆解",
+          "description": "先固定容易坍塌的部分，再逐层取出有用零件。",
+          "resolution": {
+            "type": "primary",
+            "stat": "technique",
+            "difficulty": 4
+          },
+          "rewards": {
+            "iron-sheet": 1,
+            "gear": 2
+          },
+          "bonusRewards": {
+            "hammer": 1
+          }
+        },
+        {
+          "id": "controlled-collapse",
+          "label": "设法让它倒向安全方向",
+          "description": "判断支撑关系，让杂物堆按预期倒向空地。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "guile",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "bearing": 1,
+            "spring": 2
+          },
+          "bonusRewards": {
+            "electric-razor": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不碰这堆危险的东西",
+          "description": "绕过随时可能坍塌的杂物堆。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-recent-campfire": {
+      "id": "event-recent-campfire",
+      "title": "熄灭不久的营火",
+      "description": "一处临时营地刚被废弃，营火还有余温，但附近看不到主人。",
+      "choices": [
+        {
+          "id": "search-camp",
+          "label": "确认安全后搜索营地",
+          "description": "先观察附近是否有人，再检查留下的物资。",
+          "resolution": {
+            "type": "primary",
+            "stat": "perception",
+            "difficulty": 3
+          },
+          "rewards": {
+            "canned-food": 1,
+            "old-newspaper": 1
+          },
+          "bonusRewards": {
+            "thermos": 1
+          }
+        },
+        {
+          "id": "spot-decoy-cache",
+          "label": "识破用来误导来客的布置",
+          "description": "从刻意留下的假线索中找出真正藏物资的位置。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "guile",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "coffee-beans": 1,
+            "duct-tape": 1
+          },
+          "bonusRewards": {
+            "red-wine": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "避开营地直接离开",
+          "description": "营地主人可能随时回来，没必要节外生枝。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-scattered-pages": {
+      "id": "event-scattered-pages",
+      "title": "被风吹散的纸页",
+      "description": "大量写有内容的纸页被风吹得到处都是，其中可能夹着有价值的记录。",
+      "choices": [
+        {
+          "id": "collect-pages",
+          "label": "追着纸页逐一收集",
+          "description": "在纸页彻底被吹走之前把它们捡回来。",
+          "resolution": {
+            "type": "primary",
+            "stat": "perception",
+            "difficulty": 3
+          },
+          "rewards": {
+            "paper": 3
+          },
+          "bonusRewards": {
+            "fountain-pen": 1
+          }
+        },
+        {
+          "id": "reconstruct-pages",
+          "label": "根据内容重组缺失顺序",
+          "description": "阅读残留内容，判断哪些纸页属于同一份记录。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "lore",
+            "successThreshold": 2,
+            "extraSuccessThreshold": 4
+          },
+          "rewards": {
+            "paper": 2,
+            "old-newspaper": 1
+          },
+          "bonusRewards": {
+            "fountain-pen": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "任由纸页被风吹走",
+          "description": "不为这些散乱纸页耽误行程。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-locked-toolbox": {
+      "id": "event-locked-toolbox",
+      "title": "上锁的工具箱",
+      "description": "一个结实的工具箱被遗落在角落，锁具已经锈蚀。",
+      "choices": [
+        {
+          "id": "open-lock",
+          "label": "尝试拆开锁具",
+          "description": "在不破坏箱内物品的前提下拆开锈蚀锁具。",
+          "resolution": {
+            "type": "primary",
+            "stat": "technique",
+            "difficulty": 4
+          },
+          "rewards": {
+            "screw": 3,
+            "spring": 2,
+            "gear": 1
+          },
+          "bonusRewards": {
+            "screwdriver": 1
+          }
+        },
+        {
+          "id": "recognize-old-lock",
+          "label": "辨认旧锁的特殊结构",
+          "description": "回忆这种旧式锁具的结构，寻找隐藏的释放位置。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "lore",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "duct-tape": 1,
+            "wire-cable": 1
+          },
+          "bonusRewards": {
+            "wrench": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不为一个工具箱冒险",
+          "description": "把工具箱留在原处，继续前进。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-high-perched-parcel": {
+      "id": "event-high-perched-parcel",
+      "title": "高处的包裹",
+      "description": "一个包裹被风或其他力量带到了难以触及的高处。",
+      "choices": [
+        {
+          "id": "climb-for-parcel",
+          "label": "直接攀上去取下来",
+          "description": "借助附近的落脚点向上攀爬。",
+          "resolution": {
+            "type": "primary",
+            "stat": "fitness",
+            "difficulty": 4
+          },
+          "rewards": {
+            "hemp-rope": 1,
+            "chocolate": 1
+          },
+          "bonusRewards": {
+            "umbrella": 1
+          }
+        },
+        {
+          "id": "cross-unstable-footholds",
+          "label": "越过摇晃的落脚点",
+          "description": "克服对高度和摇晃落脚点的不安，稳步接近包裹。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "courage",
+            "successThreshold": 2,
+            "extraSuccessThreshold": 4
+          },
+          "rewards": {
+            "canned-food": 1
+          },
+          "bonusRewards": {
+            "plush-toy": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "放弃包裹，继续前进",
+          "description": "不为够不到的包裹停留。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-strange-tracks": {
+      "id": "event-strange-tracks",
+      "title": "延伸远处的奇怪脚印",
+      "description": "一串不同寻常的脚印离开道路，通向视野外的隐蔽区域。",
+      "choices": [
+        {
+          "id": "follow-tracks",
+          "label": "观察痕迹并追踪下去",
+          "description": "根据脚印和周围痕迹判断前进方向。",
+          "resolution": {
+            "type": "primary",
+            "stat": "perception",
+            "difficulty": 4
+          },
+          "rewards": {
+            "fur": 1,
+            "hemp-rope": 1
+          },
+          "bonusRewards": {
+            "binoculars": 1
+          }
+        },
+        {
+          "id": "face-unknown-owner",
+          "label": "直面未知的脚印主人",
+          "description": "即使不清楚脚印属于什么，也继续沿着它深入。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "courage",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "honey": 1
+          },
+          "bonusRewards": {
+            "binoculars": 1
+          }
+        },
+        {
+          "id": "leave",
+          "label": "不追踪来历不明的东西",
+          "description": "留在原来的道路上继续前进。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
+    },
+    "event-roadside-bandits": {
+      "id": "event-roadside-bandits",
+      "title": "拦路的蟊贼",
+      "description": "几个装备简陋的蟊贼堵住道路，逼迫队伍留下随身物资。退路已经被他们的人封住，必须设法突破。",
+      "choices": [
+        {
+          "id": "break-through-encirclement",
+          "label": "强行冲开包围",
+          "description": "抓住对方阵形松散的瞬间，正面冲开一条出路。",
+          "resolution": {
+            "type": "primary",
+            "stat": "fitness",
+            "difficulty": 5
+          },
+          "rewards": {
+            "canned-food": 1,
+            "hemp-rope": 1
+          },
+          "bonusRewards": {
+            "silver-bracelet": 1
+          }
+        },
+        {
+          "id": "impersonate-patrol-vanguard",
+          "label": "冒充巡逻队先遣人员",
+          "description": "用不容置疑的口吻虚构后续援军，迫使心虚的蟊贼主动让路。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "eloquence",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "canned-food": 1,
+            "hemp-rope": 1
+          },
+          "bonusRewards": {
+            "silver-bracelet": 1
+          }
+        }
+      ]
+    },
+    "event-collapsing-passage": {
+      "id": "event-collapsing-passage",
+      "title": "正在坍塌的旧通道",
+      "description": "头顶不断落下碎屑，身后的通道也已经堵死。队伍必须在结构彻底垮塌前找到安全的通过方式。",
+      "choices": [
+        {
+          "id": "reinforce-and-pass",
+          "label": "临时加固后迅速通过",
+          "description": "利用手边材料撑住最危险的部位，抢在支撑失效前穿过通道。",
+          "resolution": {
+            "type": "primary",
+            "stat": "technique",
+            "difficulty": 5
+          },
+          "rewards": {
+            "iron-sheet": 1,
+            "wood-strip": 2
+          },
+          "bonusRewards": {
+            "wrench": 1
+          }
+        },
+        {
+          "id": "read-construction-marks",
+          "label": "根据施工痕迹寻找安全区域",
+          "description": "辨认残留的施工标记和承重结构，从仍然稳定的区域绕过坍塌点。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "lore",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "iron-sheet": 1,
+            "wood-strip": 2
+          },
+          "bonusRewards": {
+            "wrench": 1
+          }
+        }
+      ]
+    },
+    "event-feral-dog-pack": {
+      "id": "event-feral-dog-pack",
+      "title": "围拢的野犬群",
+      "description": "一群饥饿的野犬从道路两侧围拢过来，持续压缩队伍的活动空间。它们不会轻易放弃眼前的目标。",
+      "choices": [
+        {
+          "id": "find-pack-gap",
+          "label": "观察头犬动作，寻找缺口突围",
+          "description": "判断犬群的行动节奏，在包围尚未完全合拢前带队冲出去。",
+          "resolution": {
+            "type": "primary",
+            "stat": "perception",
+            "difficulty": 4
+          },
+          "rewards": {
+            "fur": 1,
+            "canned-food": 1
+          },
+          "bonusRewards": {
+            "fishing-rod": 1
+          }
+        },
+        {
+          "id": "intimidate-dog-pack",
+          "label": "稳住队形，正面震慑犬群",
+          "description": "不露怯也不贸然奔逃，以坚定的姿态迫使犬群停止逼近。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "courage",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "fur": 1,
+            "canned-food": 1
+          },
+          "bonusRewards": {
+            "fishing-rod": 1
+          }
+        }
+      ]
+    },
+    "event-rigged-roadblock": {
+      "id": "event-rigged-roadblock",
+      "title": "暗藏机关的路障",
+      "description": "道路被临时路障截断，队伍靠近后，藏在杂物中的绳索和机括开始收紧。现在已经无法原路退出。",
+      "choices": [
+        {
+          "id": "disarm-roadblock",
+          "label": "逐一拆除路障机关",
+          "description": "沿着连接结构寻找关键部件，按顺序解除正在运转的机关。",
+          "resolution": {
+            "type": "primary",
+            "stat": "technique",
+            "difficulty": 4
+          },
+          "rewards": {
+            "spring": 2,
+            "wire-cable": 1
+          },
+          "bonusRewards": {
+            "screwdriver": 1
+          }
+        },
+        {
+          "id": "reverse-trigger-trap",
+          "label": "识破布置逻辑，反向触发机关",
+          "description": "看穿布置者预设的反应方式，利用机关之间的牵连让它自行卡死。",
+          "resolution": {
+            "type": "secondary",
+            "stat": "guile",
+            "successThreshold": 3,
+            "extraSuccessThreshold": 5
+          },
+          "rewards": {
+            "spring": 2,
+            "wire-cable": 1
+          },
+          "bonusRewards": {
+            "screwdriver": 1
+          }
+        }
+      ]
+    }
+  },
+  "eventPools": {
+    "pool-general": {
+      "id": "pool-general",
+      "eventIds": [
+        "event-unclaimed-travel-bag",
+        "event-stuck-handcart",
+        "event-roadside-exchange",
+        "event-thicket-distress",
+        "event-unstable-scrap-pile",
+        "event-recent-campfire",
+        "event-scattered-pages",
+        "event-locked-toolbox",
+        "event-high-perched-parcel",
+        "event-strange-tracks"
+      ]
+    },
+    "pool-risk": {
+      "id": "pool-risk",
+      "eventIds": [
+        "event-roadside-bandits",
+        "event-collapsing-passage",
+        "event-feral-dog-pack",
+        "event-rigged-roadblock"
+      ]
+    }
+  },
+  "tasks": {
+    "tasks-game-start": {
+      "id": "tasks-game-start",
+      "title": "Are you ready kids?",
+      "description": "查看状态、行动、库存、图鉴、设置面板，为第一次旅行做好准备。",
+      "requirement": {
+        "goals": [
+          {
+            "type": "milestone",
+            "milestoneId": "opened-adventure"
+          },
+          {
+            "type": "milestone",
+            "milestoneId": "opened-inventory"
+          },
+          {
+            "type": "milestone",
+            "milestoneId": "opened-pets"
+          },
+          {
+            "type": "milestone",
+            "milestoneId": "opened-codex"
+          },
+          {
+            "type": "milestone",
+            "milestoneId": "opened-settings"
+          }
+        ]
+      },
+      "reward": {
+        "currency": 100
+      }
+    },
+    "tasks-pass-map-1": {
+      "id": "tasks-pass-map-1",
+      "title": "抵达克格纳",
+      "description": "克格纳位于探险者山麓北边，以它为目标，派遣宠物开启旅程吧！",
+      "requirement": {
+        "goals": [
+          {
+            "type": "clear-map",
+            "mapId": "map-1"
+          }
+        ]
+      },
+      "reward": {
+        "currency": 200,
+        "items": {
+          "boxing-registration": 1
+        },
+        "unlockMapIds": [
+          "map-2"
+        ]
+      }
+    },
+    "tasks-expand-storehouse-1": {
+      "id": "tasks-expand-storehouse-1",
+      "title": "仓储扩建-1",
+      "description": "你需要更大的仓储空间！",
+      "requirement": {
+        "currency": 800,
+        "items": {
+          "iron-sheet": 8,
+          "wood-strip": 4,
+          "nail": 12
+        }
+      },
+      "reward": {
+        "warehouseSlots": 10
+      },
+      "prerequisiteTaskIds": [
+        "tasks-game-start"
+      ]
+    },
+    "tasks-pass-map-2": {
+      "id": "tasks-pass-map-2",
+      "title": "抵达北山驿站",
+      "description": "北山驿站是从克格纳前往下一个区域的必经之路，那里能获得不少补给，还能结交新的朋友，去那里看看吧。",
+      "requirement": {
+        "goals": [
+          {
+            "type": "clear-map",
+            "mapId": "map-2"
+          }
+        ]
+      },
+      "reward": {
+        "currency": 500,
+        "items": {
+          "exploration-manuscripts": 1
+        }
+      },
+      "prerequisiteTaskIds": [
+        "tasks-pass-map-1"
+      ]
+    },
+    "tasks-expand-storehouse-2": {
+      "id": "tasks-expand-storehouse-2",
+      "title": "仓储扩建-2",
+      "description": "你需要再大一点的仓储空间。",
+      "requirement": {
+        "currency": 1500,
+        "items": {
+          "nail": 20,
+          "wood-strip": 8,
+          "spring": 4,
+          "bearing": 4
+        }
+      },
+      "reward": {
+        "warehouseSlots": 20
+      },
+      "prerequisiteTaskIds": [
+        "tasks-expand-storehouse-1"
+      ]
+    }
+  },
+  "petTemplates": {
+    "gugugaga": {
+      "id": "gugugaga",
+      "name": "咕嘎",
+      "level": 1,
+      "xp": 0,
+      "unspentPoints": 0,
+      "baseStats": {
+        "fitness": 2,
+        "perception": 2,
+        "technique": 2
+      },
+      "allocatedStats": {
+        "fitness": 0,
+        "perception": 0,
+        "technique": 0
+      },
+      "secondaryStats": {
+        "eloquence": 1,
+        "lore": 2,
+        "courage": 1,
+        "guile": 2
+      },
+      "injury": "healthy",
+      "growthTagIds": [],
+      "growthTagSlots": 2
+    }
+  }
+}
