@@ -1,15 +1,23 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConfigApp } from "./config/ConfigApp";
-import { initializeCatalog } from "./config/catalogStore";
 import { App } from "./ui/App";
 import "./ui/styles.css";
 
-initializeCatalog();
-const showConfig = new URLSearchParams(window.location.search).has("config");
+async function bootstrap() {
+  let RootApp = App;
+  // Production uses the bundled catalog and excludes all editor code/overrides.
+  if (import.meta.env.DEV) {
+    const { initializeCatalog } = await import("./config/catalogStore");
+    initializeCatalog();
+    if (new URLSearchParams(window.location.search).has("config")) {
+      const { ConfigApp } = await import("./config/ConfigApp");
+      RootApp = ConfigApp;
+    }
+  }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    {showConfig ? <ConfigApp /> : <App />}
-  </StrictMode>,
-);
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode><RootApp /></StrictMode>,
+  );
+}
+
+void bootstrap();
