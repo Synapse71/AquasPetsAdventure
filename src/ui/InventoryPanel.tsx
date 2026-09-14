@@ -114,7 +114,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
         </div>
         <div className="ip-cargo-slots" aria-label="探险背包格子">{Array.from({ length: Math.max(slotCapacity, cargoCells.length) }, (_, index) => {
           const cell = cargoCells[index];
-          return <div key={index} className={`ip-slot${cell ? ' filled' : ''}`} style={cell ? itemStyle(cell.id) : undefined} title={cell ? `${catalog.items[cell.id]?.name ?? cell.id} ×${cell.quantity}` : '空格子'}>{cell && <><ItemArt id={cell.id} /><span className="ip-qty">{cell.quantity}</span></>}</div>;
+          return <div key={index} className={`ip-slot${cell ? ' filled' : ''}`} data-item-id={cell?.id} style={cell ? itemStyle(cell.id) : undefined} title={cell ? `${catalog.items[cell.id]?.name ?? cell.id} ×${cell.quantity}` : '空格子'}>{cell && <><ItemArt id={cell.id} />{itemStackSize(cell.id) > 1 && <span className="ip-qty">{cell.quantity}</span>}</>}</div>;
         })}</div>
         <div className={`ip-gauge${weight > capacity ? ' over' : ''}`} data-testid="cargo-weight"><span>负重</span><div className="ip-track"><i style={{ width: `${capacity ? Math.min(100, weight / capacity * 100) : weight ? 100 : 0}%` }} /></div><span>{num(weight)} / {num(capacity)}</span></div>
         <span className={`ip-gauge${slots > slotCapacity ? ' over' : ''}`} data-testid="cargo-slots">格子 {slots} / {slotCapacity}</span>
@@ -153,7 +153,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
               const r = e.currentTarget.getBoundingClientRect(), host = root.current!.getBoundingClientRect();
               setMenu(menu?.id === id ? null : { id, x: Math.max(8, Math.min(r.right - host.left + 4, host.width - 154)), y: Math.max(8, Math.min(r.top - host.top, host.height - 136)) });
             }}>
-            <ItemArt id={id} />{locked && <Lock />}<span className="ip-qty">{cell.quantity}</span>{view.bulk && picked[id] && <span className="ip-tick">✓</span>}
+            <ItemArt id={id} />{locked && <Lock />}{itemStackSize(id) > 1 && <span className="ip-qty">{cell.quantity}</span>}{view.bulk && picked[id] && <span className="ip-tick">✓</span>}
           </button>;
         })}</div>
         {!entries.length && <p className="ip-empty">库存空空的，去探索带回一些发现吧。</p>}

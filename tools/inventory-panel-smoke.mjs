@@ -90,6 +90,8 @@ try {
   fixture.pets.full = {...structuredClone(fixture.pets[petId]), id:'full', name:'满属性伙伴'};
   fixture.pets.full.secondaryStats.lore = 20;
   await seed(fixture);
+  assert(await evaluate(`!document.querySelector('.ip-cell[data-item-id="card-stoat"] .ip-qty')`), 'non-stackable warehouse item hides its quantity badge');
+  assert(await evaluate(`!!document.querySelector('.ip-cell[data-item-id="cloth-strip"] .ip-qty')`), 'stackable warehouse item retains its quantity badge');
   const baseline = await dimensions();
   assert(baseline.width === 812 && baseline.height === 614, 'inventory retains a fixed 812x614 frame');
   assert(await evaluate(`getComputedStyle(document.querySelector('.window-inventory')).boxShadow === 'none' && getComputedStyle(document.querySelector('.window-inventory')).borderTopColor === 'rgb(174, 178, 186)'`), 'inventory shares gray borders with no shadow');
@@ -168,6 +170,8 @@ try {
   await seed(exploring);
   await click('.ip-tabs button:nth-child(2)');
   assert(await evaluate(`Array.from(document.querySelectorAll('.ip-drop')).every(b => b.disabled)`), 'traveling cargo cannot be discarded');
+  assert(await evaluate(`document.querySelectorAll('.ip-slot[data-item-id="card-stoat"]').length===11&&!document.querySelector('.ip-slot[data-item-id="card-stoat"] .ip-qty')`), 'multiple non-stackable cargo items remain separate cells without badges');
+  assert(await evaluate(`!!document.querySelector('.ip-slot[data-item-id="hemp-rope"] .ip-qty')`), 'stackable cargo retains its quantity badge');
   assert(await evaluate(`document.querySelector('[data-testid="cargo-weight"]').classList.contains('over') && document.querySelector('[data-testid="cargo-slots"]').classList.contains('over')`), 'weight and slot overflow are distinct indicators');
   const arrived = await stored(); arrived.expeditions[0].phase = 'awaiting-route';
   await seed(arrived);

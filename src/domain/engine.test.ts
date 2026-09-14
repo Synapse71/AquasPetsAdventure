@@ -1765,16 +1765,26 @@ describe("次要属性", () => {
   });
 
   it("最高稀有度只读取节点基础掉落且尊重候选池", () => {
-    const catalog = structuredClone(bundledCatalog);
-    const loot = structuredClone(catalog.maps["map-1"].nodes["m1-point-1"].loot)!;
-    expect(loot.mode).toBe("independent");
-    if (loot.mode !== "independent") throw new Error("fixture must use independent loot");
-    loot.rarityWeights.mythic = 99;
-    loot.blacklistItemIds = Object.values(catalog.items)
-      .filter((item) => item.rarity === "mythic")
-      .map((item) => item.id);
-    expect(nodeLootMaximumRarity(loot, catalog)).not.toBe("mythic");
+    // 自带物品和掉落定义，避免实际地图的权重、白名单调整使规则测试失效。
+    const catalog = catalogWith({
+      "test-loot-epic": { rarity: "epic" },
+      "test-loot-mythic": { rarity: "mythic" },
+    });
+    const loot: NodeLootDefinition = {
+      mode: "independent",
+      minCount: 1,
+      maxCount: 1,
+      rarityWeights: { epic: 1, mythic: 99 },
+      whitelistItemIds: ["test-loot-epic", "test-loot-mythic"],
+    };
+    expect(nodeLootMaximumRarity(loot, catalog)).toBe("mythic");
+    loot.blacklistItemIds = ["test-loot-mythic"];
     expect(nodeLootMaximumRarity(loot, catalog)).toBe("epic");
+    loot.blacklistItemIds = [];
+    loot.rarityWeights.mythic = 0;
+    expect(nodeLootMaximumRarity(loot, catalog)).toBe("epic");
+    loot.blacklistItemIds = ["test-loot-epic"];
+    expect(nodeLootMaximumRarity(loot, catalog)).toBeUndefined();
   });
 
   it("主属性硬门槛也要标明数值，不能丢英文字段名给玩家", () => {
