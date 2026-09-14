@@ -91,7 +91,7 @@ try {
   await loaded();const initial=await stored(),fixture=structuredClone(initial),petId=Object.keys(initial.pets)[0];
   fixture.inventory={paper:3,'cloth-strip':5,'hemp-rope':2};fixture.unlockedMapIds=['map-1','map-2'];
   fixture.pets[petId].baseStats={fitness:12,perception:12,technique:12};
-  const frameCheck=async()=>assert(await evaluate(`(()=>{const p=document.querySelector('.adventure-panel'),body=p.querySelector('.ap-body'),r=p.getBoundingClientRect();return Math.round(r.width)===758&&Math.round(r.height)===612&&body.clientHeight===504})()`),'fixed 760 × 614 frame and 504px content stage');
+  const frameCheck=async()=>assert(await evaluate(`(()=>{const p=document.querySelector('.adventure-panel'),body=p.querySelector('.ap-body'),r=p.getBoundingClientRect();return Math.round(r.width)===810&&Math.round(r.height)===748&&body.clientHeight===640})()`),'shared 812 × 750 frame and flexible 640px content stage');
   await seed(fixture);await click('.ap-pet-card');await shot('01-team');
   await textButton('选择探险地图');await frameCheck();await shot('02-map');
   assert(await evaluate(`(()=>{const m=document.querySelector('.ap-map'),r=m.getBoundingClientRect();return !document.querySelector('.ap-map-tabs')&&document.querySelectorAll('.ap-carousel-arrow').length===2&&Math.abs(r.width/r.height-16/9)<.001&&document.querySelectorAll('.ap-map-node').length===4})()`),'map carousel arrows and unstretched 16:9 authored map');

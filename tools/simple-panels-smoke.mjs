@@ -84,7 +84,7 @@ try {
   await send('Page.reload');await loaded();
   if (!settingsOnly) {
   await open('图鉴');
-  assert(await evaluate(`document.querySelector('.window-codex').getBoundingClientRect().width===760&&document.querySelector('.window-codex').getBoundingClientRect().height===614`),'codex keeps the fixed 760x614 frame');
+  assert(await evaluate(`document.querySelector('.window-codex').getBoundingClientRect().width===812&&document.querySelector('.window-codex').getBoundingClientRect().height===750`),'codex keeps the shared 812x750 frame');
   assert(await evaluate(`document.querySelector('.cd-group').dataset.group==='collectible' && !document.querySelector('.cd-cell[data-item-id="paper"]')`),'collectibles stay first and unknown ordinary items are absent');
   assert(await evaluate(`!document.querySelector('.cd-cell .cd-count') && !document.querySelector('.cd-cell[data-item-id="cloth-strip"]').textContent.match(/\\d/)`),'codex item icons do not display lifetime count badges');
   await shot('01-codex');
@@ -103,7 +103,7 @@ try {
   }
   await open('设置');
   const dimensions=()=>evaluate(`(()=>{const r=document.querySelector('.window-settings').getBoundingClientRect();return [r.width,r.height]})()`);
-  assert(JSON.stringify(await dimensions())==='[760,614]','settings uses the fixed 760x614 frame');
+  assert(JSON.stringify(await dimensions())==='[812,750]','settings uses the shared 812x750 frame');
   await shot('05-settings');
   assert(await evaluate(`!document.querySelector('.st-about')&&!document.querySelector('.st-dev')&&document.querySelectorAll('.settings-panel .sp-tabs button').length===3`), 'about is a peer tab and absent from general settings');
   await textButton('关于');
@@ -190,7 +190,7 @@ try {
   assert((await stored()).currency===4321,'cancel reset leaves the save unchanged');
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
   await shot('07-dark-settings');
-  assert(JSON.stringify(await dimensions())==='[760,614]','preview, confirmation, and theme never change panel size');
+  assert(JSON.stringify(await dimensions())==='[812,750]','preview, confirmation, and theme never change panel size');
   await textButton('行动记录');
   assert(await evaluate(`!!document.querySelector('.settings-panel .sp-tabs button[aria-pressed="true"]')&&!!document.querySelector('.st-content > .log-list')&&!document.querySelector('.st-content .panel')&&!document.querySelector('.st-content h2')&&!document.querySelector('.st-content .eyebrow')&&!document.querySelector('.st-content').textContent.includes('LOG')`),'action log is only a list without the old card or duplicated heading');
   await shot('10-action-log');
@@ -208,6 +208,46 @@ try {
   }
   await open('设置');
   assert(await evaluate(`Array.from(document.querySelectorAll('.window-settings button')).some(b=>b.textContent==='退出游戏'&&!b.disabled)`),'settings exposes the real quit action');
+  const bookmark = label => '.pet-bookmarks button[aria-label="'+label+'"]';
+  const navigationSnapshot=()=>evaluate(`(async()=>{const s=await window.desktopPet.getState();const r=document.querySelector('.pet-bookmarks').getBoundingClientRect();return {bounds:s.layout.bounds,panel:s.layout.panel,bookmarks:[r.x,r.y,r.width,r.height]}})()`);
+  const navStart=await navigationSnapshot();
+  assert(await evaluate(`JSON.stringify([...document.querySelectorAll('.pet-bookmarks button')].map(b=>b.getAttribute('aria-label')))===JSON.stringify(['状态','行动','库存','图鉴','设置'])&&JSON.stringify([...document.querySelectorAll('.pet-bubbles button')].map(b=>b.getAttribute('aria-label')))===JSON.stringify(['状态','行动','库存','图鉴','设置'])`),'bookmarks and bubbles share the requested order');
+  await textButton('关于');
+  for(const label of ['状态','行动','库存','图鉴','设置']) {
+    await click(bookmark(label));
+    assert(JSON.stringify(await navigationSnapshot())===JSON.stringify(navStart),'switching to '+label+' keeps native window, frame and bookmarks fixed');
+    assert(await evaluate(`document.querySelector('.pet-bookmarks button[aria-current="page"]').getAttribute('aria-label')===${JSON.stringify(label)}`),'active bookmark identifies '+label);
+    await shot('bookmark-'+label);
+  }
+  assert(await evaluate(`!!document.querySelector('.window-settings .st-about')`),'settings subpage survives bookmark switching');
+  for(const theme of ['light','dark']) {
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
+    assert(await evaluate(`(()=>{const active=document.querySelector('.pet-bookmarks button[aria-current="page"]'),panel=document.querySelector('.window-settings'),r=active.getBoundingClientRect(),p=panel.getBoundingClientRect();return getComputedStyle(active).borderRightWidth==='0px'&&getComputedStyle(active).backgroundColor===getComputedStyle(panel).backgroundColor&&document.elementFromPoint(p.left+.25,r.top+r.height/2)?.closest('button')===active&&[...document.querySelectorAll('.pet-bookmarks button:not([aria-current="page"])')].every(b=>getComputedStyle(b,'::after').content!=='none'&&getComputedStyle(b,'::after').backgroundColor.includes('0.45'))&&getComputedStyle(active,'::after').content==='none'})()`),'inactive bookmarks have a gray overlay and the selected seam is covered in '+theme+' mode');
+    await shot('bookmark-selection-'+theme);
+  }
+  const beforeNavigation=await stored();
+  await click(bookmark('行动')); await click('.ap-pet-card');
+  await click(bookmark('库存')); await click(bookmark('行动'));
+  assert(await evaluate(`document.querySelector('.ap-pet-card').getAttribute('aria-pressed')==='true'`),'unsubmitted expedition team survives bookmark switching');
+  assert(JSON.stringify(await stored())===JSON.stringify(beforeNavigation),'bookmark switching does not commit or cancel game actions');
+  await click(bookmark('设置'));
+  await click(bookmark('设置'));
+  assert(await evaluate(`!document.querySelector('.pet-panel-host').hidden`),'clicking the current bookmark does not close the panel');
+  await evaluate(`document.querySelector('.window-settings .sp-tabs button:first-child').click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.window-settings button')).find(b=>b.textContent==='清空本地存档').click()`);
+  await waitFor(`[...document.querySelectorAll('.pet-bookmarks button')].every(b=>b.disabled)`);
+  await click(bookmark('库存'));
+  assert(await evaluate(`!!document.querySelector('.window-settings .st-reset-dialog')&&document.querySelector('.pet-bookmarks button[aria-current="page"]').getAttribute('aria-label')==='设置'`),'confirmation modal blocks bookmark navigation');
+  await evaluate(`document.querySelector('.window-settings .st-reset-actions button:nth-child(2)').click()`);
+  await waitFor(`[...document.querySelectorAll('.pet-bookmarks button')].every(b=>!b.disabled)`);
+  assert(await evaluate(`[...document.querySelectorAll('.pet-bookmarks button')].every(b=>{const r=b.getBoundingClientRect();return r.width===44&&r.height===48&&r.x>=0&&r.bottom<=innerHeight&&!!b.title})`),'fixed bookmark targets and hover labels fit in the native window');
+  await shot('13-bookmarks');
+  // Compact-work-area geometry is unit tested; exercise content scrolling at that size here.
+  await evaluate(`Object.assign(document.querySelector('.pet-panel-host').style,{width:'740px',height:'584px'})`);
+  assert(await evaluate(`(()=>{const p=document.querySelector('.window-settings'),s=p.querySelector('.sp-content'),r=p.querySelector('.sp-close').getBoundingClientRect(),b=p.getBoundingClientRect();return s.scrollHeight>s.clientHeight&&r.top>=b.top&&r.bottom<=b.bottom})()`),'compact settings scrolls content without hiding the close button');
+  await shot('14-compact-bookmarks');
+  await click('.window-settings .sp-close');
+  assert(await evaluate(`document.querySelector('.pet-panel-host').hidden&&document.querySelector('.pet-bookmarks').getClientRects().length===0`),'closing the panel also hides every bookmark');
   assert(errors.length===0,'simple panels have no renderer exceptions');
   writeFileSync(join(out,settingsOnly?'settings-result.json':'result.json'),JSON.stringify({passed:true,scope:settingsOnly?'settings':'all-simple-panels',profile,errors},null,2));
   console.log('Screenshots: '+out);

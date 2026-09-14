@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { computeLayout, petMetrics, type Layout } from '../../desktop/geometry.mjs';
+import { BOOKMARK_WIDTH, computeLayout, petMetrics, type Layout } from '../../desktop/geometry.mjs';
 import './desktopBridge';
 import { ARRIVAL_CLIPS, isArrival, PetAnimator, type Pose } from './petAnimation';
 import { petFrameOffsetX } from './petFrameAlignment';
@@ -9,8 +9,8 @@ import './petDesktop.css';
 
 export type PanelId = 'pets' | 'inventory' | 'adventure' | 'codex' | 'settings';
 export const PET_MENUS: { id: PanelId; label: string; icon: string }[] = [
-  { id: 'pets', label: '状态', icon: 'status' }, { id: 'inventory', label: '库存', icon: 'storage' },
-  { id: 'adventure', label: '行动', icon: 'flag' }, { id: 'codex', label: '图鉴', icon: 'codex' },
+  { id: 'pets', label: '状态', icon: 'status' }, { id: 'adventure', label: '行动', icon: 'flag' },
+  { id: 'inventory', label: '库存', icon: 'storage' }, { id: 'codex', label: '图鉴', icon: 'codex' },
   { id: 'settings', label: '设置', icon: 'gear' },
 ];
 const icons = import.meta.glob<string>('../../assets/ui-prototype/icons/{status,storage,flag,codex,gear,bulb,coin}.png', { eager: true, query: '?url', import: 'default' });
@@ -27,6 +27,20 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
 }) {
   const bridge = window.desktopPet;
   const [menu, setMenu] = useState(false);
+  const panelHost = useRef<HTMLDivElement>(null);
+  const [panelBlocked, setPanelBlocked] = useState(false);
+  // Adventure overlays predate aria-modal; include their mask as well so
+  // extraction/discard confirmations cannot be bypassed via the outer rail.
+  const hasModal = () => !!panelHost.current && [...panelHost.current.querySelectorAll('[aria-modal="true"], .ap-mask')].some(element => element.getClientRects().length > 0);
+  useEffect(() => {
+    const host = panelHost.current;
+    if (!host) return;
+    const check = () => setPanelBlocked(hasModal());
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(host, {childList:true, subtree:true, attributes:true, attributeFilter:['hidden','aria-modal','style']});
+    return () => observer.disconnect();
+  }, [activePanel]);
   const [canvasSize, setCanvasSize] = useState(300);
   const metrics = petMetrics(canvasSize);
   const [position, setPosition] = useUIState('pet-position', { x: window.innerWidth - 340, y: window.innerHeight - 410 }, isPosition);
@@ -168,6 +182,15 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
       </nav>
       {assetError && <small className="pet-asset-error">动画资源加载失败，请重新构建素材</small>}
     </div>
-    <div className="pet-panel-host" data-desktop-ui style={layout.panel ? rectStyle(layout.panel) : undefined} hidden={!activePanel}>{children}</div>
+    <div ref={panelHost} className="pet-panel-host" data-desktop-ui style={layout.panel ? rectStyle(layout.panel) : undefined} hidden={!activePanel}>
+      <nav className="pet-bookmarks" aria-label="切换功能面板" style={{'--bookmark-width':`${BOOKMARK_WIDTH}px`} as CSSProperties}>
+        {PET_MENUS.map(entry => <button key={entry.id} type="button" title={panelBlocked ? '请先处理当前弹窗' : entry.label} aria-label={entry.label}
+          aria-current={activePanel === entry.id ? 'page' : undefined} disabled={panelBlocked}
+          onClick={() => { if (!hasModal() && entry.id !== activePanel) open(entry.id); }}>
+          <img src={menuIcon(entry.icon)} alt="" draggable={false} />
+        </button>)}
+      </nav>
+      {children}
+    </div>
   </div>;
 }

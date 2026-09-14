@@ -1,4 +1,4 @@
-/* Scoped migration of the approved 500px single-column status prototype. */
+/* Single-column status content within the shared desktop frame. */
 .pet-panel-host .game-window.window-pets { display:block; background:var(--ps-panel); --ps-panel:#fff; --ps-ink:#191c22; --ps-muted:#8990a0; --ps-secondary:#5f6573; --ps-line:#dee0e8; --ps-field:#f4f5f8; --ps-accent:#c98f10; --ps-warn:#c2452a; --ps-ok:#3f8f6a; color:var(--ps-ink); }
 .pet-status-panel { height:100%; overflow-y:auto; overscroll-behavior:contain; font-family:"PingFang SC","Hiragino Sans GB",system-ui,sans-serif; font-size:13px; line-height:1.65; font-variant-numeric:tabular-nums; }
 .pet-status-panel h2,.pet-status-panel h3 { margin:0; font-family:inherit; }
@@ -6,7 +6,7 @@
 .pet-status-panel button:hover:not(:disabled) { color:var(--ps-accent); border-color:var(--ps-accent); }
 .pet-status-panel button:focus-visible,.pet-status-panel select:focus-visible { outline:2px solid var(--ps-accent); outline-offset:2px; }
 .ps-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-.ps-header { height:88px; display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--ps-line); }
+.ps-header { position:sticky; top:0; z-index:10; background:var(--ps-panel); height:88px; display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--ps-line); }
 .ps-avatar { width:64px; height:64px; border-radius:12px; background:var(--ps-field); overflow:hidden; flex:none; display:grid; place-items:center; }
 .ps-avatar>div { width:64px; height:60px; background-size:640px auto; background-repeat:no-repeat; }
 .ps-identity { flex:1; min-width:0; }.ps-identity h2 { font-size:17px; font-weight:650; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

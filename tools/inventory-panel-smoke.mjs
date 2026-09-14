@@ -93,7 +93,7 @@ try {
   assert(await evaluate(`!document.querySelector('.ip-cell[data-item-id="card-stoat"] .ip-qty')`), 'non-stackable warehouse item hides its quantity badge');
   assert(await evaluate(`!!document.querySelector('.ip-cell[data-item-id="cloth-strip"] .ip-qty')`), 'stackable warehouse item retains its quantity badge');
   const baseline = await dimensions();
-  assert(baseline.width === 812 && baseline.height === 614, 'inventory retains a fixed 812x614 frame');
+  assert(baseline.width === 812 && baseline.height === 750, 'inventory retains the shared 812x750 frame');
   assert(await evaluate(`getComputedStyle(document.querySelector('.window-inventory')).boxShadow === 'none' && getComputedStyle(document.querySelector('.window-inventory')).borderTopColor === 'rgb(174, 178, 186)'`), 'inventory shares gray borders with no shadow');
   assert(await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"]').length === 3 && document.querySelectorAll('.ip-cell.empty').length === 33`), 'warehouse renders actual stacks and remaining empty slots');
   assert(await evaluate(`document.querySelector('.ip-footer').textContent.includes('7 / 40')`), 'warehouse capacity shows real state');

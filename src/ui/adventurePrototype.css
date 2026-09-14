@@ -1,7 +1,7 @@
 /* expedition-panel.html is the layout/motion source. Keep the desktop gray frame,
    no panel shadow and no header phase name, as explicitly requested later. */
 .adventure-panel { --ap-accent:#c98f10; --ap-bad:#d2453a; --ap-fail:#d9962a; --ap-success:#3f9268; --ap-great:#8b5cc7; font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
-.adventure-panel .ap-body { height:504px; padding:16px 18px; }
+.adventure-panel .ap-body { height:auto; padding:16px 18px; }
 .adventure-panel .ap-header { gap:12px; }
 .adventure-panel .ap-footer { font-size:12.5px; }
 .adventure-panel .ap-footer>span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }

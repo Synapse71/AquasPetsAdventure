@@ -80,7 +80,7 @@ try {
   fixture.inventory={'paper':3,'cloth-strip':5,'hemp-rope':2};fixture.unlockedMapIds=['map-1','map-2'];
   fixture.pets[petId].baseStats={fitness:12,perception:12,technique:12};
   await seed(fixture);
-  assert(await evaluate(`(()=>{const e=document.querySelector('.window-adventure'),r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width===760&&r.height===614&&s.boxShadow==='none'&&s.borderTopColor==='rgb(174, 178, 186)'})()`),'fixed 760x614 action frame, gray border and no shadow');
+  assert(await evaluate(`(()=>{const e=document.querySelector('.window-adventure'),r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width===812&&r.height===750&&s.boxShadow==='none'&&s.borderTopColor==='rgb(174, 178, 186)'})()`),'shared 812x750 action frame, gray border and no shadow');
   assert(await evaluate(`!document.querySelector('.ap-phase') && !document.querySelector('.ap-header').textContent.includes('选择伙伴') && !!document.querySelector('.ap-steps')`),'header has no phase name while preparation step navigation remains');
   await click('.ap-pet-card');await shot('01-team');
   await textButton('下一步');await shot('02-map');

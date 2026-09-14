@@ -79,7 +79,7 @@ try {
   await reload();
   const dimensions = () => evaluate(`(()=>{const e=document.querySelector('.window-pets');const r=e.getBoundingClientRect();return {width:r.width,height:r.height,scroll:document.querySelector('.pet-status-panel').scrollHeight,client:document.querySelector('.pet-status-panel').clientHeight}})()`);
   const baseline = await dimensions();
-  assert(baseline.width === 500 && baseline.height === 750, 'status uses the full 500x750 prototype frame');
+  assert(baseline.width === 812 && baseline.height === 750, 'status uses the shared 812x750 frame');
   await shot('01-healthy');
   await click('button[aria-label="给体能加一点"]');
   await click('button[aria-label="给技巧加一点"]');

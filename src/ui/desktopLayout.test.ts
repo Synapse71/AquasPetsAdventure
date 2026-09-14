@@ -2,6 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { computeLayout, computeNativeLayout, computeResizePreview, PANEL_WIDTHS, petMetrics } from '../../desktop/geometry.mjs';
 const area = { x: 0, y: 25, width: 1440, height: 850 };
 describe('desktop layout', () => {
+  it('uses one frame and reserves external bookmarks on every screen', () => {
+    for (const workArea of [area, {x:-800,y:0,width:800,height:600}]) {
+      const first = computeNativeLayout({x:100,y:100}, workArea, 'pets');
+      for (const id of Object.keys(PANEL_WIDTHS)) {
+        const next=computeNativeLayout({x:100,y:100},workArea,id);
+        expect(next.panel).toEqual(first.panel);
+        expect(next.panel!.x).toBeGreaterThanOrEqual(44);
+        expect(next.bounds.x+next.panel!.x-44).toBeGreaterThanOrEqual(workArea.x+8);
+      }
+    }
+  });
   it('locks native bounds and panel coordinates throughout a resize gesture', () => {
     const start = computeNativeLayout({ x: 600, y: 250 }, area, 'settings', 300);
     for (const size of [130, 420, 180, 300]) {
@@ -60,7 +71,7 @@ describe('desktop layout', () => {
   it('reserves the full fixed status prototype height without moving the pet', () => {
     const position = { x: 1100, y: 400 };
     const result = computeLayout(position, area, 'pets');
-    expect(result.panel?.width).toBe(500);
+    expect(result.panel?.width).toBe(812);
     expect(result.panel?.height).toBe(750);
     expect(result.position).toEqual(position);
   });
@@ -90,7 +101,7 @@ describe('desktop layout', () => {
   });
   it('fits panels on small displays', () => {
     const result = computeLayout({ x: 900, y: 900 }, { x: 0, y: 0, width: 800, height: 600 }, 'inventory');
-    expect(result.panel!.width).toBe(784);
+    expect(result.panel!.width).toBe(740);
     expect(result.panel!.height).toBe(584);
     expect(result.bounds.width).toBeLessThanOrEqual(800);
     expect(result.bounds.height).toBeLessThanOrEqual(600);

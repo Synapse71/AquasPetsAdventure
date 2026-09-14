@@ -119,8 +119,8 @@ try {
   assert(await evaluate(`document.querySelectorAll('.pet-bubbles.open button').length === 5`), 'pet click opens five menu buttons');
   await shot('02-menu');
   await click('.pet-bubbles button[aria-label="状态"]');
-  await waitFor(`document.querySelector('.pet-panel-host:not([hidden]) .window-pets')?.getBoundingClientRect().width === 500`);
-  assert(await evaluate(`document.querySelector('.window-pets h1').textContent === '状态'`), 'status opens a 500px real game panel');
+  await waitFor(`document.querySelector('.pet-panel-host:not([hidden]) .window-pets')?.getBoundingClientRect().width === 812`);
+  assert(await evaluate(`document.querySelector('.window-pets h1').textContent === '状态'`), 'status opens an 812px real game panel');
   await shot('03-status');
   assert(await evaluate(`(() => { const s = getComputedStyle(document.querySelector('.window-pets')); return s.boxShadow === 'none' && s.borderTopColor === 'rgb(174, 178, 186)' && s.borderTopWidth === '1px'; })()`), 'status panel has no shadow and a 1px gray border');
   await evaluate(`window.dispatchEvent(new Event('blur'))`); await sleep(300);
