@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE_CLIPS } from './petAnimation';
+import { ARRIVAL_CLIPS, IDLE_CLIPS } from './petAnimation';
 import { petFrameOffsetX } from './petFrameAlignment';
 
 describe('departure root alignment', () => {
@@ -20,7 +20,7 @@ describe('departure root alignment', () => {
     for (let frame = 104; frame <= 120; frame++) expect(petFrameOffsetX('start-explore', frame)).toBe(39);
   });
   it('does not change idle, walk, standing or sleeping anchors', () => {
-    for (const pose of [...IDLE_CLIPS, 'standing', 'walk', 'sleep-start', 'sleep-loop', 'sleep-end'] as const) {
+    for (const pose of [...IDLE_CLIPS, ...ARRIVAL_CLIPS, 'standing', 'walk', 'sleep-start', 'sleep-loop', 'sleep-end'] as const) {
       for (const frame of [0, 90, 120]) expect(petFrameOffsetX(pose, frame)).toBe(0);
     }
   });

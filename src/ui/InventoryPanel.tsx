@@ -129,7 +129,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
       </div>)}
       {!Object.values(expedition.cargo).some(q => q > 0) && <p className="ip-empty">背包里还没有物品。</p>}
       {!canDiscard && <p className="ip-hint">行进途中不能整理背包，到达节点后可丢弃。</p>}
-      {(weight > capacity || slots > slotCapacity) && <p className="ip-overload">{weight > capacity && `负重超出 ${num(weight - capacity)}。`}{slots > slotCapacity && `格子超出 ${slots - slotCapacity} 格。`}请按需整理；负重超限会增加风险并阻止撤离，格数超限会阻止继续行进及撤离。</p>}
+      {(weight > capacity || slots > slotCapacity) && <p className="ip-overload">{weight > capacity && `负重超出 ${num(weight - capacity)}，仅增加事件风险，不影响撤离。`}{slots > slotCapacity && `格子超出 ${slots - slotCapacity} 格，需整理后才能继续行进，但仍可撤离。`}</p>}
     </div>}
     </div> : <div className="ip-warehouse-page">
       <div className="ip-toolbar">

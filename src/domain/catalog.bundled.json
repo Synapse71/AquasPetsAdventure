@@ -1018,7 +1018,7 @@
       "name": "探险者山麓",
       "description": "大多数探险者会选择这里作为旅途的起点，山麓间的克格纳是一个静谧的村庄，不少旅人选择在这里歇脚。",
       "startNodeId": "m1-start",
-      "startDurationMs": 30000,
+      "startDurationMs": 8000,
       "informationThresholds": {
         "partial": 2,
         "full": 4
@@ -1034,14 +1034,14 @@
               "label": "前往探险者营地",
               "description": "",
               "toNodeId": "m1-point-1",
-              "durationMs": 300000
+              "durationMs": 900000
             },
             {
               "id": "route-3",
               "label": "去不起眼的树洞看看",
               "description": "",
               "toNodeId": "m1-point-2",
-              "durationMs": 1200000,
+              "durationMs": 1800000,
               "requirement": {
                 "secondary": {
                   "stat": "courage",
@@ -1057,19 +1057,28 @@
           "loot": {
             "mode": "independent",
             "minCount": 3,
-            "maxCount": 3,
+            "maxCount": 4,
             "rarityWeights": {
-              "common": 60,
-              "uncommon": 25,
-              "rare": 13,
-              "epic": 2,
+              "common": 80,
+              "uncommon": 20,
+              "rare": 0,
+              "epic": 0,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
-            "blacklistItemIds": [
-              "poop"
-            ]
+            "whitelistItemIds": [
+              "nail",
+              "wood-strip",
+              "screwdriver",
+              "wrench",
+              "iron-sheet",
+              "umbrella",
+              "fishing-rod",
+              "honey",
+              "cast-iron-pan"
+            ],
+            "whitelistItemTags": [],
+            "blacklistItemIds": []
           },
           "eventPoolIds": [],
           "edges": [
@@ -1078,7 +1087,7 @@
               "label": "前往克格纳",
               "description": "",
               "toNodeId": "m1-goal-1",
-              "durationMs": 600000
+              "durationMs": 1800000
             }
           ],
           "terminal": false
@@ -1091,14 +1100,19 @@
             "minCount": 5,
             "maxCount": 5,
             "rarityWeights": {
-              "common": 50,
-              "uncommon": 30,
-              "rare": 15,
-              "epic": 5,
+              "common": 70,
+              "uncommon": 20,
+              "rare": 8,
+              "epic": 2,
               "legendary": 0,
               "mythic": 0
             },
             "whitelistItemIds": [],
+            "whitelistItemTags": [
+              "material",
+              "tool",
+              "food"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
@@ -1194,7 +1208,7 @@
               "label": "前往克格纳",
               "description": "",
               "toNodeId": "m1-goal-1",
-              "durationMs": 600000
+              "durationMs": 1800000
             }
           ],
           "terminal": false
@@ -1207,7 +1221,7 @@
       "name": "克格纳",
       "description": "从克格纳村口向北延伸的乡野地带，河道、磨坊、墓园与山林小路最终汇向北山驿站。",
       "startNodeId": "m2-start",
-      "startDurationMs": 30000,
+      "startDurationMs": 8000,
       "informationThresholds": {
         "partial": 2,
         "full": 4

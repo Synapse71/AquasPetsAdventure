@@ -28,6 +28,16 @@ npm run dev
 
 本地策划配置台：`http://127.0.0.1:5173/?config=1`
 
+### 打包分发
+
+```bash
+npm run package:all   # macOS 通用 DMG + Windows x64 免安装 EXE
+npm run package:mac   # 仅 macOS（Apple Silicon / Intel）
+npm run package:win   # 仅 Windows x64
+```
+
+产物位于 `release/`（已忽略，不提交 Git）。本轮为无开发者证书的 Demo 分发构建，安装说明、安全提示及验证方法见 [打包与分发](docs/distribution.md)。
+
 配置台使用浏览器本地存储保存草稿和已应用配置，不需要数据库或账号。支持分类管理、表单与 raw JSON 双模式编辑、地图节点与路线表单、实时有向拓扑图、掉落表、按稀有度筛选物品、新增、复制、删除、引用校验、地图无环校验以及整包 JSON 导入导出。应用新配置时会重置 Demo 存档。
 
 注意：仅开发模式会读取配置台保存在浏览器本地存储中的已应用配置，并用它覆盖代码内置目录。代码改动看不到时，点「恢复默认」即可。生产构建及发行包只读取内置目录，不读取策划配置覆盖值；配置台界面、样式与编辑逻辑均不进入发行包，添加 `?config=1` 也不会打开后台。配置后台请使用 `npm run dev`，不支持 `npm run preview` 或打包版。
@@ -52,7 +62,7 @@ npm run test:desktop
 → 有限随机事件（够不到的事件不参与抽取，节点会列出所需门槛）
 → 风险选择（不达标的选项置灰；次要属性条件随三档情报逐步揭示）
 → 路线或立即撤离
-→ 撤离整理（负重 / 背包格子 / 仓库格子，可丢弃或就地出售）
+→ 撤离整理（不限负重，只检查仓库能否容纳；可出售仓库物品或就地出售战利品）
 → 战利品直接入库，结算节点经验与战利品经验
 → 出售、提交任务或喂给宠物提升次要属性
 → 升级加点、扩充仓库与账号成长
@@ -80,6 +90,7 @@ npm run test:desktop
 - [美术素材移交说明](assets/ASSETS-HANDOFF.md) —— 动画、图标与出图管线。
 - [桌宠 UE 实施共识](docs/desktop-ue-decisions.md) —— 本轮已确认的产品规则，优先于旧原型的冲突描述。
 - [桌宠客户端实现记录](docs/desktop-client-implementation.md) —— 已实现项、启动与测试方式、后续任务。
+- [到站动画 A / B](docs/pet-arrival-animation.md) —— 随机播放规则、透明切图坐标与行走 / 待机衔接验收。
 - [UE 与体验改进清单](docs/ue-improvement-backlog.md) —— 试玩反馈中的待改进项，包含动画、尺寸、拖拽、面板切换与地图数值体验。
 
 ## 目录

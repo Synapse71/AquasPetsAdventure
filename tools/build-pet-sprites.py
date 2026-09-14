@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / 'public' / 'pet-sprites'
 CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath',
          'blink-tilt', 'walk', 'sleep-start', 'sleep-loop', 'sleep-end',
-         'win-chest', 'lose-bag', 'bulb-hint', 'start-explore']
+         'win-chest', 'lose-bag', 'bulb-hint', 'start-explore', 'arrive-a', 'arrive-b']
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

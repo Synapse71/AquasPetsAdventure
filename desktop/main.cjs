@@ -2,10 +2,11 @@ const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen } = require
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
-let computeNativeLayout, PANEL_WIDTHS;
+let computeNativeLayout, computeResizePreview, PANEL_WIDTHS, MIN_PET_CANVAS, MAX_PET_CANVAS;
+let resizeStart;
 
 app.setName('咕咕嘎嘎');
-const devURL = process.env.IDLE_DESKTOP_DEV_URL;
+const devURL = app.isPackaged ? undefined : process.env.IDLE_DESKTOP_DEV_URL;
 if (devURL && devURL !== 'http://127.0.0.1:5173/') throw new Error('Unsupported development origin');
 const entryURL = devURL || pathToFileURL(path.join(__dirname, '../dist/index.html')).href;
 const appIconPath = path.join(__dirname, '../public/icons/aquamarine-1024.png');
@@ -22,7 +23,8 @@ function persist() {
 function state() { return { layout, canvas: preferences.canvas, alwaysOnTop: preferences.alwaysOnTop }; }
 function place() {
   const display = screen.getDisplayNearestPoint({ x: Math.round(preferences.x + preferences.canvas / 2), y: Math.round(preferences.y + 150) });
-  const next = computeNativeLayout(preferences, display.workArea, panel, preferences.canvas);
+  const next = resizeStart ? computeResizePreview(resizeStart, preferences.canvas)
+    : computeNativeLayout(preferences, display.workArea, panel, preferences.canvas);
   const unchanged = JSON.stringify(next) === JSON.stringify(layout);
   const boundsChanged = JSON.stringify(next.bounds) !== JSON.stringify(layout?.bounds);
   layout = next;
@@ -36,6 +38,7 @@ function endDrag() {
   persist();
 }
 function closePanels() {
+  resizeStart = undefined;
   panel = null;
   win.webContents.send('pet:close-panels');
   place();
@@ -54,6 +57,7 @@ function setupIPC() {
   ipcMain.handle('pet:state', event => valid(event) ? state() : null);
   ipcMain.handle('pet:panel', (event, value) => {
     if (!valid(event) || (value !== null && !Object.hasOwn(PANEL_WIDTHS, value))) return null;
+    resizeStart = undefined;
     panel = value;
     place();
     return state();
@@ -76,9 +80,13 @@ function setupIPC() {
   ipcMain.on('pet:drag-end', event => { if (valid(event)) endDrag(); });
   ipcMain.handle('pet:settings', (event, value) => {
     if (!valid(event) || !value || typeof value !== 'object') return null;
-    if (typeof value.canvas === 'number' && Number.isFinite(value.canvas)) preferences.canvas = Math.round(Math.max(260, Math.min(420, value.canvas)));
-    if (typeof value.alwaysOnTop === 'boolean') preferences.alwaysOnTop = value.alwaysOnTop;
-    win.setAlwaysOnTop(preferences.alwaysOnTop, 'floating');
+    if (value.resizing === true && panel === 'settings' && !resizeStart) resizeStart = structuredClone(layout);
+    if (value.resizing === false) resizeStart = undefined;
+    if (typeof value.canvas === 'number' && Number.isFinite(value.canvas)) preferences.canvas = Math.round(Math.max(MIN_PET_CANVAS, Math.min(MAX_PET_CANVAS, value.canvas)));
+    if (typeof value.alwaysOnTop === 'boolean') {
+      preferences.alwaysOnTop = value.alwaysOnTop;
+      win.setAlwaysOnTop(preferences.alwaysOnTop, 'floating');
+    }
     place(); persist(); return state();
   });
   ipcMain.on('pet:hide', event => { if (valid(event)) hidePet(); });
@@ -90,7 +98,7 @@ else app.whenReady().then(async () => {
   let appIcon = nativeImage.createFromPath(appIconPath);
   if (appIcon.isEmpty()) appIcon = nativeImage.createFromPath(path.join(__dirname, '../public/pet-sprites/standing.png'));
   if (!appIcon.isEmpty()) app.dock?.setIcon(appIcon);
-  ({ computeNativeLayout, PANEL_WIDTHS } = await import('./geometry.mjs'));
+  ({ computeNativeLayout, computeResizePreview, PANEL_WIDTHS, MIN_PET_CANVAS, MAX_PET_CANVAS } = await import('./geometry.mjs'));
   preferenceFile = path.join(app.getPath('userData'), 'desktop-preferences.json');
   const area = screen.getPrimaryDisplay().workArea;
   preferences.x = area.x + area.width - 340;
@@ -98,7 +106,7 @@ else app.whenReady().then(async () => {
   try {
     const saved = JSON.parse(fs.readFileSync(preferenceFile, 'utf8'));
     for (const key of ['x', 'y']) if (Number.isFinite(saved[key])) preferences[key] = saved[key];
-    if (Number.isFinite(saved.canvas)) preferences.canvas = Math.max(260, Math.min(420, saved.canvas));
+    if (Number.isFinite(saved.canvas)) preferences.canvas = Math.max(MIN_PET_CANVAS, Math.min(MAX_PET_CANVAS, saved.canvas));
     if (typeof saved.alwaysOnTop === 'boolean') preferences.alwaysOnTop = saved.alwaysOnTop;
   } catch { /* First launch: use work-area defaults. */ }
   win = new BrowserWindow({ width: 300, height: 370, show: false, transparent: true,

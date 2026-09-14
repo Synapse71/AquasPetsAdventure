@@ -2,12 +2,16 @@
   "name": "idle-pet-adventure",
   "private": true,
   "version": "0.1.0",
+  "description": "咕嘎搜撤没有打 — 桌宠探险 Demo",
+  "author": "Aquamarine Studio",
+  "main": "desktop/main.cjs",
   "type": "module",
   "scripts": {
     "dev:desktop": "node tools/desktop-dev.mjs",
     "start:desktop": "npm run build && electron desktop/main.cjs",
     "test:desktop": "npm run build && node tools/desktop-smoke.mjs",
     "test:departure": "npm run build && node tools/departure-smoke.mjs",
+    "test:arrival": "npm run build && node tools/arrival-smoke.mjs",
     "test:extraction-layout": "npm run build && node tools/extraction-layout-smoke.mjs",
     "test:tray": "npm run build && electron tools/tray-menu-smoke.cjs",
     "test:desktop-position": "npm run build && node tools/desktop-smoke.mjs --position-check",
@@ -15,23 +19,29 @@
     "test:inventory": "npm run build && node tools/inventory-panel-smoke.mjs",
     "test:simple-panels": "npm run build && node tools/simple-panels-smoke.mjs",
     "test:action": "npm run build && node tools/adventure-prototype-smoke.mjs",
+    "test:config-map": "node tools/config-map-smoke.mjs",
     "assets:pet": "\"${IDLE_ART_PYTHON:-$HOME/.venvs/idle-art/bin/python}\" tools/build-pet-sprites.py --clean-edges --output public/pet-sprites",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package:mac": "npm run build && node tools/package-desktop.mjs mac",
+    "package:win": "npm run build && node tools/package-desktop.mjs win",
+    "package:all": "npm run build && node tools/package-desktop.mjs all"
   },
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@electron/asar": "3.4.1",
     "@types/node": "^22.17.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "^44.3.0",
+    "electron-builder": "26.15.3",
     "typescript": "^5.9.2",
     "vite": "^7.1.2",
     "vitest": "^3.2.4"

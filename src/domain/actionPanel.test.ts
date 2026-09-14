@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bundledCatalog } from './catalog';
-import { confirmExtractionPlan, createInitialState, eventCheckRisk, primaryOutcomeForRoll, resolveEvent, startExpedition } from './engine';
+import { cargoCapacity, cargoSlotCapacity, confirmExtractionPlan, createInitialState, eventCheckRisk, inventorySlots, inventoryWeight, primaryOutcomeForRoll, resolveEvent, sellWarehouseItem, startExpedition } from './engine';
 import type { ExtractionPlan } from './engine';
 
 function fixture() {
@@ -20,6 +20,47 @@ function fixture() {
   return { catalog, state, e, petId };
 }
 describe('action panel engine transactions', () => {
+  it.each(['healthy', 'injured'] as const)('retreats with overweight and over-slot cargo when warehouse fits (%s)', injury => {
+    const { catalog, state, e, petId } = fixture();
+    state.pets[petId].injury = injury;
+    state.pets[petId].baseStats = { fitness: 2, perception: 2, technique: 1 };
+    catalog.items.test.weight = 100;
+    catalog.items.test.stackSize = 1;
+    e.cargo = { test: 20 };
+    expect(inventoryWeight(e.cargo, catalog)).toBeGreaterThan(cargoCapacity(state, e, catalog));
+    expect(inventorySlots(e.cargo, catalog)).toBeGreaterThan(cargoSlotCapacity(state, e, catalog));
+    const next = confirmExtractionPlan(state, e.id, { keep: { test: 20 }, sell: {}, discard: {} }, 10, catalog);
+    expect(next.expeditions).toHaveLength(0);
+    expect(next.inventory).toEqual({ test: 28, bound: 1 });
+    expect(next.currency).toBe(state.currency);
+    expect(next.pets[petId].injury).toBe(injury);
+  });
+  it('overweight still raises primary event risk', () => {
+    const { catalog, state, e } = fixture();
+    catalog.events.check = { id: 'check', title: '测试', description: '', choices: [{ id: 'go', label: '尝试', description: '', resolution: { type: 'primary', stat: 'fitness', difficulty: 5 }, rewards: {} }] };
+    e.phase = 'awaiting-event'; e.currentEventId = 'check'; e.cargo = {};
+    const normalRisk = eventCheckRisk(state, e.id, 'go', catalog);
+    catalog.items.test.weight = 1000;
+    e.cargo = { test: 1 };
+    expect(normalRisk).toBeTypeOf('number');
+    expect(eventCheckRisk(state, e.id, 'go', catalog)).toBeGreaterThan(normalRisk!);
+  });
+  it('full warehouse is resolved by selling warehouse stock or incoming cargo, with stacking respected', () => {
+    const { catalog, state, e } = fixture();
+    catalog.maps[e.mapId].nodes[e.currentNodeId!].firstExtractionRewards = {};
+    catalog.items.test.weight = 100;
+    state.warehouseSlots = 1;
+    const keepAll = { keep: { test: 5 }, sell: {}, discard: {} };
+    const before = structuredClone(state);
+    expect(() => confirmExtractionPlan(state, e.id, keepAll, 10, catalog)).toThrow('仓库放不下');
+    expect(state).toEqual(before);
+    const cleared = sellWarehouseItem(state, 'test', 3, catalog);
+    const afterStockSale = confirmExtractionPlan(cleared, e.id, keepAll, 11, catalog);
+    expect(afterStockSale.inventory).toEqual({ test: 10 });
+    const afterCargoSale = confirmExtractionPlan(state, e.id, { keep: { test: 2 }, sell: { test: 3 }, discard: {} }, 11, catalog);
+    expect(afterCargoSale.inventory).toEqual({ test: 10 });
+    expect(afterCargoSale.currency).toBe(state.currency + 21);
+  });
   it('extracts kept/sold/discarded partitions atomically and keeps old stock immutable', () => {
     const { catalog, state, e } = fixture(), before = structuredClone(state);
     const next = confirmExtractionPlan(state, e.id, { keep: { test: 2 }, sell: { test: 2 }, discard: { test: 1 } }, 10, catalog);

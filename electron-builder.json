@@ -1,0 +1,42 @@
+{
+  "appId": "studio.aquamarine.aquaspetsadventure",
+  "productName": "咕嘎搜撤没有打",
+  "executableName": "AquasPetsAdventure",
+  "directories": { "output": "release", "buildResources": "desktop/build" },
+  "artifactName": "AquasPetsAdventure-${version}-${os}-${arch}.${ext}",
+  "asar": true,
+  "npmRebuild": false,
+  "publish": null,
+  "files": [
+    "dist/**/*",
+    "desktop/main.cjs",
+    "desktop/preload.cjs",
+    "desktop/geometry.mjs",
+    "public/icons/aquamarine-1024.png",
+    "public/pet-sprites/standing.png",
+    "package.json",
+    "!node_modules/**/*",
+    "!**/*.map"
+  ],
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["universal"] }],
+    "category": "public.app-category.games",
+    "icon": "public/icons/aquamarine-1024.png",
+    "identity": "-",
+    "hardenedRuntime": true,
+    "entitlements": "desktop/build/entitlements.mac.plist",
+    "entitlementsInherit": "desktop/build/entitlements.mac.plist",
+    "notarize": false
+  },
+  "dmg": {
+    "title": "咕嘎搜撤没有打",
+    "sign": false
+  },
+  "win": {
+    "target": [{ "target": "portable", "arch": ["x64"] }],
+    "icon": "public/icons/aquamarine.ico",
+    "signExecutable": false,
+    "requestedExecutionLevel": "asInvoker"
+  },
+  "portable": { "requestExecutionLevel": "user" }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { computeLayout, type Layout } from '../../desktop/geometry.mjs';
+import { computeLayout, petMetrics, type Layout } from '../../desktop/geometry.mjs';
 import './desktopBridge';
-import { PetAnimator, type Pose } from './petAnimation';
+import { ARRIVAL_CLIPS, isArrival, PetAnimator, type Pose } from './petAnimation';
 import { petFrameOffsetX } from './petFrameAlignment';
 import { useUIState } from './uiState';
 import spriteManifest from '../../public/pet-sprites/manifest.json';
@@ -28,6 +28,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
   const bridge = window.desktopPet;
   const [menu, setMenu] = useState(false);
   const [canvasSize, setCanvasSize] = useState(300);
+  const metrics = petMetrics(canvasSize);
   const [position, setPosition] = useUIState('pet-position', { x: window.innerWidth - 340, y: window.innerHeight - 410 }, isPosition);
   const [viewport, setViewport] = useState({ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight });
   const [nativeLayout, setNativeLayout] = useState<Layout>();
@@ -76,17 +77,17 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     // Warm the transition sheets before dispatch; no change to the source art.
     load(`${import.meta.env.BASE_URL}pet-sprites/${manifest['start-explore'].file}`);
     load(`${import.meta.env.BASE_URL}pet-sprites/${manifest.walk.file}`);
+    for (const clip of ARRIVAL_CLIPS) load(`${import.meta.env.BASE_URL}pet-sprites/${manifest[clip].file}`);
     function render() {
       if (stopped || !context) return;
       const now = Date.now();
       const pose: Pose = animator.current.update(now, live.current.travel, live.current.menu, live.current.departureId);
       const sheet = manifest[pose];
-      const elapsed = Math.max(0, now - animator.current.since);
-      const frame = sheet ? (sheet.loop ? Math.floor(elapsed * sheet.fps / 1000) % sheet.frames : Math.min(sheet.frames - 1, Math.floor(elapsed * sheet.fps / 1000))) : 0;
       const source = sheet ? `${import.meta.env.BASE_URL}pet-sprites/${sheet.file}` : standing;
       const image = load(source);
-      // A cold image load must not consume the beginning of the departure clip.
-      if (pose === 'start-explore' && !image.complete) animator.current.since = now;
+      // A cold image load must not consume the beginning of either transition.
+      if ((pose === 'start-explore' || isArrival(pose)) && !image.complete) animator.current.since = now;
+      const frame = animator.current.frame(now);
       const key = `${pose}:${frame}:${image.complete}`;
       if (image.complete && image.naturalWidth && key !== lastKey) {
         const offsetX = petFrameOffsetX(pose, frame);
@@ -131,7 +132,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     if (!(event.target as Element).closest('[data-desktop-ui], .pet-hit')) { setMenu(false); onClose(); }
     else interact();
   }} onKeyDown={event => { interact(); if (event.key === 'Escape') { setMenu(false); onClose(); } }}>
-    <div className="pet-anchor" style={{ ...rectStyle(layout.pet), '--canvas': `${canvasSize}px` } as CSSProperties}>
+    <div className="pet-anchor" style={{ ...rectStyle(layout.pet), '--canvas': `${canvasSize}px`, '--bubble': `${metrics.bubble}px`, '--menu-width': `${metrics.menuWidth}px`, '--menu-gap': `${metrics.gap}px` } as CSSProperties}>
       {travel && menu && <div className="pet-travel" aria-live="off">
         <div><span>{travel.label}</span><time>{travel.remaining}</time></div>
         <div className="pet-travel-track"><i style={{ width: `${Math.max(0, Math.min(1, travel.progress)) * 100}%` }} /></div>

@@ -453,10 +453,13 @@ export function ConfigApp() {
     setItemTagFilter("all");
   }
 
-  function saveRecord(): void {
+  // 表单里的局部保存（例如地图节点浮层）直接把记录传进来：同一次事件里
+  // editorText 还是旧值，只能读参数，不能回头去 parse 那个字符串。
+  function saveRecord(explicit?: Record<string, unknown>): void {
     if (!selectedId) return;
     try {
-      const parsed = JSON.parse(editorText) as Record<string, unknown>;
+      const parsed =
+        explicit ?? (JSON.parse(editorText) as Record<string, unknown>);
       if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
         throw new Error("记录必须是 JSON 对象。");
       }
@@ -465,6 +468,7 @@ export function ConfigApp() {
       }
       const next = structuredClone(draft);
       recordsOf(next, category)[selectedId] = parsed;
+      setEditorText(JSON.stringify(parsed, null, 2));
       replaceDraft(next, `已保存 ${selectedId}`);
       setEditorError("");
     } catch (error) {
@@ -887,6 +891,7 @@ export function ConfigApp() {
                         setEditorText(JSON.stringify(next, null, 2));
                         setEditorError("");
                       }}
+                      onSave={(next) => saveRecord(next)}
                     />
                   ) : category === "events" ? (
                     <EventForm
@@ -956,7 +961,7 @@ export function ConfigApp() {
               )}
 
               {editorError && <p className="config-editor-error">{editorError}</p>}
-              <button className="config-save" onClick={saveRecord}>
+              <button className="config-save" onClick={() => saveRecord()}>
                 保存这条记录{dirty ? " · 有未保存修改" : ""}
               </button>
             </>

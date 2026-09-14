@@ -1,8 +1,12 @@
 import spriteManifest from '../../public/pet-sprites/manifest.json';
 
 export const IDLE_CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath', 'blink-tilt'] as const;
-export type Clip = typeof IDLE_CLIPS[number] | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
+export const ARRIVAL_CLIPS = ['arrive-a', 'arrive-b'] as const;
+export type ArrivalClip = typeof ARRIVAL_CLIPS[number];
+export type Clip = typeof IDLE_CLIPS[number] | ArrivalClip | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
 export type Pose = Clip | 'standing';
+export const isArrival = (pose: Pose): pose is ArrivalClip => pose === 'arrive-a' || pose === 'arrive-b';
+export const chooseArrival = (random = Math.random): ArrivalClip => random() < .5 ? 'arrive-a' : 'arrive-b';
 const WEIGHTS = [2, 2, 5, 5, 2];
 export const SLEEP_AFTER = 180_000;
 export const IDLE_PAUSE = 6_000;
@@ -27,29 +31,67 @@ export class PetAnimator {
   private lastDepartureId?: string;
   private wasTraveling = false;
   private restingSince: number;
+  private pendingArrival?: ArrivalClip;
+  private walkStopAt?: number;
+  private walkTailSince?: number;
+  private queuedDeparture = false;
   constructor(now: number, private random = Math.random) { this.since = now; this.lastInteraction = now; this.restingSince = now; }
   set(pose: Pose, now: number) { this.pose = pose; this.since = now; }
   interact(now: number) {
     this.lastInteraction = now;
     if (this.pose === 'sleep-loop' || this.pose === 'sleep-start') this.set('sleep-end', now);
   }
+  frame(now: number) {
+    if (this.pose === 'standing') return 0;
+    const sheet = spriteManifest[this.pose];
+    // Explicitly show the anchor frame even if a slow/suspended RAF skipped it.
+    if (this.pose === 'walk' && this.walkTailSince !== undefined) return sheet.frames - 1;
+    const index = Math.floor(Math.max(0, now - this.since) * sheet.fps / 1000);
+    return sheet.loop ? index % sheet.frames : Math.min(sheet.frames - 1, index);
+  }
   update(now: number, traveling: boolean, menuOpen: boolean, departureId?: string) {
     // Travel is activity, not idle time. Start a fresh inactivity window on
     // arrival, including after suspended frames or a restored in-progress trip.
-    if (this.wasTraveling && !traveling) this.restingSince = now;
+    if (this.wasTraveling && !traveling) {
+      this.restingSince = now;
+      if (!this.pendingArrival && !isArrival(this.pose)) this.pendingArrival = chooseArrival(this.random);
+    }
     this.wasTraveling = traveling;
     // The first observation may be a restored trip. Only a newly started segment
     // observed while this animator is alive starts a one-shot departure.
     if (this.observed && traveling && departureId && departureId !== this.lastDepartureId) {
-      this.set('start-explore', now);
+      // A quickly chosen next route waits for the current arrival to finish.
+      if (this.pendingArrival || isArrival(this.pose)) this.queuedDeparture = true;
+      else this.set('start-explore', now);
       this.lastInteraction = now;
     }
     this.observed = true;
     if (departureId) this.lastDepartureId = departureId;
     // One-shot animation owns the pose until its actual manifest duration ends.
     if (this.pose === 'start-explore') {
-      if (now - this.since < clipDuration(this.pose)) return this.pose;
-      this.set(traveling ? 'walk' : 'standing', now);
+      if (now < this.since + clipDuration(this.pose)) return this.pose;
+      this.set(traveling || this.pendingArrival ? 'walk' : 'standing', now);
+    }
+    if (this.pendingArrival) {
+      if (this.pose !== 'walk') this.set('walk', now);
+      const duration = clipDuration('walk'), frameTime = 1000 / spriteManifest.walk.fps;
+      this.walkStopAt ??= this.since + (Math.floor(Math.max(0, now - this.since) / duration) + 1) * duration;
+      if (now >= this.walkStopAt - frameTime) {
+        this.walkTailSince ??= now;
+        if (now - this.walkTailSince >= frameTime) {
+          this.set(this.pendingArrival, now);
+          this.pendingArrival = undefined;
+          this.walkStopAt = undefined;
+          this.walkTailSince = undefined;
+        }
+      }
+      return this.pose;
+    }
+    if (isArrival(this.pose)) {
+      if (now < this.since + clipDuration(this.pose)) return this.pose;
+      this.set(traveling ? (this.queuedDeparture ? 'start-explore' : 'walk') : 'standing', now);
+      this.queuedDeparture = false;
+      return this.pose;
     }
     if (traveling) { if (this.pose !== 'walk') this.set('walk', now); return this.pose; }
     if (this.pose === 'walk') this.set('standing', now);

@@ -8,7 +8,7 @@ export interface DesktopBridge {
   startDrag(point: { x: number; y: number }): void;
   dragTo(point: { x: number; y: number }): void;
   endDrag(): void;
-  settings(value: { canvas?: number; alwaysOnTop?: boolean }): Promise<DesktopState>;
+  settings(value: { canvas?: number; alwaysOnTop?: boolean; resizing?: boolean }): Promise<DesktopState>;
   hide(): void;
   quit(): void;
   onLayout(callback: (state: DesktopState) => void): () => void;

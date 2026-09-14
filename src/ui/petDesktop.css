@@ -1,10 +1,10 @@
 .pet-client { position: fixed; inset: 0; overflow: hidden; }
-.pet-anchor { position: absolute; --body: calc(var(--canvas) * .47); --bubble: calc((var(--body) - 16px) / 5); user-select: none; }
+.pet-anchor { position: absolute; --body: max(140px, calc(var(--canvas) * .47)); user-select: none; }
 .pet-hit { position: absolute; top: 48px; left: 0; width: var(--canvas); height: calc(var(--canvas) * .94); background: none; border: 0; padding: 0; touch-action: none; outline: none; }
 .pet-hit canvas { display: block; width: 100%; height: 100%; transition: transform 140ms ease; }
 .pet-hit:active canvas { transform: scale(.96); }
 .pet-hit:focus,.pet-hit:focus-visible { outline: none; }
-.pet-bubbles { position: absolute; top: calc(48px + var(--canvas) * .94); left: 50%; transform: translateX(-50%); display: flex; gap: 4px; width: var(--body); pointer-events: none; }
+.pet-bubbles { position: absolute; top: calc(48px + var(--canvas) * .94); left: 50%; transform: translateX(-50%); display: flex; gap: var(--menu-gap); width: var(--menu-width); pointer-events: none; }
 .pet-bubbles button { width: var(--bubble); height: var(--bubble); flex: none; border-radius: 50%; border: 1px solid #c9c6bd; padding: 0; display: grid; place-items: center; background: #fffefaeb; opacity: 0; transform: scale(.4) translateY(-8px); transition: transform 170ms cubic-bezier(.4,0,1,1), opacity 170ms; transition-delay: calc((4 - var(--i)) * 30ms); }
 .pet-bubbles.open button { opacity: 1; transform: none; pointer-events: auto; transition: transform 240ms cubic-bezier(.34,1.56,.64,1), opacity 240ms; transition-delay: calc(var(--i) * 45ms); }
 .pet-bubbles button:hover { background: #fff; box-shadow: 0 2px 6px #38332933; }

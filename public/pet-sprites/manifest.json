@@ -115,5 +115,23 @@
     "columns": 10,
     "fps": 24,
     "loop": false
+  },
+  "arrive-a": {
+    "file": "arrive-a.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "arrive-b": {
+    "file": "arrive-b.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
   }
 }

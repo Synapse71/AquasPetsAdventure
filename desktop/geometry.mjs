@@ -2,12 +2,32 @@
 const PANEL_WIDTHS = { pets: 500, inventory: 812, adventure: 760, codex: 760, settings: 760 };
 const PANEL_HEIGHTS = { pets: 750, inventory: 614, adventure: 614, codex: 614, settings: 614 };
 const clamp = (value, min, max) => Math.max(min, Math.min(value, Math.max(min, max)));
+export const MIN_PET_CANVAS = 130;
+export const MAX_PET_CANVAS = 420;
+export function petMetrics(canvas = 300) {
+  const size = clamp(canvas, MIN_PET_CANVAS, MAX_PET_CANVAS);
+  const bubble = size < 300 ? Math.round(16 + (size - 130) * 26 / 170) : Math.round(size * .14);
+  const gap = size < 300 ? 3 + (size - 130) * 3 / 170 : 6;
+  return { size, bubble, gap, menuWidth: bubble * 5 + gap * 4,
+    height: Math.ceil(48 + size * .94 + bubble + 8) };
+}
+// The slider must not move underneath a held pointer. Keep the native window
+// and panel exactly fixed; preview only the pet within the existing envelope.
+export function computeResizePreview(start, canvas) {
+  const { size, height } = petMetrics(canvas);
+  const pet = { ...start.pet, width: size, height,
+    x: clamp(start.pet.x, 0, start.bounds.width - size),
+    y: clamp(start.pet.y, 0, start.bounds.height - height) };
+  return { ...start, pet, position: { x: start.bounds.x + pet.x, y: start.bounds.y + pet.y } };
+}
 function computeLayout(position, area, panelId = null, canvas = 300) {
-  const size = clamp(canvas, 260, 420);
+  const { size, menuWidth, height: petHeight } = petMetrics(canvas);
+  // Small pets still need a usable menu; reserve its overhang plus animation padding.
+  const overhang = Math.max(0, (Math.max(menuWidth + 8, 140) - size) / 2);
   const pet = {
-    x: clamp(Math.round(position.x), area.x, area.x + area.width - size),
-    y: clamp(Math.round(position.y), area.y, area.y + area.height - Math.ceil(size * .94 + 88)),
-    width: size, height: Math.ceil(size * .94 + 88),
+    x: clamp(Math.round(position.x), area.x + overhang, area.x + area.width - size - overhang),
+    y: clamp(Math.round(position.y), area.y, area.y + area.height - petHeight),
+    width: size, height: petHeight,
   };
   let panel = null;
   if (Object.hasOwn(PANEL_WIDTHS, panelId)) {
@@ -25,9 +45,9 @@ function computeLayout(position, area, panelId = null, canvas = 300) {
       y: clamp(pet.y + (pet.height - height) / 2, area.y + 8, area.y + area.height - height - 8),
       width, height };
   }
-  const x = Math.floor(Math.min(pet.x, panel?.x ?? pet.x));
+  const x = Math.floor(Math.min(pet.x - overhang, panel?.x ?? pet.x));
   const y = Math.floor(Math.min(pet.y, panel?.y ?? pet.y));
-  const width = Math.ceil(Math.max(pet.x + pet.width, panel ? panel.x + panel.width : pet.x + pet.width) - x);
+  const width = Math.ceil(Math.max(pet.x + pet.width + overhang, panel ? panel.x + panel.width : pet.x + pet.width) - x);
   const height = Math.ceil(Math.max(pet.y + pet.height, panel ? panel.y + panel.height : pet.y + pet.height) - y);
   const local = rect => rect && ({ ...rect, x: rect.x - x, y: rect.y - y });
   return { bounds: { x, y, width, height }, pet: local(pet), panel: local(panel), position: { x: pet.x, y: pet.y } };

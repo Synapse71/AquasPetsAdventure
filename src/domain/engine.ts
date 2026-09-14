@@ -1743,21 +1743,8 @@ export function confirmExtraction(
   if (expedition.phase !== "extraction") {
     throw new GameRuleError("当前不能确认撤离。");
   }
-  const weight = inventoryWeight(expedition.cargo, catalog);
-  const capacity = cargoCapacity(state, expedition, catalog);
-  if (weight > capacity) {
-    throw new GameRuleError(
-      `仍然超载 ${roundWeight(weight - capacity)}，需要继续丢弃战利品。`,
-    );
-  }
-  if (isCargoOverSlots(state, expedition, catalog)) {
-    throw new GameRuleError(
-      `背包仍超出 ${
-        cargoSlotsUsed(expedition, catalog) -
-        cargoSlotCapacity(state, expedition, catalog)
-      } 格，需要继续丢弃战利品。`,
-    );
-  }
+  // 超载只增加冒险事件风险；撤离不检查负重或背包格数，
+  // 仅按最终入库（含首次奖励）合并后的仓库格数检查容量。
   const firstExtractionRewards = pendingFirstExtractionRewards(
     state,
     expedition,

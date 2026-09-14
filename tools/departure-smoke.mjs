@@ -144,7 +144,8 @@ try {
   })()`);
   const routeLabel=await evaluate("document.querySelector('.ap-route-choices button:first-child strong').textContent");
   await click('.ap-route-choices button:first-child');
-  assert(await evaluate("document.querySelector('.pet-hit canvas').dataset.pose==='start-explore'"),'choosing a new destination plays departure again before walking');
+  await waitFor("document.querySelector('.pet-hit canvas').dataset.pose==='start-explore'");
+  assert(await evaluate("document.querySelector('.pet-hit canvas').dataset.pose==='start-explore'"),'choosing a new destination plays departure again after any ongoing arrival finishes');
   await shot('04-route-departure');
   await waitFor("document.querySelector('.pet-hit canvas').dataset.pose==='walk'");
   const routeFrames=await evaluate("(window.sampleDeparture=false,window.departureFrames)");
@@ -160,9 +161,19 @@ try {
   // Advance the isolated renderer clock through a long trip, then keep it fixed
   // to check the exact inactivity boundary without waiting three real minutes.
   await evaluate("window.sleepTestClock=Date.now()+7200000;Date.now=()=>window.sleepTestClock");
+  await waitFor("JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1')).expeditions[0].phase!=='traveling'");
+  // The arrival transition now owns the pose. Drive the frozen test clock
+  // through the remaining walk cycle and the complete one-shot first.
+  for (let i=0;i<150;i++) {
+    if (await evaluate("document.querySelector('.pet-hit canvas').dataset.pose==='standing'")) break;
+    await evaluate("window.sleepTestClock+=100"); await sleep(30);
+  }
   await waitFor("document.querySelector('.pet-hit canvas').dataset.pose==='standing'");
   assert(await evaluate("!!document.querySelector('.pet-bulb')"),'arrival remains awake while pending work lights the bulb');
-  await evaluate("window.sleepTestClock+=179999");await sleep(150);
+  await evaluate("window.sleepBoundaryBase=window.sleepTestClock");
+  // Reset with a real interaction so this assertion has an exact known origin.
+  await click('.pet-hit');
+  await evaluate("window.sleepTestClock=window.sleepBoundaryBase+179999");await sleep(150);
   assert(await evaluate("!document.querySelector('.pet-hit canvas').dataset.pose.startsWith('sleep')"),'two hours of travel do not consume the post-arrival inactivity window');
   await evaluate("window.sleepTestClock+=1");
   await waitFor("document.querySelector('.pet-hit canvas').dataset.pose==='sleep-start'");

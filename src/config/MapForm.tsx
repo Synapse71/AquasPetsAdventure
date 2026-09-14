@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   SECONDARY_STAT_KEYS,
   SECONDARY_STAT_LABELS,
@@ -12,6 +12,15 @@ import type {
   LootCompositionDefinition,
   NodeLootDefinition,
 } from "../domain/types";
+import {
+  applyNodeDraft,
+  countIncomingEdges,
+  isNodeDirty,
+  NODE_ROLE_LABELS,
+  nodeDepths,
+  nodeRole,
+  removeNodeFromMap,
+} from "./mapNodeDraft";
 
 type Record_ = Record<string, unknown>;
 
@@ -1055,43 +1064,29 @@ interface GraphPoint {
 function MapGraphPreview({
   nodes,
   startNodeId,
+  selectedNodeId,
+  onSelectNode,
 }: {
   nodes: Record_;
   startNodeId: string;
+  selectedNodeId: string;
+  onSelectNode: (nodeId: string) => void;
 }) {
   const nodeIds = Object.keys(nodes);
-  const adjacency = new Map<string, string[]>();
   let danglingEdges = 0;
   let edgeCount = 0;
 
-  for (const [nodeId, value] of Object.entries(nodes)) {
-    const targets: string[] = [];
-    if (isRecord(value) && Array.isArray(value.edges)) {
-      for (const edge of value.edges) {
-        if (!isRecord(edge) || typeof edge.toNodeId !== "string") continue;
-        edgeCount += 1;
-        if (Object.hasOwn(nodes, edge.toNodeId)) targets.push(edge.toNodeId);
-        else danglingEdges += 1;
-      }
+  for (const value of Object.values(nodes)) {
+    if (!isRecord(value) || !Array.isArray(value.edges)) continue;
+    for (const edge of value.edges) {
+      if (!isRecord(edge) || typeof edge.toNodeId !== "string") continue;
+      edgeCount += 1;
+      if (!Object.hasOwn(nodes, edge.toNodeId)) danglingEdges += 1;
     }
-    adjacency.set(nodeId, targets);
   }
 
-  // 以入口为根做最短层级布局。非法循环也只访问一次，不会卡住配置台。
-  const depths = new Map<string, number>();
-  if (Object.hasOwn(nodes, startNodeId)) {
-    depths.set(startNodeId, 0);
-    const queue = [startNodeId];
-    while (queue.length) {
-      const current = queue.shift()!;
-      const nextDepth = (depths.get(current) ?? 0) + 1;
-      for (const target of adjacency.get(current) ?? []) {
-        if (depths.has(target)) continue;
-        depths.set(target, nextDepth);
-        queue.push(target);
-      }
-    }
-  }
+  // 以入口为根做最短层级布局，判定与浮层共用 nodeDepths。
+  const depths = nodeDepths(nodes, startNodeId);
 
   const reachableMax = Math.max(0, ...depths.values());
   const unreachableIds = nodeIds.filter((nodeId) => !depths.has(nodeId));
@@ -1137,7 +1132,9 @@ function MapGraphPreview({
       <div className="config-map-graph-head">
         <div>
           <strong>地图拓扑预览</strong>
-          <span>{nodeIds.length} 个节点 · {edgeCount} 条单向路径</span>
+          <span>
+            {nodeIds.length} 个节点 · {edgeCount} 条单向路径 · 点击节点编辑
+          </span>
         </div>
         <div className="config-graph-legend">
           <span className="entry">入口</span>
@@ -1198,21 +1195,24 @@ function MapGraphPreview({
             const rawNode = nodes[point.id];
             const node = isRecord(rawNode) ? rawNode : {};
             const name = typeof node.name === "string" ? node.name : point.id;
-            const kind =
-              point.id === startNodeId
-                ? "entry"
-                : !point.reachable
-                  ? "unreachable"
-                  : node.terminal === true
-                    ? "terminal"
-                    : node.extractable === true
-                      ? "extractable"
-                    : "normal";
+            const kind = nodeRole(node, point.id, startNodeId, point.reachable);
             return (
               <g
-                className={`config-graph-node ${kind}`}
+                className={`config-graph-node ${kind}${
+                  point.id === selectedNodeId ? " selected" : ""
+                }`}
                 key={point.id}
                 transform={`translate(${point.x - 66} ${point.y - 25})`}
+                data-node-id={point.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`编辑节点 ${name}`}
+                onClick={() => onSelectNode(point.id)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  onSelectNode(point.id);
+                }}
               >
                 <rect width="132" height="50" rx="9" />
                 <text className="name" x="66" y="21">
@@ -1246,7 +1246,6 @@ function NodeLootEditor({
   isStart,
   onChange,
   onNodeChange,
-  onDelete,
 }: {
   nodeId: string;
   node: Record_;
@@ -1255,7 +1254,6 @@ function NodeLootEditor({
   isStart: boolean;
   onChange: (next: NodeLootDefinition) => void;
   onNodeChange: (patch: Record_) => void;
-  onDelete: () => void;
 }) {
   const loot = safeLoot(node.loot);
   const minCount = intValue(loot.minCount, 1);
@@ -1284,232 +1282,348 @@ function NodeLootEditor({
   const nodeName = typeof node.name === "string" ? node.name : nodeId;
 
   return (
-    <details className="config-node-loot" open>
-      <summary>
-        <span>
-          <strong>{nodeName}</strong>
-          <code>{nodeId}</code>
-        </span>
-        <div className="config-node-actions">
-          <em>
-            {isStart
-              ? "起始入口"
-              : loot.mode === "independent"
-                ? "独立抽取"
-                : "组合表"}
-          </em>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onDelete();
-            }}
-          >
-            删除节点
-          </button>
-        </div>
-      </summary>
-      <div className="config-node-loot-body">
-        <div className="config-field-row">
-          <label className="config-field">
-            <span>节点名称</span>
-            <input
-              value={nodeName}
-              onChange={(event) => onNodeChange({ name: event.target.value })}
-            />
-          </label>
-          {isStart ? (
-            <div className="config-start-role">
-              <strong>地图入口</strong>
-              <small>只负责选择首个探索目标，不能同时作为固定终点。</small>
-            </div>
-          ) : (
-            <div className="config-node-roles">
+    <div className="config-node-loot-body">
+      <div className="config-field-row">
+        <label className="config-field">
+          <span>节点名称</span>
+          <input
+            value={nodeName}
+            onChange={(event) => onNodeChange({ name: event.target.value })}
+          />
+        </label>
+        {isStart ? (
+          <div className="config-start-role">
+            <strong>地图入口</strong>
+            <small>只负责选择首个探索目标，不能同时作为固定终点。</small>
+          </div>
+        ) : (
+          <div className="config-node-roles">
+            <label className="config-check config-node-terminal">
+              <input
+                type="checkbox"
+                checked={node.terminal === true}
+                onChange={(event) =>
+                  onNodeChange({
+                    terminal: event.target.checked,
+                    ...(event.target.checked ? { extractable: undefined } : {}),
+                  })
+                }
+              />
+              <span>固定终点</span>
+              <small>天然可撤离；处理事件后强制进入撤离整理。</small>
+            </label>
+            {node.terminal !== true && (
               <label className="config-check config-node-terminal">
                 <input
                   type="checkbox"
-                  checked={node.terminal === true}
+                  checked={node.extractable === true}
                   onChange={(event) =>
-                    onNodeChange({
-                      terminal: event.target.checked,
-                      ...(event.target.checked ? { extractable: undefined } : {}),
-                    })
+                    onNodeChange({ extractable: event.target.checked || undefined })
                   }
                 />
-                <span>固定终点</span>
-                <small>天然可撤离；处理事件后强制进入撤离整理。</small>
+                <span>中途撤离点</span>
+                <small>开启后玩家可以在这里见好就收；普通节点不能撤离。</small>
               </label>
-              {node.terminal !== true && (
-                <label className="config-check config-node-terminal">
-                  <input
-                    type="checkbox"
-                    checked={node.extractable === true}
-                    onChange={(event) =>
-                      onNodeChange({ extractable: event.target.checked || undefined })
-                    }
-                  />
-                  <span>中途撤离点</span>
-                  <small>开启后玩家可以在这里见好就收；普通节点不能撤离。</small>
-                </label>
-              )}
-            </div>
-          )}
-        </div>
-
-        {isStart ? (
-          <div className="config-start-node-note">
-            <strong>起始节点不进行探索结算</strong>
-            <p>队伍抵达后直接选择下一条路线，不会获得战利品，也不会抽取随机事件。</p>
+            )}
           </div>
-        ) : (
-          <>
-        <div className="config-loot-mode-switch" role="group" aria-label="掉落模式">
-          <button
-            type="button"
-            className={loot.mode === "independent" ? "active" : ""}
-            onClick={() => {
-              if (loot.mode === "independent") return;
-              onChange({
-                mode: "independent",
-                minCount,
-                maxCount,
-                rarityWeights: { common: 50, uncommon: 30, rare: 15, epic: 5 },
-                whitelistItemIds: whitelist,
-                whitelistItemTags: whitelistTags,
-                blacklistItemIds: blacklist,
-                blacklistItemTags: blacklistTags,
-              });
-            }}
-          >
-            <strong>独立抽取</strong>
-            <small>每件分别抽稀有度</small>
-          </button>
-          <button
-            type="button"
-            className={loot.mode === "composition" ? "active" : ""}
-            onClick={() => {
-              if (loot.mode === "composition") return;
-              onChange({
-                mode: "composition",
-                minCount,
-                maxCount,
-                compositions: [
-                  {
-                    id: "composition-1",
-                    weight: 1,
-                    rarityCounts: { common: Math.max(1, minCount) },
-                  },
-                ],
-                whitelistItemIds: whitelist,
-                whitelistItemTags: whitelistTags,
-                blacklistItemIds: blacklist,
-                blacklistItemTags: blacklistTags,
-              });
-            }}
-          >
-            <strong>组合表</strong>
-            <small>控制最终稀有度构成</small>
-          </button>
-        </div>
-
-        <div className="config-field-row">
-          <label className="config-field">
-            <span>最少掉落</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={minCount}
-              onChange={(event) => setRange("minCount", inputNumber(event.target.value))}
-            />
-          </label>
-          <label className="config-field">
-            <span>最多掉落</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={maxCount}
-              onChange={(event) => setRange("maxCount", inputNumber(event.target.value))}
-            />
-          </label>
-        </div>
-
-        {loot.mode === "independent" ? (
-          <>
-            <CountWeightEditor loot={loot} onChange={onChange} />
-            <RarityWeightEditor
-              values={loot.rarityWeights}
-              onChange={(rarityWeights) => onChange({ ...loot, rarityWeights })}
-            />
-          </>
-        ) : (
-          <CompositionEditor loot={loot} onChange={onChange} />
         )}
+      </div>
 
-        <div className="config-loot-filter-row">
-          <ItemListPicker
-            label="白名单"
-            description="物品与物品 Tag 取并集；两者都留空表示不限制。"
-            selected={whitelist}
-            selectedTags={whitelistTags}
-            catalog={catalog}
-            onChange={(whitelistItemIds) => onChange({ ...loot, whitelistItemIds })}
-            onTagsChange={(whitelistItemTags) =>
-              onChange({ ...loot, whitelistItemTags })
-            }
-          />
-          <ItemListPicker
-            label="黑名单"
-            description="物品与物品 Tag 取并集，在白名单过滤后统一排除。"
-            selected={blacklist}
-            selectedTags={blacklistTags}
-            catalog={catalog}
-            onChange={(blacklistItemIds) => onChange({ ...loot, blacklistItemIds })}
-            onTagsChange={(blacklistItemTags) =>
-              onChange({ ...loot, blacklistItemTags })
-            }
-          />
+      {isStart ? (
+        <div className="config-start-node-note">
+          <strong>起始节点不进行探索结算</strong>
+          <p>队伍抵达后直接选择下一条路线，不会获得战利品，也不会抽取随机事件。</p>
         </div>
+      ) : (
+        <>
+      <div className="config-loot-mode-switch" role="group" aria-label="掉落模式">
+        <button
+          type="button"
+          className={loot.mode === "independent" ? "active" : ""}
+          onClick={() => {
+            if (loot.mode === "independent") return;
+            onChange({
+              mode: "independent",
+              minCount,
+              maxCount,
+              rarityWeights: { common: 50, uncommon: 30, rare: 15, epic: 5 },
+              whitelistItemIds: whitelist,
+              whitelistItemTags: whitelistTags,
+              blacklistItemIds: blacklist,
+              blacklistItemTags: blacklistTags,
+            });
+          }}
+        >
+          <strong>独立抽取</strong>
+          <small>每件分别抽稀有度</small>
+        </button>
+        <button
+          type="button"
+          className={loot.mode === "composition" ? "active" : ""}
+          onClick={() => {
+            if (loot.mode === "composition") return;
+            onChange({
+              mode: "composition",
+              minCount,
+              maxCount,
+              compositions: [
+                {
+                  id: "composition-1",
+                  weight: 1,
+                  rarityCounts: { common: Math.max(1, minCount) },
+                },
+              ],
+              whitelistItemIds: whitelist,
+              whitelistItemTags: whitelistTags,
+              blacklistItemIds: blacklist,
+              blacklistItemTags: blacklistTags,
+            });
+          }}
+        >
+          <strong>组合表</strong>
+          <small>控制最终稀有度构成</small>
+        </button>
+      </div>
 
-        <EventPoolPicker
-          selected={eventPoolIds}
+      <div className="config-field-row">
+        <label className="config-field">
+          <span>最少掉落</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={minCount}
+            onChange={(event) => setRange("minCount", inputNumber(event.target.value))}
+          />
+        </label>
+        <label className="config-field">
+          <span>最多掉落</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={maxCount}
+            onChange={(event) => setRange("maxCount", inputNumber(event.target.value))}
+          />
+        </label>
+      </div>
+
+      {loot.mode === "independent" ? (
+        <>
+          <CountWeightEditor loot={loot} onChange={onChange} />
+          <RarityWeightEditor
+            values={loot.rarityWeights}
+            onChange={(rarityWeights) => onChange({ ...loot, rarityWeights })}
+          />
+        </>
+      ) : (
+        <CompositionEditor loot={loot} onChange={onChange} />
+      )}
+
+      <div className="config-loot-filter-row">
+        <ItemListPicker
+          label="白名单"
+          description="物品与物品 Tag 取并集；两者都留空表示不限制。"
+          selected={whitelist}
+          selectedTags={whitelistTags}
           catalog={catalog}
-          onChange={(nextEventPoolIds) =>
-            onNodeChange({ eventPoolIds: nextEventPoolIds })
+          onChange={(whitelistItemIds) => onChange({ ...loot, whitelistItemIds })}
+          onTagsChange={(whitelistItemTags) =>
+            onChange({ ...loot, whitelistItemTags })
           }
         />
-
-        {node.terminal === true || node.extractable === true ? (
-          <FirstExtractionRewardEditor
-            value={node.firstExtractionRewards}
-            catalog={catalog}
-            onChange={(firstExtractionRewards) =>
-              onNodeChange({
-                firstExtractionRewards: Object.keys(firstExtractionRewards).length
-                  ? firstExtractionRewards
-                  : undefined,
-              })
-            }
-          />
-        ) : (
-          <p className="config-form-note">
-            当前节点不可撤离，因此不能配置首次撤离奖励。
-          </p>
-        )}
-          </>
-        )}
-
-        <RouteEditor
-          nodeId={nodeId}
-          edges={node.edges}
-          nodes={nodes}
+        <ItemListPicker
+          label="黑名单"
+          description="物品与物品 Tag 取并集，在白名单过滤后统一排除。"
+          selected={blacklist}
+          selectedTags={blacklistTags}
           catalog={catalog}
-          onChange={(edges) => onNodeChange({ edges })}
+          onChange={(blacklistItemIds) => onChange({ ...loot, blacklistItemIds })}
+          onTagsChange={(blacklistItemTags) =>
+            onChange({ ...loot, blacklistItemTags })
+          }
         />
       </div>
-    </details>
+
+      <EventPoolPicker
+        selected={eventPoolIds}
+        catalog={catalog}
+        onChange={(nextEventPoolIds) =>
+          onNodeChange({ eventPoolIds: nextEventPoolIds })
+        }
+      />
+
+      {node.terminal === true || node.extractable === true ? (
+        <FirstExtractionRewardEditor
+          value={node.firstExtractionRewards}
+          catalog={catalog}
+          onChange={(firstExtractionRewards) =>
+            onNodeChange({
+              firstExtractionRewards: Object.keys(firstExtractionRewards).length
+                ? firstExtractionRewards
+                : undefined,
+            })
+          }
+        />
+      ) : (
+        <p className="config-form-note">
+          当前节点不可撤离，因此不能配置首次撤离奖励。
+        </p>
+      )}
+        </>
+      )}
+
+      <RouteEditor
+        nodeId={nodeId}
+        edges={node.edges}
+        nodes={nodes}
+        catalog={catalog}
+        onChange={(edges) => onNodeChange({ edges })}
+      />
+    </div>
+  );
+}
+
+function NodeEditorModal({
+  nodeId,
+  node,
+  catalog,
+  nodes,
+  startNodeId,
+  role,
+  canDelete,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  nodeId: string;
+  node: Record_;
+  catalog: Catalog;
+  nodes: Record_;
+  startNodeId: string;
+  role: string;
+  canDelete: boolean;
+  onSave: (draft: Record_) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  // 浮层里改的是节点副本，点保存才写回地图；取消/关闭直接丢弃。
+  const [draft, setDraft] = useState<Record_>(() => structuredClone(node));
+  const dirty = isNodeDirty(draft, node);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const draftName = typeof draft.name === "string" ? draft.name : nodeId;
+  const incoming = countIncomingEdges(nodes, nodeId);
+
+  // 关闭动作有三个入口（Esc、背景、按钮），都要先过未保存确认这一关。
+  const requestClose = useCallback(() => {
+    if (dirty && !window.confirm(`节点“${nodeId}”还有未保存的改动，确定放弃吗？`)) {
+      return;
+    }
+    onClose();
+  }, [dirty, nodeId, onClose]);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [nodeId]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        requestClose();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [requestClose]);
+
+  function patchNode(patch: Record_): void {
+    setDraft((previous) => ({ ...previous, ...patch }));
+  }
+
+  function deleteNode(): void {
+    const consequence = incoming
+      ? `并同步删除 ${incoming} 条指向它的路线。`
+      : "";
+    if (!window.confirm(`确认删除节点“${draftName}”（${nodeId}）？${consequence}`)) {
+      return;
+    }
+    onDelete();
+  }
+
+  return (
+    <div
+      className="config-node-modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) requestClose();
+      }}
+    >
+      <div
+        className="config-node-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`编辑节点 ${draftName}`}
+        data-node-id={nodeId}
+        ref={dialogRef}
+        tabIndex={-1}
+      >
+        <header className="config-node-modal-head">
+          <span>
+            <strong>{draftName}</strong>
+            <code>{nodeId}</code>
+            <em className={`config-node-role ${role}`}>
+              {NODE_ROLE_LABELS[role] ?? "探索节点"}
+            </em>
+          </span>
+          <button
+            type="button"
+            className="config-node-modal-close"
+            aria-label="关闭节点编辑"
+            onClick={requestClose}
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="config-node-modal-body">
+          <NodeLootEditor
+            nodeId={nodeId}
+            node={draft}
+            catalog={catalog}
+            nodes={nodes}
+            isStart={startNodeId === nodeId}
+            onChange={(loot) => patchNode({ loot })}
+            onNodeChange={patchNode}
+          />
+        </div>
+
+        <footer className="config-node-modal-foot">
+          <button
+            type="button"
+            className="config-node-modal-delete"
+            disabled={!canDelete}
+            title={canDelete ? undefined : "地图至少要保留一个节点"}
+            onClick={deleteNode}
+          >
+            删除节点
+          </button>
+          <span className="config-node-modal-state">
+            {dirty ? "有未保存的改动" : "与已保存内容一致"}
+          </span>
+          <button type="button" className="config-node-modal-cancel" onClick={requestClose}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="config-node-modal-save"
+            disabled={!dirty}
+            onClick={() => onSave(draft)}
+          >
+            保存
+          </button>
+        </footer>
+      </div>
+    </div>
   );
 }
 
@@ -1517,32 +1631,37 @@ export function MapForm({
   record,
   catalog,
   onChange,
+  onSave,
 }: {
   record: Record_;
   catalog: Catalog;
   onChange: (next: Record_) => void;
+  /** 节点浮层的「保存」要一步落盘；没有传时退化成只更新草稿文本。 */
+  onSave?: (next: Record_) => void;
 }) {
   const nodes = isRecord(record.nodes) ? record.nodes : {};
   const [newNodeId, setNewNodeId] = useState("");
   const [structureError, setStructureError] = useState("");
+  const [editingNodeId, setEditingNodeId] = useState("");
+  const startNodeId =
+    typeof record.startNodeId === "string" ? record.startNodeId : "";
+  const editingNode =
+    editingNodeId && isRecord(nodes[editingNodeId]) ? nodes[editingNodeId] : null;
 
   function updateMap(patch: Record_): void {
     onChange({ ...record, ...patch });
     setStructureError("");
   }
 
-  function updateNode(nodeId: string, patch: Record_): void {
-    const next = structuredClone(record);
-    const nextNodes = isRecord(next.nodes) ? next.nodes : {};
-    const nextNode = isRecord(nextNodes[nodeId]) ? nextNodes[nodeId] : {};
-    nextNodes[nodeId] = { ...nextNode, ...patch };
-    next.nodes = nextNodes;
+  function commit(next: Record_): void {
     onChange(next);
+    (onSave ?? onChange)(next);
     setStructureError("");
   }
 
-  function updateNodeLoot(nodeId: string, loot: NodeLootDefinition): void {
-    updateNode(nodeId, { loot });
+  function saveNode(nodeId: string, draft: Record_): void {
+    commit(applyNodeDraft(record, nodeId, draft));
+    setEditingNodeId("");
   }
 
   function addNode(): void {
@@ -1575,50 +1694,17 @@ export function MapForm({
       ...(!record.startNodeId ? { startNodeId: id } : {}),
     });
     setNewNodeId("");
+    setEditingNodeId(id);
   }
 
   function deleteNode(nodeId: string): void {
-    const nodeIds = Object.keys(nodes);
-    if (nodeIds.length <= 1) {
+    const next = removeNodeFromMap(record, nodeId);
+    if (!next) {
       setStructureError("地图至少需要保留一个节点，不能删除最后一个节点。");
       return;
     }
-    const incomingCount = Object.values(nodes).reduce<number>((total, value) => {
-      if (!isRecord(value) || !Array.isArray(value.edges)) return total;
-      return (
-        total +
-        value.edges.filter(
-          (edge) => isRecord(edge) && edge.toNodeId === nodeId,
-        ).length
-      );
-    }, 0);
-    const selectedNode = nodes[nodeId];
-    const nodeName =
-      isRecord(selectedNode) && typeof selectedNode.name === "string"
-        ? selectedNode.name
-        : nodeId;
-    const consequence = incomingCount
-      ? `并同步删除 ${incomingCount} 条指向它的路线。`
-      : "";
-    if (!window.confirm(`确认删除节点“${nodeName}”（${nodeId}）？${consequence}`)) {
-      return;
-    }
-
-    const nextNodes = structuredClone(nodes);
-    delete nextNodes[nodeId];
-    for (const value of Object.values(nextNodes)) {
-      if (!isRecord(value) || !Array.isArray(value.edges)) continue;
-      value.edges = value.edges.filter(
-        (edge) => !isRecord(edge) || edge.toNodeId !== nodeId,
-      );
-    }
-    const remainingIds = Object.keys(nextNodes);
-    updateMap({
-      nodes: nextNodes,
-      ...(record.startNodeId === nodeId
-        ? { startNodeId: remainingIds[0] }
-        : {}),
-    });
+    commit(next);
+    setEditingNodeId("");
   }
 
   return (
@@ -1724,15 +1810,17 @@ export function MapForm({
 
       <MapGraphPreview
         nodes={nodes}
-        startNodeId={
-          typeof record.startNodeId === "string" ? record.startNodeId : ""
-        }
+        startNodeId={startNodeId}
+        selectedNodeId={editingNodeId}
+        onSelectNode={setEditingNodeId}
       />
 
       <div className="config-node-create">
         <div>
-          <strong>节点列表</strong>
-          <small>节点 ID 创建后保持不变；显示名称可以随时修改。</small>
+          <strong>节点编辑</strong>
+          <small>
+            点击上方拓扑图里的节点打开表单，改完点保存即写入配置；节点 ID 创建后不可修改。
+          </small>
         </div>
         <div>
           <input
@@ -1750,23 +1838,29 @@ export function MapForm({
         </div>
       </div>
       {structureError && <p className="config-editor-error">{structureError}</p>}
-      {Object.entries(nodes).map(([nodeId, value]) =>
-        isRecord(value) ? (
-          <NodeLootEditor
-            key={nodeId}
-            nodeId={nodeId}
-            node={value}
-            catalog={catalog}
-            nodes={nodes}
-            isStart={record.startNodeId === nodeId}
-            onChange={(loot) => updateNodeLoot(nodeId, loot)}
-            onNodeChange={(patch) => updateNode(nodeId, patch)}
-            onDelete={() => deleteNode(nodeId)}
-          />
-        ) : null,
-      )}
       {!Object.keys(nodes).length && (
         <p className="config-form-note">当前地图没有可编辑的节点。</p>
+      )}
+
+      {editingNode && (
+        <NodeEditorModal
+          key={editingNodeId}
+          nodeId={editingNodeId}
+          node={editingNode}
+          catalog={catalog}
+          nodes={nodes}
+          startNodeId={startNodeId}
+          role={nodeRole(
+            editingNode,
+            editingNodeId,
+            startNodeId,
+            nodeDepths(nodes, startNodeId).has(editingNodeId),
+          )}
+          canDelete={Object.keys(nodes).length > 1}
+          onSave={(draft) => saveNode(editingNodeId, draft)}
+          onDelete={() => deleteNode(editingNodeId)}
+          onClose={() => setEditingNodeId("")}
+        />
       )}
     </div>
   );

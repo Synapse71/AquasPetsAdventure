@@ -6,10 +6,13 @@ import { join, resolve } from 'node:path';
 import electron from 'electron';
 
 const port = 9500 + process.pid % 400;
+const appIndex = process.argv.indexOf('--app');
+if (appIndex >= 0 && !process.argv[appIndex + 1]) throw new Error('--app requires an executable path');
+const packagedApp = appIndex >= 0 ? resolve(process.argv[appIndex + 1]) : null;
 const profile = mkdtempSync(join(tmpdir(), 'idle-extraction-layout-smoke-'));
 const out = resolve('artifacts/extraction-layout-smoke');
 mkdirSync(out, { recursive: true });
-const child = spawn(electron, [`--user-data-dir=${profile}`, `--remote-debugging-port=${port}`, 'desktop/main.cjs'], { stdio: ['ignore', 'pipe', 'pipe'] });
+const child = spawn(packagedApp ?? electron, [`--user-data-dir=${profile}`, `--remote-debugging-port=${port}`, ...(packagedApp ? [] : ['desktop/main.cjs'])], { stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '';
 child.stdout.on('data', data => { logs += data; });
 child.stderr.on('data', data => { logs += data; });
@@ -86,6 +89,15 @@ try {
   await evaluate("document.querySelector('.ap-transfer section:last-child .ap-items').scrollTop=10000");await sleep(200);
   assert(await evaluate("(()=>{const g=document.querySelector('.ap-transfer section:last-child .ap-items'),last=Array.from(g.querySelectorAll('.ap-item')).at(-1).getBoundingClientRect(),r=g.getBoundingClientRect();return last.bottom<=r.bottom+1&&last.top>=r.top})()"),'last warehouse row remains accessible');
   fixture.warehouseSlots=120;await seed();await check('120-slots');
+  // Deliberately exceed both weight and bag slots, but fit the 120-slot warehouse.
+  e.cargo={paper:1000,'cloth-strip':2};await seed();
+  await evaluate("Array.from(document.querySelectorAll('.ap-inline-actions button')).find(b=>b.textContent==='全部入库').click()");await sleep(200);
+  assert(await evaluate("!document.querySelector('.ap-footer .ap-primary').disabled && document.querySelector('.ap-inline-actions').textContent.includes('撤离不限重') && !document.querySelector('.ap-extraction').textContent.includes('仍然超载')"),'overweight and over-slot cargo can all be kept when warehouse fits');
+  await shot('03-overloaded-all-kept');
+  await click('.ap-footer .ap-primary');
+  await waitFor("JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1')).expeditions.length===0");
+  const extracted=await evaluate("JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1'))");
+  assert(extracted.inventory.paper===1008 && extracted.inventory['cloth-strip']===2 && extracted.currency===fixture.currency,'overloaded extraction keeps every chosen item without forced sale or discard');
   assert(errors.length===0,'no renderer exceptions');
   writeFileSync(join(out,'result.json'),JSON.stringify({passed:true,profile,errors},null,2));
 } catch(error) {console.error(error);console.error(logs);process.exitCode=1;}

@@ -7,10 +7,13 @@ import electron from 'electron';
 
 const port = 9500 + process.pid % 400;
 const settingsOnly = process.argv.includes('--settings-only');
+const appIndex = process.argv.indexOf('--app');
+if (appIndex >= 0 && !process.argv[appIndex + 1]) throw new Error('--app requires an executable path');
+const packagedApp = appIndex >= 0 ? resolve(process.argv[appIndex + 1]) : null;
 const profile = mkdtempSync(join(tmpdir(), 'idle-simple-panels-smoke-'));
 const out = resolve('artifacts/simple-panels-smoke');
 mkdirSync(out, { recursive: true });
-const child = spawn(electron, [`--user-data-dir=${profile}`, `--remote-debugging-port=${port}`, 'desktop/main.cjs'], { stdio: ['ignore', 'pipe', 'pipe'] });
+const child = spawn(packagedApp ?? electron, [`--user-data-dir=${profile}`, `--remote-debugging-port=${port}`, ...(packagedApp ? [] : ['desktop/main.cjs'])], { stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '';
 child.stdout.on('data', data => { logs += data; });
 child.stderr.on('data', data => { logs += data; });
@@ -111,10 +114,58 @@ try {
   await send('Page.reload');await loaded();await open('设置');
   assert(await evaluate(`document.querySelector('.settings-panel .sp-tabs button:nth-child(3)').getAttribute('aria-pressed')==='true'&&!!document.querySelector('.st-about')`), 'about tab selection survives reload');
   await textButton('设置');
-  await input('input[aria-label="桌宠大小"]','260');
-  await waitFor(`document.querySelector('.st-row output').textContent==='260px'`);
-  assert(await evaluate(`document.querySelector('.st-preview .sp-warning').textContent.includes('21.2px')`),'small bubble size gives a real-pixel readability warning');
-  assert(await evaluate(`Math.abs(document.querySelector('.st-menu-preview>span').getBoundingClientRect().width-21.24)<0.1`),'bubble preview is drawn at its actual pixel diameter');
+  // Use trusted Chromium mouse input: synthetic pointer events do not exercise
+  // the native range control's pointer-capture lifecycle.
+  const realSlider = await evaluate(`(()=>{const r=document.querySelector('input[aria-label="桌宠大小"]').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()`);
+  const realBefore = await evaluate(`window.desktopPet.getState()`);
+  const mouseY = realSlider.y + realSlider.height / 2;
+  const realSliderRect = () => evaluate(`(()=>{const r=document.querySelector('input[aria-label="桌宠大小"]').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()`);
+  const thumbX=realSlider.x+8+(realSlider.width-16)*(realBefore.canvas-130)/290;
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:thumbX,y:mouseY});
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:thumbX,y:mouseY,button:'left',buttons:1,clickCount:1});
+  let previousCanvas=realBefore.canvas;
+  for (const fraction of [.9,.2,.7,.05]) {
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:realSlider.x+realSlider.width*fraction,y:mouseY,button:'left',buttons:1});
+    await sleep(150);
+    const current = await evaluate(`window.desktopPet.getState()`);
+    assert(current.canvas!==previousCanvas,'real mouse movement changes pet size to '+current.canvas+'px');
+    previousCanvas=current.canvas;
+    assert(JSON.stringify(current.layout.bounds)===JSON.stringify(realBefore.layout.bounds)&&JSON.stringify(current.layout.panel)===JSON.stringify(realBefore.layout.panel)&&JSON.stringify(await realSliderRect())===JSON.stringify(realSlider),'real held mouse drag keeps native bounds, panel and slider fixed');
+  }
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:realSlider.x+realSlider.width*.05,y:mouseY,button:'left',buttons:0,clickCount:1});
+  await sleep(200);
+  assert(JSON.stringify((await evaluate(`window.desktopPet.getState()`)).layout)!==JSON.stringify(realBefore.layout),'real mouse release applies the resized layout');
+  await input('input[aria-label="桌宠大小"]','300');
+  const resizeSnapshot = () => evaluate(`(async()=>{const state=await window.desktopPet.getState();const r=document.querySelector('input[aria-label="桌宠大小"]').getBoundingClientRect();return {bounds:state.layout.bounds,panel:state.layout.panel,slider:[r.x,r.y,r.width,r.height]};})()`);
+  const frozen = await resizeSnapshot();
+  await evaluate(`document.querySelector('input[aria-label="桌宠大小"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,pointerId:1}))`);
+  for (const size of ['420','180','300','130']) {
+    await input('input[aria-label="桌宠大小"]',size);
+    assert(JSON.stringify(await resizeSnapshot())===JSON.stringify(frozen),'held resize keeps window, panel and slider fixed at '+size+'px');
+  }
+  await evaluate(`window.dispatchEvent(new PointerEvent('pointerup',{button:0,pointerId:1}))`);
+  await sleep(200);
+  const released = await resizeSnapshot();
+  assert(JSON.stringify(released)!==JSON.stringify(frozen),'pointer release resumes normal positioning');
+  await evaluate(`document.querySelector('input[aria-label="桌宠大小"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,pointerId:2}))`);
+  await input('input[aria-label="桌宠大小"]','420');
+  await evaluate(`window.dispatchEvent(new PointerEvent('pointercancel',{pointerId:2}))`);
+  await sleep(200);
+  assert(JSON.stringify(await resizeSnapshot())!==JSON.stringify(released),'pointer cancellation also releases the layout lock');
+  await input('input[aria-label="桌宠大小"]','130');
+  await waitFor(`document.querySelector('.st-row output').textContent==='130px'`);
+  assert(await evaluate(`document.querySelector('.pet-hit').getBoundingClientRect().width===130`),'minimum pet is half the previous 260px minimum');
+  assert(await evaluate(`document.querySelector('.st-menu-preview>span').getBoundingClientRect().width===16`),'minimum bubble preview is halved to 16px');
+  assert(await evaluate(`getComputedStyle(document.querySelector('.pet-bubbles button')).width==='16px'`),'actual bubble matches the settings preview');
+  assert(JSON.parse(readFileSync(join(profile,'desktop-preferences.json'),'utf8')).canvas===130,'minimum size is persisted to the native preferences file');
+  await send('Page.reload'); await loaded(); await open('设置');
+  assert(await evaluate(`document.querySelector('.st-row output').textContent==='130px'`),'minimum size survives renderer reload');
+  await shot('11-minimum-settings');
+  await click('.sp-close'); await click('.pet-hit');
+  assert(await evaluate(`(()=>{const buttons=[...document.querySelectorAll('.pet-bubbles.open button')];return buttons.length===5&&buttons.every(b=>{const r=b.getBoundingClientRect();return r.width===16&&r.height===16&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;});})()`),'all five minimum-size bubbles are fully visible in the native window');
+  assert(await evaluate(`Array.from(document.querySelectorAll('.pet-bubbles button')).every(b=>b.title===b.getAttribute('aria-label')&&b.title.length>0)`),'all menu buttons expose their function name as a hover tooltip');
+  await shot('12-minimum-menu');
+  await click('.pet-bubbles button[aria-label="设置"]');
   await input('input[aria-label="桌宠大小"]','300');
   await click('input[aria-label="始终置顶"]');
   assert((await evaluate(`window.desktopPet.getState()`)).alwaysOnTop===false,'always-on-top setting reaches the native window');

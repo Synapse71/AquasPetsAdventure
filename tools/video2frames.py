@@ -161,6 +161,7 @@ def main():
     ap.add_argument("video")
     ap.add_argument("clip", help="段名，产出到 assets/gugugaga/<段名>/frames/")
     ap.add_argument("--feet", type=int, default=FEET_Y)
+    ap.add_argument("--crop-top", type=int, help="固定裁切起点（缩到 960 宽后）；用于已按现用帧补白的首尾锚点，避免再次按脚底重定位")
     ap.add_argument("--keep-shadow", action="store_true", help="保留脚下地面阴影（默认清除）")
     ap.add_argument('--clean-edges', action='store_true', help='抠图后恢复边缘透明过渡与去白底残色；另存 frames-clean，不覆盖 frames')
     ap.add_argument("--strip", metavar="x0,y0,x1,y1",
@@ -207,10 +208,10 @@ def main():
         if not pa.any():
             sys.exit("✗ 首帧抠完是空的")
         bot_c = int(np.where(pa.any(1))[0][-1])
-        top = bot_c - a.feet
+        top = a.crop_top if a.crop_top is not None else bot_c - a.feet
         if top < 0 or top + H > scaled_h:
             sys.exit(f"✗ 裁切越界：脚底 {bot_c} 需要 top={top}，但缩放后只有 {scaled_h}px 高")
-        print(f"缩放 {first.width}→{W}，首帧脚底 {bot_c} → 裁 crop(0,{top},{W},{top+H}) 使脚底={a.feet}")
+        print(f"缩放 {first.width}→{W}，首帧脚底 {bot_c} → 裁 crop(0,{top},{W},{top+H})，输出脚底={bot_c-top}")
 
         for i, p in enumerate(raw):
             im = Image.open(p).resize((W, scaled_h), Image.LANCZOS).crop((0, top, W, top + H))

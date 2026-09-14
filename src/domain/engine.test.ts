@@ -577,9 +577,7 @@ describe("asynchronous expedition state machine", () => {
     expect(outcomeAt(1, 4)).toBe("big-failure");
   });
 
-  it("requires overloaded cargo to be discarded before immediate extraction", () => {
-    // 单重 1、堆叠够大（让格子不干扰，这里只测负重）：
-    // 装到刚好超出负重上限一件，丢一件就应该正好合规。
+  it("allows overloaded cargo to be extracted without discarding", () => {
     const catalog = catalogWith({ "probe-heavy": { weight: 1, stackSize: 99 } });
     let state = arriveMap1();
     const expeditionId = state.expeditions[0].id;
@@ -590,17 +588,12 @@ describe("asynchronous expedition state machine", () => {
     state.expeditions[0].cargo = { "probe-heavy": fits + 1 };
     state = requestExtraction(state, expeditionId, 3_000, catalog);
 
-    expect(() =>
-      confirmExtraction(state, expeditionId, 4_000, catalog),
-    ).toThrow(GameRuleError);
-
-    state = discardCargo(state, expeditionId, "probe-heavy", 1, 5_000, catalog);
-    state = confirmExtraction(state, expeditionId, 6_000, catalog);
+    state = confirmExtraction(state, expeditionId, 4_000, catalog);
     expect(state.expeditions).toHaveLength(0);
     // 没有结算区了：确认撤离的同一步里战利品就已经进了仓库。
-    expect(state.inventory).toEqual({ "probe-heavy": fits });
+    expect(state.inventory).toEqual({ "probe-heavy": fits + 1 });
     expect(state.settlements).toHaveLength(1);
-    expect(state.settlements[0].cargo).toEqual({ "probe-heavy": fits });
+    expect(state.settlements[0].cargo).toEqual({ "probe-heavy": fits + 1 });
   });
 
   it("只允许中途撤离点和固定终点撤离，普通节点必须继续前进", () => {
@@ -836,9 +829,9 @@ describe("负重求和", () => {
     expect(total * 10).toBe(Math.round(total * 10));
   });
 
-  it("背包刚好装满负重时不会被误判成超载而拦下撤离", () => {
+  it("背包刚好装满负重时重量精确且可以撤离", () => {
     // 单件 0.2；未吸附时 0.2 × 12 会得到 2.4000000000000004，
-    // 把"刚好装满"判成超载。仓库已经不限重量，这条只保护背包侧。
+    // 会误增事件风险。撤离已不限制重量，但重量统计仍须精确。
     // 堆叠开大是为了让格子不干扰这里要测的浮点行为。
     const catalog = catalogWith({
       "probe-strip": { weight: 0.2, stackSize: 999 },
@@ -861,7 +854,7 @@ describe("负重求和", () => {
     expect(state.expeditions).toHaveLength(0);
   });
 
-  it("超载报错里的差值不带浮点残渣", () => {
+  it("超载 2.2 也能全部带回，重量不再拦截撤离", () => {
     let state = createInitialState();
     state = startExpedition(
       state,
@@ -874,9 +867,9 @@ describe("负重求和", () => {
     state.expeditions[0].cargo = { keycap: Math.round((capacity + 2.2) * 10) };
     state.expeditions[0].phase = "extraction";
 
-    expect(() => confirmExtraction(state, expeditionId, 2_000)).toThrow(
-      "仍然超载 2.2，",
-    );
+    const next = confirmExtraction(state, expeditionId, 2_000);
+    expect(next.expeditions).toHaveLength(0);
+    expect(next.inventory.keycap).toBe(state.expeditions[0].cargo.keycap);
   });
 
   it("刚好装满不会被判成超载", () => {

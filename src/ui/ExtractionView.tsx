@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { catalog } from '../domain/catalog';
-import { addInventory, cargoCapacity, cargoSlotCapacity, confirmExtractionPlan, GameRuleError, inventorySlots, inventoryWeight, itemStackSize, pendingFirstExtractionRewards } from '../domain/engine';
+import { addInventory, cargoSlotCapacity, confirmExtractionPlan, GameRuleError, inventorySlots, inventoryWeight, itemStackSize, pendingFirstExtractionRewards } from '../domain/engine';
 import type { Expedition, GameState, Inventory, Settlement } from '../domain/types';
 import { AdventureItems } from './AdventureItems';
 import { changeQuantity, extractionBasis, extractionPlan, isInventory, subtract } from './adventureModel';
@@ -20,7 +20,7 @@ export function ExtractionView({ game, expedition, run, onFinished }: { game: Ga
   const plan = extractionPlan(expedition.cargo, draft.keep, draft.discard);
   const first = pendingFirstExtractionRewards(game, expedition);
   const previewInventory = addInventory(game.inventory, draft.keep);
-  const weight = inventoryWeight(draft.keep), capacity = cargoCapacity(game, expedition);
+  const weight = inventoryWeight(draft.keep);
   const preview = useMemo(() => {
     try { return { report: confirmExtractionPlan(game, expedition.id, plan, 0).settlements[0], error: '' }; }
     catch (error) { return { error: error instanceof Error ? error.message : '无法撤离' }; }
@@ -50,7 +50,7 @@ export function ExtractionView({ game, expedition, run, onFinished }: { game: Ga
         const keep = subtract(expedition.cargo, draft.discard);
         if (inventorySlots(addInventory(addInventory(game.inventory, keep), first)) > game.warehouseSlots) { setMessage('仓库放不下全部物品，请手动选择。'); return; }
         setDraft({ ...draft, keep, confirming: false }); setMessage('');
-      }}>全部入库</button><button onClick={() => setDraft({ ...draft, keep: {}, confirming: false })}>全部取回</button><span>保留负重 {weight} / {capacity} · 背包 {inventorySlots(draft.keep)} / {cargoSlotCapacity(game, expedition)} 格</span></div>
+      }}>全部入库</button><button onClick={() => setDraft({ ...draft, keep: {}, confirming: false })}>全部取回</button><span>本次入库 {itemCount(draft.keep)} 件 · 重量 {weight}（撤离不限重）</span></div>
       {Object.entries(plan.sell).filter(([id]) => !catalog.items[id]?.sellable).map(([id, q]) => <div className="ap-unsellable" key={id}><span>{catalog.items[id].name} ×{q} 不可出售，必须保留或明确丢弃。</span><button onClick={() => transfer(id, q, true)}>保留</button><button className="ap-danger" onClick={() => setDraft({ ...draft, discard: changeQuantity(draft.discard, id, q), confirming: false })}>标记丢弃</button></div>)}
       {!!itemCount(draft.discard) && <div className="ap-warning">待丢弃：{Object.entries(draft.discard).map(([id, q]) => `${catalog.items[id].name} ×${q}`).join('、')} <button onClick={() => setDraft({ ...draft, discard: {}, confirming: false })}>撤销丢弃</button></div>}
       {!!itemCount(first) && <div className="ap-first-reward"><strong>首次撤离奖励 · 已预留仓库空间</strong><AdventureItems inventory={first} /></div>}
