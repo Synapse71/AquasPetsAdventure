@@ -1018,7 +1018,7 @@
       "name": "探险者山麓",
       "description": "大多数探险者会选择这里作为旅途的起点，山麓间的克格纳是一个静谧的村庄，不少旅人选择在这里歇脚。",
       "startNodeId": "m1-start",
-      "startDurationMs": 8000,
+      "startDurationMs": 15000,
       "informationThresholds": {
         "partial": 2,
         "full": 4
@@ -1221,7 +1221,7 @@
       "name": "克格纳",
       "description": "从克格纳村口向北延伸的乡野地带，河道、磨坊、墓园与山林小路最终汇向北山驿站。",
       "startNodeId": "m2-start",
-      "startDurationMs": 8000,
+      "startDurationMs": 15000,
       "informationThresholds": {
         "partial": 2,
         "full": 4

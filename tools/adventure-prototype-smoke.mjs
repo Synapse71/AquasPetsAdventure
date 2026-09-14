@@ -92,13 +92,27 @@ try {
   fixture.inventory={paper:3,'cloth-strip':5,'hemp-rope':2};fixture.unlockedMapIds=['map-1','map-2'];
   fixture.pets[petId].baseStats={fitness:12,perception:12,technique:12};
   const frameCheck=async()=>assert(await evaluate(`(()=>{const p=document.querySelector('.adventure-panel'),body=p.querySelector('.ap-body'),r=p.getBoundingClientRect();return Math.round(r.width)===810&&Math.round(r.height)===748&&body.clientHeight===640})()`),'shared 812 × 750 frame and flexible 640px content stage');
-  await seed(fixture);await click('.ap-pet-card');await shot('01-team');
+  await seed(initial);await click('.ap-pet-card');await textButton('选择探险地图');
+  assert(await evaluate(`JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view')).mapId==='map-1'`),'a single unlocked map remains the default');
+  await seed(fixture);
+  await evaluate(`const draft=JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view'));draft.mapId='map-1';localStorage.setItem('idle-pet.ui.v1.action-view',JSON.stringify(draft))`);
+  await send('Page.reload');await loaded();await open();
+  await click('.ap-pet-card');await shot('01-team');
   await textButton('选择探险地图');await frameCheck();await shot('02-map');
+  assert(await evaluate(`JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view')).mapId==='map-2'`),'entering map selection replaces an older saved default with the latest unlock');
+  await click('[aria-label="上一张地图"]');
+  await click('.pet-bookmarks button[aria-label="设置"]');await click('.pet-bookmarks button[aria-label="行动"]');
+  assert(await evaluate(`JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view')).mapId==='map-1'`),'bookmark switching preserves a manually selected older map');
+  await send('Page.reload');await loaded();await open();
+  assert(await evaluate(`JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view')).mapId==='map-1'`),'reopening and reloading preserve the current map draft');
+  await textButton('选择起始点');await textButton('上一步');
+  assert(await evaluate(`JSON.parse(localStorage.getItem('idle-pet.ui.v1.action-view')).mapId==='map-1'`),'returning from entry selection preserves the chosen map');
   assert(await evaluate(`(()=>{const m=document.querySelector('.ap-map'),r=m.getBoundingClientRect();return !document.querySelector('.ap-map-tabs')&&document.querySelectorAll('.ap-carousel-arrow').length===2&&Math.abs(r.width/r.height-16/9)<.001&&document.querySelectorAll('.ap-map-node').length===4})()`),'map carousel arrows and unstretched 16:9 authored map');
   await click('[aria-label="下一张地图"]');await shot('03-map-two');
   assert(await evaluate(`document.querySelectorAll('.ap-map-node').length===8`),'config-driven map two keeps all eight nodes');
   await click('[aria-label="上一张地图"]');await textButton('选择起始点');await shot('04-entry');
   assert(await evaluate(`document.querySelector('.ap-footer .ap-primary').disabled`),'entry must be explicitly picked on the map');
+  if (!process.argv.includes('--maps-only')) {
   await click('.pickable .ap-map-node');await textButton('行前整备');await click('.ap-transfer section:first-child .ap-item');await shot('05-loadout');await frameCheck();
   assert((await stored()).inventory.paper===3,'loadout is an uncommitted draft');
   await send('Page.reload');await loaded();await open();
@@ -207,7 +221,8 @@ try {
   assert(await evaluate(`document.querySelector('.ap-pet-card:nth-child(4)').disabled`),'three-pet team limit is preserved');
   await shot('24-team');
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});await shot('25-dark');
+  }
   assert(errors.length===0,'no renderer exceptions throughout adventure flow');
-  writeFileSync(join(out,'result.json'),JSON.stringify({passed:true,profile,errors},null,2));console.log('Screenshots: '+out);
+  writeFileSync(join(out,process.argv.includes('--maps-only')?'maps-result.json':'result.json'),JSON.stringify({passed:true,scope:process.argv.includes('--maps-only')?'maps':'all',profile,errors},null,2));console.log('Screenshots: '+out);
 } catch(error) { console.error(error);console.error(logs);process.exitCode=1; }
 finally { ws?.close();child.kill(); }

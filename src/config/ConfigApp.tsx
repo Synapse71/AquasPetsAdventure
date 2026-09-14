@@ -1,3 +1,4 @@
+import { START_TRAVEL_DURATION_MS, normalizeStartTravelDuration } from '../domain/expeditionTiming';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   SECONDARY_STAT_KEYS,
@@ -233,7 +234,7 @@ function createTemplate(
         name: "新地图",
         description: "",
         startNodeId: "start",
-        startDurationMs: 600000,
+        startDurationMs: START_TRAVEL_DURATION_MS,
         informationThresholds: { partial: 2, full: 4 },
         nodes: {
           start: {
@@ -270,6 +271,7 @@ function createTemplate(
 }
 
 function downloadCatalog(catalog: Catalog): void {
+  catalog = normalizeStartTravelDuration(catalog);
   const blob = new Blob([JSON.stringify(catalog, null, 2)], {
     type: "application/json",
   });
@@ -439,6 +441,7 @@ export function ConfigApp() {
   }, [records, selectedId]);
 
   function replaceDraft(next: Catalog, message: string): void {
+    next = normalizeStartTravelDuration(next);
     setDraft(next);
     saveCatalogDraft(next);
     setSource("draft");

@@ -7,6 +7,7 @@ import { ITEM_TAGS, isKnownItemTag } from "../domain/itemTags";
 import { isPlayerMilestoneId } from "../domain/milestones";
 import { RARITIES, isRarity } from "../domain/rarity";
 import type { Catalog, SecondaryStatKey } from "../domain/types";
+import { normalizeStartTravelDuration } from '../domain/expeditionTiming';
 
 // v6 以 2026-08-20 重新导出的策划目录为新基线。
 // 旧 localStorage 仍保留但不再覆盖这次明确要求导入的新目录。
@@ -26,7 +27,7 @@ export interface CatalogIssue {
 const EVENT_STAT_KEYS = ["fitness", "perception", "technique"] as const;
 
 function cloneCatalog(value: Catalog): Catalog {
-  return structuredClone(value);
+  return normalizeStartTravelDuration(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1685,7 +1686,7 @@ function readCatalog(key: string): Catalog | undefined {
     if (validateCatalog(parsed).some((issue) => issue.level === "error")) {
       return undefined;
     }
-    return parsed as Catalog;
+    return cloneCatalog(parsed as Catalog);
   } catch {
     return undefined;
   }
@@ -1736,11 +1737,12 @@ export function loadCatalogDraft(): LoadedCatalog {
 }
 
 export function saveCatalogDraft(next: Catalog): void {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(cloneCatalog(next)));
   writeBaseline();
 }
 
 export function publishCatalog(next: Catalog): CatalogIssue[] {
+  next = cloneCatalog(next);
   const issues = validateCatalog(next);
   if (issues.some((issue) => issue.level === "error")) return issues;
   localStorage.setItem(PUBLISHED_KEY, JSON.stringify(next));

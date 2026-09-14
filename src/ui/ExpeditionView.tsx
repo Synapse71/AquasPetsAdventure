@@ -1,3 +1,4 @@
+import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useEffect, useRef, useState } from 'react';
 import { catalog } from '../domain/catalog';
 import { cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, chooseRoute, discardCargo, eventCheckRisk, finishNodeLoot, GameRuleError, getRiskPreview, getRouteAvailability, getVisibleRoutes, hasEventRollAdvantage, inventorySlots, inventoryWeight, isChoiceAvailable, itemStackSize, lockedNodeEvents, mapInformationTier, overloadPenalty, pickupAllNodeLoot, pickupNodeLoot, primaryOutcomeForRoll, requestExtraction, resolveEvent, SECONDARY_STAT_LABELS, teamSecondaryStat } from '../domain/engine';
@@ -108,7 +109,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const over=overloadPenalty(weight/Math.max(1,capacity));
   const remainder=Object.values(expedition.pendingLoot??{}).reduce((s,q)=>s+q,0);
   const room=(id:string)=>{const stack=itemStackSize(id),held=expedition.cargo[id]??0;return (held%stack?stack-held%stack:0)+Math.max(0,slots-used)*stack;};
-  const duration=map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.durationMs??map.startDurationMs;
+  const duration=map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.durationMs??START_TRAVEL_DURATION_MS;
   const progress=Math.max(0,Math.min(100,100*(1-(expedition.arriveAt-now)/Math.max(1,duration))));
   const time=Math.max(0,Math.ceil((expedition.arriveAt-now)/1000));
   const countdown=`${String(Math.floor(time/60)).padStart(2,'0')}:${String(time%60).padStart(2,'0')}`;

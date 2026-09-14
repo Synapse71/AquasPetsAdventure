@@ -18,6 +18,7 @@
     "src/domain/catalog.ts",
     "src/domain/catalog.bundled.json",
     "src/domain/engine.ts",
+    "src/domain/expeditionTiming.ts",
     "src/domain/itemTags.ts",
     "src/domain/milestones.ts",
     "src/domain/rarity.ts",

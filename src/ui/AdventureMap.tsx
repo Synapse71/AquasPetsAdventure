@@ -1,3 +1,4 @@
+import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useState, type ReactNode } from 'react';
 import { catalog } from '../domain/catalog';
 import { mapInformationTier, nodeLootMaximumRarity } from '../domain/engine';
@@ -64,6 +65,6 @@ export function AdventureMap({ game, mapId, petIds, currentNodeId, picking = fal
       </>}
     </div>
     {dots}
-    {!locked && <div className="ap-map-legend">{picking ? <span>{picked ? `已选择入口：${map.nodes[map.startNodeId].name} · 整备 ${timeLabel(map.startDurationMs)} 后出发` : '点击地图上闪烁的入口'}</span> : <><span className="ap-intel">{['', '情报缺失', '部分情报', '完整情报'][tier]}</span><span>｜</span>{(Object.keys(kinds) as (keyof typeof kinds)[]).filter(k => graph.ids.some(id => kindOf(id) === k)).map(k => <span key={k}><NodeShape kind={k} />{kinds[k]}</span>)}</>}</div>}
+{!locked && <div className="ap-map-legend">{picking ? <span>{picked ? `已选择入口：${map.nodes[map.startNodeId].name} · 整备 ${timeLabel(START_TRAVEL_DURATION_MS)} 后出发` : '点击地图上闪烁的入口'}</span> : <><span className="ap-intel">{['', '情报缺失', '部分情报', '完整情报'][tier]}</span><span>｜</span>{(Object.keys(kinds) as (keyof typeof kinds)[]).filter(k => graph.ids.some(id => kindOf(id) === k)).map(k => <span key={k}><NodeShape kind={k} />{kinds[k]}</span>)}</>}</div>}
   </div>;
 }

@@ -1,4 +1,5 @@
 import { catalog as defaultCatalog } from "./catalog";
+import { START_TRAVEL_DURATION_MS } from './expeditionTiming';
 import { RARITIES, type Rarity } from "./rarity";
 import type {
   Catalog,
@@ -772,7 +773,7 @@ export function startExpedition(
     phase: "traveling",
     targetNodeId: map.startNodeId,
     startedAt: now,
-    arriveAt: now + map.startDurationMs,
+    arriveAt: now + START_TRAVEL_DURATION_MS,
     cargo: initialCargo,
     initialCargo: clone(initialCargo),
     arrivalLoot: {},

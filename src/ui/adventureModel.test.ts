@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../domain/catalog';
 import { createInitialState } from '../domain/engine';
-import { changeQuantity, extractionPlan, knownMapGraph, routeHint, subtract } from './adventureModel';
+import { changeQuantity, extractionPlan, knownMapGraph, latestUnlockedMapId, routeHint, subtract } from './adventureModel';
 
 describe('action view models', () => {
+  it('defaults to the last valid unlock, not map name or catalog order', () => {
+    const maps = { earlier: {} as typeof catalog.maps[string], later: {} as typeof catalog.maps[string] };
+    expect(latestUnlockedMapId(['earlier', 'later'], maps)).toBe('later');
+    expect(latestUnlockedMapId(['later', 'earlier'], maps)).toBe('earlier');
+    expect(latestUnlockedMapId(['earlier', 'removed'], maps)).toBe('earlier');
+    expect(latestUnlockedMapId([], maps)).toBe('');
+    expect(latestUnlockedMapId(['removed'], maps)).toBe('');
+  });
   it('keeps extraction transfers reversible and preserves the entire quantity', () => {
     const cargo = { paper: 12, 'cloth-strip': 8 }; let keep = {};
     for (let i = 0; i < 40; i++) {

@@ -1,3 +1,4 @@
+import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { catalog } from "../domain/catalog";
 import { RARITY_LABELS } from "../domain/rarity";
@@ -206,7 +207,7 @@ export function App() {
   const travelingMap = traveling && catalog.maps[traveling.mapId];
   const travelingEdge = traveling && travelingMap?.nodes[traveling.travelingFromNodeId ?? '']?.edges.find(edge => edge.id === traveling.travelingEdgeId);
   const segmentDuration = traveling && travelingMap
-    ? travelingEdge?.durationMs ?? travelingMap.startDurationMs
+    ? travelingEdge?.durationMs ?? START_TRAVEL_DURATION_MS
     : 0;
   const [visitedPanels, setVisitedPanels] = useState<PanelId[]>([]);
   const [adventureIntent, setAdventureIntent] = useState<{ tab: "active" | "tasks"; key: number; expeditionId?: string }>();

@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image
 from pet_clip import align_dx
 from pet_matte import clean_edges
+from pet_arrival_matte import clean_arrival_pockets
 from pet_standing import export_standing
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +49,8 @@ def main():
                 if frame.size != (960, 902):
                     raise RuntimeError(f'Unexpected frame size: {file}')
                 if args.clean_edges:
+                    if clip in ('arrive-a', 'arrive-b'):
+                        frame = clean_arrival_pockets(frame)
                     frame = clean_edges(frame)
                 if args.review_package:
                     # Export before runtime-only walk alignment and resizing.

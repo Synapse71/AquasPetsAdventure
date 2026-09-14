@@ -5,6 +5,13 @@ import type { GameState, Inventory, MapDefinition, MapEdgeDefinition, StatKey } 
 
 export const STAT_LABELS: Record<StatKey, string> = { fitness: '体能', perception: '感知', technique: '技巧' };
 export const OUTCOMES = { 'extra-success': '大成功', success: '成功', failure: '失败', 'big-failure': '大失败', leave: '已离开' };
+/** 解锁由引擎按时间追加；跳过已从目录移除的地图，不选择尚未解锁的地图。 */
+export function latestUnlockedMapId(unlockedMapIds: readonly string[], maps: Record<string, MapDefinition> = catalog.maps): string {
+  for (let i = unlockedMapIds.length - 1; i >= 0; i--) {
+    if (Object.hasOwn(maps, unlockedMapIds[i])) return unlockedMapIds[i];
+  }
+  return '';
+}
 export const timeLabel = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); return s >= 3600 ? `${Math.floor(s / 3600)}小时${Math.ceil(s % 3600 / 60)}分` : s >= 60 ? `${Math.floor(s / 60)}分${s % 60 ? `${s % 60}秒` : ''}` : `${s}秒`; };
 export const isInventory = (v: unknown): v is Inventory => !!v && typeof v === 'object' && !Array.isArray(v) && Object.entries(v).every(([id, q]) => !!catalog.items[id] && Number.isSafeInteger(q) && (q as number) > 0);
 export function subtract(source: Inventory, used: Inventory): Inventory {

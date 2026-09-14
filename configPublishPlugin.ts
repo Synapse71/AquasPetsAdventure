@@ -8,6 +8,7 @@ import {
   validateCatalog,
 } from "./src/config/catalogStore";
 import type { Catalog } from "./src/domain/types";
+import { normalizeStartTravelDuration } from './src/domain/expeditionTiming';
 
 const PREVIEW_PATH = "/__idle-config/preview-publish";
 const PUBLISH_PATH = "/__idle-config/publish-bundled";
@@ -75,7 +76,9 @@ export function catalogPublishPlugin(projectRoot = process.cwd()): Plugin {
 
         try {
           const payload = await readJsonBody(request);
-          const candidate = catalogFromPayload(payload);
+          const rawCandidate = catalogFromPayload(payload);
+          const candidate = validateCatalog(rawCandidate).some(issue => issue.level === 'error')
+            ? rawCandidate : normalizeStartTravelDuration(rawCandidate as Catalog);
           const current = await readBundledCatalog(targetPath);
           const result = preview(current, candidate);
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import {
   SECONDARY_STAT_KEYS,
   SECONDARY_STAT_LABELS,
@@ -1715,7 +1716,7 @@ export function MapForm({
           <span>{Object.keys(nodes).length} 个节点</span>
         </div>
         <p>
-          可在这里维护地图情报阈值、节点、路线、事件池与掉落。
+          可在这里维护地图情报阈值、节点、路线、事件池与掉落。前往起点固定 {START_TRAVEL_DURATION_MS / 1000} 秒，不随地图配置改变；节点之间的行进时间仍按路线配置。
         </p>
       </div>
 

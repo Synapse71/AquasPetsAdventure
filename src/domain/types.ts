@@ -166,6 +166,7 @@ export interface MapDefinition {
   name: string;
   description: string;
   startNodeId: Id;
+  // 兼容旧目录字段；运行时固定 15 秒，策划读写会归一化为 15000。
   startDurationMs: number;
   // 选中队伍的有效感知达到 partial / full 时，地图预览分别进入第二 / 第三档。
   informationThresholds: {
