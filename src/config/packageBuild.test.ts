@@ -5,7 +5,7 @@ const config = JSON.parse(readFileSync('electron-builder.json', 'utf8'));
 describe('Demo distribution configuration', () => {
   it('ships only compiled runtime files and approved final icons', () => {
     expect(config.files.filter((file: string) => !file.startsWith('!'))).toEqual([
-      'dist/**/*', 'desktop/main.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs',
+      'dist/**/*', 'desktop/main.cjs', 'desktop/login-item.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs',
       'public/icons/aquamarine-1024.png', 'public/pet-sprites/standing.png', 'package.json',
     ]);
     expect(config.asar).toBe(true);

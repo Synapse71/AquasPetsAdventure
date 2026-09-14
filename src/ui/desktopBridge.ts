@@ -1,8 +1,10 @@
 import type { Layout } from '../../desktop/geometry.mjs';
 
 export interface DesktopState { layout: Layout; canvas: number; alwaysOnTop: boolean }
+export interface LoginItemState { supported: boolean; enabled: boolean; message: string }
 export interface DesktopBridge {
   getState(): Promise<DesktopState>;
+  loginItem(enabled?: boolean): Promise<LoginItemState>;
   setPanel(panel: string | null): Promise<DesktopState>;
   setIgnoreMouse(ignore: boolean): void;
   startDrag(point: { x: number; y: number }): void;

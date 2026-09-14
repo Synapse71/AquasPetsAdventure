@@ -166,6 +166,12 @@ try {
   assert(await evaluate(`Array.from(document.querySelectorAll('.pet-bubbles button')).every(b=>b.title===b.getAttribute('aria-label')&&b.title.length>0)`),'all menu buttons expose their function name as a hover tooltip');
   await shot('12-minimum-menu');
   await click('.pet-bubbles button[aria-label="设置"]');
+  if (!packagedApp) {
+    await waitFor(`document.querySelector('.settings-panel').textContent.includes('开发模式不可用')`);
+    assert(await evaluate(`document.querySelector('input[aria-label="开机自启"]').disabled`), 'development Electron cannot register itself at login');
+    const login = await evaluate(`window.desktopPet.loginItem(true)`);
+    assert(login.supported === false && login.enabled === false, 'native login-item bridge rejects development registration');
+  }
   await input('input[aria-label="桌宠大小"]','300');
   await click('input[aria-label="始终置顶"]');
   assert((await evaluate(`window.desktopPet.getState()`)).alwaysOnTop===false,'always-on-top setting reaches the native window');

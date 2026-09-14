@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { GameState } from '../domain/types';
 import { downloadSaveBackup } from '../persistence/saveBackup';
-import type { DesktopState } from './desktopBridge';
+import type { DesktopState, LoginItemState } from './desktopBridge';
 import { PET_MENUS, menuIcon } from './PetDesktop';
 import { PetPortrait } from './CodexPanel';
 import { useUIState } from './uiState';
@@ -13,6 +13,24 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
 }) {
   const [tab,setTab] = useUIState<'settings'|'log'|'about'>('settings-tab','settings',(v): v is 'settings'|'log'|'about' => v === 'settings' || v === 'log' || v === 'about');
   const [desktop,setDesktop] = useState<DesktopState>();
+  const [loginItem,setLoginItem] = useState<LoginItemState>();
+  const [loginBusy,setLoginBusy] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    let disposed = false;
+    const refresh = () => { void window.desktopPet?.loginItem().then(value => {
+      if (!disposed) setLoginItem(value);
+    }).catch(() => { if (!disposed) setLoginItem({supported:false,enabled:false,message:'无法读取系统登录项，请重新打开面板。'}); }); };
+    refresh(); window.addEventListener('focus',refresh);
+    return () => { disposed = true; window.removeEventListener('focus',refresh); };
+  },[active]);
+  const changeLoginItem = async (enabled: boolean) => {
+    if (loginBusy || !window.desktopPet) return;
+    setLoginBusy(true);
+    try { setLoginItem(await window.desktopPet.loginItem(enabled)); }
+    catch { setMessage('修改开机自启失败，请重试。'); }
+    finally { setLoginBusy(false); }
+  };
   const [resetting,setResetting] = useState(false), [confirmation,setConfirmation] = useState('');
   const [message,setMessage] = useState('');
   const modal = useRef<HTMLDivElement>(null);
@@ -72,7 +90,7 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
           {!desktop && <span className="sp-muted">大小与置顶设置仅在桌面客户端可用。</span>}
         </div></div>
         <label className="st-row"><span className="st-label">始终置顶</span><span className="st-description">让桌宠保持在其他窗口上方</span><input className="st-switch" aria-label="始终置顶" type="checkbox" checked={desktop?.alwaysOnTop ?? true} disabled={!desktop} onChange={e => apply({alwaysOnTop:e.target.checked})} /></label>
-        <div className="st-row"><span className="st-label">开机自启</span><span className="st-description">正式应用打包后接入</span><span className="st-unavailable">暂未开放</span></div>
+        <label className="st-row"><span className="st-label">开机自启</span><span className="st-description">{loginItem?.message ?? (desktop ? '正在读取系统设置…' : '仅在安装后的桌面客户端可用。')}</span><input className="st-switch" aria-label="开机自启" type="checkbox" checked={loginItem?.enabled ?? false} disabled={!loginItem?.supported || loginBusy} onChange={e => void changeLoginItem(e.target.checked)} /></label>
         <div className="st-row"><span className="st-label">音量</span><span className="st-description">当前版本尚未接入音频</span><span className="st-unavailable">暂未开放</span></div>
         <div className="st-row"><span className="st-label">桌面操作</span><span className="st-description">隐藏后仍会继续挂机</span><button disabled={!desktop} onClick={() => window.desktopPet?.hide()}>隐藏宠物</button><button disabled={!desktop} onClick={() => window.desktopPet?.quit()}>退出游戏</button></div>
       </section>

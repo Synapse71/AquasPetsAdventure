@@ -10,6 +10,7 @@
   "files": [
     "dist/**/*",
     "desktop/main.cjs",
+    "desktop/login-item.cjs",
     "desktop/preload.cjs",
     "desktop/geometry.mjs",
     "public/icons/aquamarine-1024.png",

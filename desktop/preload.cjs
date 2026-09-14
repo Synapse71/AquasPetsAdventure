@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktopPet', {
   getState: () => ipcRenderer.invoke('pet:state'),
+  loginItem: enabled => ipcRenderer.invoke('pet:login-item', enabled),
   setPanel: panel => ipcRenderer.invoke('pet:panel', panel),
   setIgnoreMouse: ignore => ipcRenderer.send('pet:ignore', ignore),
   startDrag: point => ipcRenderer.send('pet:drag-start', point),

@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const loginItem = require('./login-item.cjs').createLoginItemController(app);
 const { pathToFileURL } = require('node:url');
 let computeNativeLayout, computeResizePreview, PANEL_WIDTHS, MIN_PET_CANVAS, MAX_PET_CANVAS;
 let resizeStart;
@@ -54,6 +55,10 @@ function refreshTrayMenu() {
   ]));
 }
 function setupIPC() {
+  ipcMain.handle('pet:login-item', (event, enabled) => {
+    if (!valid(event)) return null;
+    return enabled === undefined ? loginItem.read() : loginItem.set(enabled);
+  });
   ipcMain.handle('pet:state', event => valid(event) ? state() : null);
   ipcMain.handle('pet:panel', (event, value) => {
     if (!valid(event) || (value !== null && !Object.hasOwn(PANEL_WIDTHS, value))) return null;
