@@ -26,7 +26,6 @@ import {
   lockedNodeEvents,
   lootXp,
   mapInformationTier,
-  mapXpMultiplier,
   maxLevel,
   overloadRatio,
   nodeLootMaximumRarity,
@@ -2005,10 +2004,9 @@ describe("等级与经验", () => {
     ).toBe(10);
   });
 
-  it("地图经验系数同时乘在节点经验和战利品经验上", () => {
+  it("节点基础经验和战利品经验直接相加", () => {
     const catalog = catalogWith({ "probe-epic": { rarity: "epic" } });
-    catalog.maps["map-1"].xpMultiplier = 3;
-    expect(mapXpMultiplier("map-1", catalog)).toBe(3);
+    catalog.maps["map-1"].nodeXp = 15;
 
     let state = createInitialState();
     state = startExpedition(
@@ -2024,8 +2022,28 @@ describe("等级与经验", () => {
 
     state = confirmExtraction(state, expeditionId, 2_000, catalog);
 
-    // (2 节点 × 10 + 史诗 8) × 3 = 84
-    expect(state.settlements[0].xpAward).toBe(84);
+    // 2 节点 × 15 + 史诗 8 = 38
+    expect(state.settlements[0].xpAward).toBe(38);
+  });
+
+  it("每张地图可以配置独立的节点基础经验", () => {
+    const catalog = catalogWith({});
+    catalog.maps["map-1"].nodeXp = 15;
+
+    let state = createInitialState();
+    state = startExpedition(
+      state,
+      { mapId: "map-1", petIds: ["gugugaga"] },
+      1_000,
+      catalog,
+    );
+    const expeditionId = state.expeditions[0].id;
+    state.expeditions[0].completedNodeCount = 2;
+    state.expeditions[0].phase = "extraction";
+
+    state = confirmExtraction(state, expeditionId, 2_000, catalog);
+
+    expect(state.settlements[0].xpAward).toBe(30);
   });
 
   it("撤离时卖掉的战利品照样算经验，丢弃的不算", () => {
@@ -2062,6 +2080,7 @@ describe("等级与经验", () => {
 
   it("溃败只给节点经验的一半，没有战利品经验", () => {
     const catalog = catalogWith({ "probe-epic": { rarity: "epic" } });
+    catalog.maps["map-1"].nodeXp = 15;
     const base = createInitialState();
     base.pets.gugugaga.injury = "injured";
     const started = startExpedition(
@@ -2091,7 +2110,7 @@ describe("等级与经验", () => {
     }
 
     expect(defeated).toBeDefined();
-    // 4 节点 × 10 × 0.5 = 20，背包里那 5 件史诗一点经验都不给。
-    expect(defeated!.settlements[0].xpAward).toBe(20);
+    // 4 节点 × 15 × 0.5 = 30，背包里那 5 件史诗一点经验都不给。
+    expect(defeated!.settlements[0].xpAward).toBe(30);
   });
 });

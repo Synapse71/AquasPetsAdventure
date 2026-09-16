@@ -1023,18 +1023,18 @@
         "partial": 2,
         "full": 4
       },
-      "xpMultiplier": 1,
+      "nodeXp": 10,
       "nodes": {
         "m1-start": {
           "id": "m1-start",
-          "name": "起点",
+          "name": "关隘",
           "edges": [
             {
               "id": "route-1",
               "label": "前往探险者营地",
               "description": "",
               "toNodeId": "m1-point-1",
-              "durationMs": 900000
+              "durationMs": 1500000
             },
             {
               "id": "route-3",
@@ -1057,7 +1057,7 @@
           "loot": {
             "mode": "independent",
             "minCount": 3,
-            "maxCount": 4,
+            "maxCount": 3,
             "rarityWeights": {
               "common": 80,
               "uncommon": 20,
@@ -1072,10 +1072,8 @@
               "screwdriver",
               "wrench",
               "iron-sheet",
-              "umbrella",
               "fishing-rod",
-              "honey",
-              "cast-iron-pan"
+              "honey"
             ],
             "whitelistItemTags": [],
             "blacklistItemIds": []
@@ -1097,11 +1095,11 @@
           "name": "克格纳",
           "loot": {
             "mode": "independent",
-            "minCount": 5,
-            "maxCount": 5,
+            "minCount": 3,
+            "maxCount": 4,
             "rarityWeights": {
-              "common": 70,
-              "uncommon": 20,
+              "common": 75,
+              "uncommon": 15,
               "rare": 8,
               "epic": 2,
               "legendary": 0,
@@ -1130,11 +1128,11 @@
           "loot": {
             "mode": "composition",
             "minCount": 1,
-            "maxCount": 2,
+            "maxCount": 4,
             "compositions": [
               {
                 "id": "composition-1",
-                "weight": 20,
+                "weight": 5,
                 "rarityCounts": {
                   "common": 0,
                   "uncommon": 0,
@@ -1146,57 +1144,36 @@
               },
               {
                 "id": "composition-2",
-                "weight": 35,
+                "weight": 40,
                 "rarityCounts": {
-                  "common": 1,
-                  "uncommon": 0,
+                  "common": 3,
+                  "uncommon": 1,
                   "rare": 0,
-                  "epic": 1,
+                  "epic": 0,
                   "legendary": 0,
                   "mythic": 0
                 }
               },
               {
                 "id": "composition-3",
-                "weight": 35,
+                "weight": 45,
                 "rarityCounts": {
-                  "common": 0,
-                  "uncommon": 1,
-                  "rare": 0,
-                  "epic": 1,
-                  "legendary": 0,
-                  "mythic": 0
-                }
-              },
-              {
-                "id": "composition-4",
-                "weight": 8,
-                "rarityCounts": {
-                  "common": 0,
-                  "uncommon": 0,
-                  "rare": 1,
-                  "epic": 1,
-                  "legendary": 0,
-                  "mythic": 0
-                }
-              },
-              {
-                "id": "composition-5",
-                "weight": 2,
-                "rarityCounts": {
-                  "common": 0,
+                  "common": 4,
                   "uncommon": 0,
                   "rare": 0,
-                  "epic": 2,
+                  "epic": 0,
                   "legendary": 0,
                   "mythic": 0
                 }
               }
             ],
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "nail",
+              "iron-sheet",
+              "wood-strip"
+            ],
             "whitelistItemTags": [
-              "food",
-              "tool"
+              "food"
             ],
             "blacklistItemIds": [],
             "blacklistItemTags": []
@@ -1226,35 +1203,35 @@
         "partial": 2,
         "full": 4
       },
-      "xpMultiplier": 1,
+      "nodeXp": 25,
       "nodes": {
         "m2-start": {
           "id": "m2-start",
-          "name": "克格纳南边村口",
+          "name": "克格纳南村口",
           "edges": [
             {
               "id": "m2-route-1",
-              "label": "沿河道前往河边货棚",
+              "label": "前往河边货棚",
               "description": "",
               "toNodeId": "m2-point-1",
-              "durationMs": 600000
+              "durationMs": 3600000
             },
             {
               "id": "m2-route-2",
-              "label": "穿过村外田埂前往老磨坊",
+              "label": "前往老磨坊",
               "description": "",
               "toNodeId": "m2-point-2",
-              "durationMs": 600000
+              "durationMs": 3600000
             },
             {
               "id": "m2-route-3",
               "label": "翻过墓园矮墙",
               "description": "",
               "toNodeId": "m2-point-3",
-              "durationMs": 600000,
+              "durationMs": 4200000,
               "requirement": {
                 "secondary": {
-                  "stat": "courage",
+                  "stat": "guile",
                   "value": 2
                 }
               }
@@ -1266,17 +1243,28 @@
           "name": "河边货棚",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 4,
+            "maxCount": 5,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
+              "common": 90,
+              "uncommon": 10,
               "rare": 0,
               "epic": 0,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "nail",
+              "wood-strip",
+              "spring",
+              "bearing",
+              "iron-sheet",
+              "fur"
+            ],
+            "whitelistItemTags": [
+              "tool",
+              "food"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
@@ -1285,10 +1273,10 @@
           "edges": [
             {
               "id": "m2-route-4",
-              "label": "沿废弃货道前往石拱桥",
+              "label": "前往石拱桥",
               "description": "",
               "toNodeId": "m2-point-4",
-              "durationMs": 600000
+              "durationMs": 3600000
             }
           ],
           "terminal": false
@@ -1298,17 +1286,27 @@
           "name": "老磨坊",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 3,
+            "maxCount": 3,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
-              "rare": 0,
+              "common": 80,
+              "uncommon": 19,
+              "rare": 1,
               "epic": 0,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "wood-strip",
+              "iron-sheet",
+              "bearing",
+              "spring",
+              "duct-tape",
+              "cast-iron-pan"
+            ],
+            "whitelistItemTags": [
+              "food"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
@@ -1317,17 +1315,17 @@
           "edges": [
             {
               "id": "m2-route-5",
-              "label": "沿磨坊水渠前往石拱桥",
+              "label": "前往石拱桥",
               "description": "",
               "toNodeId": "m2-point-4",
-              "durationMs": 600000
+              "durationMs": 3600000
             },
             {
               "id": "m2-route-6",
-              "label": "翻过磨坊后山进入雾松林",
+              "label": "进入雾松林",
               "description": "",
               "toNodeId": "m2-point-5",
-              "durationMs": 600000
+              "durationMs": 3600000
             }
           ],
           "terminal": false
@@ -1336,30 +1334,64 @@
           "id": "m2-point-3",
           "name": "荒草墓园",
           "loot": {
-            "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
-            "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
-              "rare": 0,
-              "epic": 0,
-              "legendary": 0,
-              "mythic": 0
-            },
-            "whitelistItemIds": [],
+            "mode": "composition",
+            "minCount": 2,
+            "maxCount": 2,
+            "compositions": [
+              {
+                "id": "composition-1",
+                "weight": 1,
+                "rarityCounts": {
+                  "common": 1,
+                  "uncommon": 0,
+                  "rare": 0,
+                  "epic": 1,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              },
+              {
+                "id": "composition-2",
+                "weight": 1,
+                "rarityCounts": {
+                  "common": 1,
+                  "uncommon": 0,
+                  "rare": 1,
+                  "epic": 0,
+                  "legendary": 0,
+                  "mythic": 0
+                }
+              }
+            ],
+            "whitelistItemIds": [
+              "keycap",
+              "paper",
+              "tape-measure",
+              "wire-cable",
+              "gold-necklace",
+              "diamond-earrings",
+              "cloisonne-ornament",
+              "fountain-pen",
+              "enamel-brooch",
+              "wood-strip",
+              "iron-sheet"
+            ],
+            "whitelistItemTags": [],
             "blacklistItemIds": [
               "poop"
-            ]
+            ],
+            "blacklistItemTags": []
           },
-          "eventPoolIds": [],
+          "eventPoolIds": [
+            "pool-risk"
+          ],
           "edges": [
             {
               "id": "m2-route-7",
-              "label": "沿荒草坡前往山坡牧场",
+              "label": "前往山坡牧场",
               "description": "",
               "toNodeId": "m2-point-6",
-              "durationMs": 600000
+              "durationMs": 3600000
             }
           ],
           "terminal": false
@@ -1369,29 +1401,39 @@
           "name": "石拱桥",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 5,
+            "maxCount": 6,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
-              "rare": 0,
-              "epic": 0,
+              "common": 80,
+              "uncommon": 15,
+              "rare": 4,
+              "epic": 1,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "turntable",
+              "violin"
+            ],
+            "whitelistItemTags": [
+              "material",
+              "tool",
+              "food"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
           },
-          "eventPoolIds": [],
+          "eventPoolIds": [
+            "pool-general"
+          ],
           "edges": [
             {
               "id": "m2-route-8",
-              "label": "沿旧商道前往北山驿站",
+              "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 600000
+              "durationMs": 5400000
             }
           ],
           "terminal": false
@@ -1401,29 +1443,47 @@
           "name": "雾松林",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 4,
+            "maxCount": 5,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
-              "rare": 0,
-              "epic": 0,
+              "common": 75,
+              "uncommon": 20,
+              "rare": 3,
+              "epic": 2,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "iron-sheet",
+              "wood-strip",
+              "nail",
+              "screw",
+              "paper",
+              "duct-tape",
+              "empty-bottle",
+              "battery",
+              "bulb",
+              "black-truffle",
+              "silver-bracelet",
+              "honey",
+              "red-wine",
+              "umbrella",
+              "leather-handbag"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
           },
-          "eventPoolIds": [],
+          "eventPoolIds": [
+            "pool-general"
+          ],
           "edges": [
             {
               "id": "m2-route-9",
-              "label": "穿过林间山道前往北山驿站",
+              "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 600000
+              "durationMs": 5400000
             }
           ],
           "terminal": false
@@ -1433,17 +1493,21 @@
           "name": "山坡牧场",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 4,
+            "maxCount": 4,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
+              "common": 70,
+              "uncommon": 30,
               "rare": 0,
               "epic": 0,
               "legendary": 0,
               "mythic": 0
             },
             "whitelistItemIds": [],
+            "whitelistItemTags": [
+              "material",
+              "food"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
@@ -1452,10 +1516,10 @@
           "edges": [
             {
               "id": "m2-route-10",
-              "label": "沿山坡牧道前往北山驿站",
+              "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 600000
+              "durationMs": 5400000
             }
           ],
           "terminal": false
@@ -1465,24 +1529,44 @@
           "name": "北山驿站",
           "loot": {
             "mode": "independent",
-            "minCount": 1,
-            "maxCount": 1,
+            "minCount": 5,
+            "maxCount": 5,
             "rarityWeights": {
-              "common": 100,
-              "uncommon": 0,
-              "rare": 0,
-              "epic": 0,
+              "common": 70,
+              "uncommon": 15,
+              "rare": 10,
+              "epic": 5,
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "electric-razor",
+              "plush-toy",
+              "jigsaw-puzzle",
+              "titanium-ring",
+              "mechanical-keyboard",
+              "mechanical-watch",
+              "game-controller",
+              "tablet",
+              "telephoto-lens",
+              "telescope",
+              "violin"
+            ],
+            "whitelistItemTags": [
+              "food",
+              "material",
+              "tool"
+            ],
             "blacklistItemIds": [
               "poop"
             ]
           },
           "eventPoolIds": [],
           "edges": [],
-          "terminal": true
+          "terminal": true,
+          "firstExtractionRewards": {
+            "card-stoat": 1
+          }
         }
       }
     }

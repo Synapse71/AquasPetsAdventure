@@ -173,9 +173,8 @@ export interface MapDefinition {
     partial: number;
     full: number;
   };
-  // 本图的经验系数，节点经验和战利品经验都要乘它。省略即为 1。
-  // 越难的地图给得越多，让「往前推进」同时成为变强的路径。
-  xpMultiplier?: number;
+  // 每完成一个非起始节点获得的基础经验。省略时兼容旧目录，按 10 计算。
+  nodeXp?: number;
   nodes: Record<Id, MapNodeDefinition>;
 }
 

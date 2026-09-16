@@ -87,7 +87,7 @@ const SECONDARY_STAT_CAP = 20;
 
 // ——— 等级与经验 ———
 //
-// 升到下一级需要 等级^1.4 × XP_CURVE_K。指数取 1.4 是因为地图经验系数会随进度
+// 升到下一级需要 等级^1.4 × XP_CURVE_K。指数取 1.4 是因为地图节点经验会随进度
 // 上升，线性曲线会被后期地图的产出直接冲垮；而更陡的二次或指数曲线，其陡峭段
 // 全部落在 20 级以外，在当前上限下根本用不到。
 const MAX_LEVEL = 20;
@@ -95,13 +95,13 @@ const XP_CURVE_EXPONENT = 1.4;
 const XP_CURVE_K = 20;
 const POINTS_PER_LEVEL = 1;
 
-// 每个已完成节点的基础经验，再乘地图经验系数。
-const NODE_XP = 10;
+// 旧目录未配置地图节点经验时的兼容默认值。
+const DEFAULT_NODE_XP = 10;
 // 溃败只给节点经验的一半，且没有战利品经验（文档 3.9 的「基础经验」）。
 const DEFEAT_XP_RATIO = 0.5;
 const MIN_DEFEAT_XP = 5;
 
-// 带回来的战利品按稀有度给经验，同样乘地图经验系数。
+// 带回来的战利品按稀有度给经验。
 // 白绿两档为 0：那是随处可见的东西，不构成「见识」。
 const LOOT_XP_BY_RARITY: Record<Rarity, number> = {
   common: 0,
@@ -1379,7 +1379,6 @@ function finishDefeat(
   catalog: Catalog,
 ): void {
   // 溃败只给节点基础经验的一半，没有战利品经验——东西没带回来（文档 3.9）。
-  const multiplier = mapXpMultiplier(expedition.mapId, catalog);
   finishExpedition(
     state,
     expedition,
@@ -1389,7 +1388,9 @@ function finishDefeat(
       xpAward: Math.max(
         MIN_DEFEAT_XP,
         Math.round(
-          expedition.completedNodeCount * NODE_XP * DEFEAT_XP_RATIO * multiplier,
+          expedition.completedNodeCount *
+            mapNodeXp(expedition.mapId, catalog) *
+            DEFEAT_XP_RATIO,
         ),
       ),
       summary,
@@ -1787,14 +1788,14 @@ export function confirmExtraction(
   }
 
   // 战利品经验按「成功带出来的东西」算：入库的算，撤离时就地卖掉的也算，
-  // 丢弃的不算。节点经验和战利品经验都要乘地图经验系数。
-  const multiplier = mapXpMultiplier(expedition.mapId, catalog);
-  const nodeXp = expedition.completedNodeCount * NODE_XP;
+  // 丢弃的不算。节点基础经验由当前地图独立配置。
+  const nodeXp =
+    expedition.completedNodeCount * mapNodeXp(expedition.mapId, catalog);
   const haulXp =
     lootXp(earnedCarried, catalog) +
     lootXp(firstExtractionRewards, catalog) +
     lootXp(earnedSold, catalog);
-  const xpAward = Math.round((nodeXp + haulXp) * multiplier);
+  const xpAward = Math.round(nodeXp + haulXp);
 
   finishExpedition(
     state,
@@ -1970,12 +1971,15 @@ function grantXp(pet: Pet, amount: number): void {
   if (pet.level >= MAX_LEVEL) pet.xp = 0;
 }
 
-export function mapXpMultiplier(
+/** 每张地图独立配置的单节点基础经验；旧配置省略时仍按 10。 */
+export function mapNodeXp(
   mapId: string,
   catalog: Catalog = defaultCatalog,
 ): number {
-  const value = catalog.maps[mapId]?.xpMultiplier;
-  return typeof value === "number" && value > 0 ? value : 1;
+  const value = catalog.maps[mapId]?.nodeXp;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : DEFAULT_NODE_XP;
 }
 
 /** 战利品经验：按件数累加，白绿两档为 0。 */

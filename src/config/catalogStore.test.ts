@@ -32,6 +32,16 @@ describe("catalog validation", () => {
     expect(validateCatalog(bundledCatalog)).toEqual([]);
   });
 
+  it("rejects invalid per-map node XP values", () => {
+    const broken = structuredClone(bundledCatalog);
+    broken.maps["map-1"].nodeXp = -1;
+    broken.maps["map-2"].nodeXp = 1.5;
+
+    const paths = validateCatalog(broken).map((issue) => issue.path);
+    expect(paths).toContain("maps.map-1.nodeXp");
+    expect(paths).toContain("maps.map-2.nodeXp");
+  });
+
   it("rejects unknown root sections before publishing", () => {
     const broken = {
       ...structuredClone(bundledCatalog),

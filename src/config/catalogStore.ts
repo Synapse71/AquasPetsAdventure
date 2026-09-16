@@ -1071,15 +1071,15 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
         });
       }
     }
-    // 经验系数乘在节点经验和战利品经验上，省略即为 1。
+    // 单节点基础经验按地图独立配置；省略时运行时兼容为 10。
     if (
-      rawMap.xpMultiplier !== undefined &&
-      (typeof rawMap.xpMultiplier !== "number" || rawMap.xpMultiplier <= 0)
+      rawMap.nodeXp !== undefined &&
+      (!Number.isInteger(rawMap.nodeXp) || (rawMap.nodeXp as number) < 0)
     ) {
       issues.push({
         level: "error",
-        path: `maps.${mapId}.xpMultiplier`,
-        message: "经验系数必须是大于 0 的数字，省略表示 1。",
+        path: `maps.${mapId}.nodeXp`,
+        message: "每节点基础经验必须是不小于 0 的整数，省略表示 10。",
       });
     }
     let terminalCount = 0;

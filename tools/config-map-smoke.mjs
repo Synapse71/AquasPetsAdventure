@@ -105,11 +105,45 @@ try {
     await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});const d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');d.set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await sleep(200);
   };
+  const setInputAt = async (selector, index, value) => {
+    await evaluate(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(selector)})][${index}];const d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');d.set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await sleep(200);
+  };
+  const setSelect = async (selector, value) => {
+    await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});const d=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');d.set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await sleep(200);
+  };
+  // 连线是条曲线，<g> 包围盒的中心多半落在线外（还夹着标签文字），
+  // 按包围盒中心点会误判。改成沿热区路径取中点，再用 CTM 换算成屏幕坐标。
+  const realClickEdge = async edgeId => {
+    const probe = await evaluate(`(()=>{
+      const g=document.querySelector('.config-graph-edge[data-edge-id=' + JSON.stringify(${JSON.stringify(edgeId)}) + ']');
+      if(!g) return null;
+      g.scrollIntoView({block:'center',inline:'center'});
+      const p=g.querySelector('path.hit');
+      const pt=p.getPointAtLength(p.getTotalLength()/2);
+      const m=p.getScreenCTM();
+      const x=m.a*pt.x+m.c*pt.y+m.e, y=m.b*pt.x+m.d*pt.y+m.f;
+      const top=document.elementFromPoint(x,y);
+      return {x,y,hit:!!top&&g.contains(top),who:top&&(top.getAttribute('class')||top.tagName),viewport:{w:innerWidth,h:innerHeight}};
+    })()`);
+    if (!probe) throw new Error(`No edge ${edgeId}`);
+    if (!probe.hit) throw new Error(`Edge hit test failed for ${edgeId}: ${JSON.stringify(probe)}`);
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: probe.x, y: probe.y, button: 'none', buttons: 0 });
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: probe.x, y: probe.y, button: 'left', buttons: 1, clickCount: 1 });
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: probe.x, y: probe.y, button: 'left', buttons: 0, clickCount: 1 });
+    await sleep(300);
+    return probe;
+  };
   // 正在编辑的记录 id 就写在 .config-editor-head 的标题里，不用去猜。
   const currentMapId = () => evaluate(`document.querySelector('.config-editor-head h2').textContent.trim()`);
   const savedNode = async nodeId => {
     const mapId = await currentMapId();
     return evaluate(`(()=>{const raw=localStorage.getItem(${JSON.stringify(DRAFT_KEY)});if(!raw)return null;const map=JSON.parse(raw).maps?.[${JSON.stringify(mapId)}];return map?.nodes?.[${JSON.stringify(nodeId)}] ?? null;})()`);
+  };
+  const savedEdges = async sourceId => {
+    const mapId = await currentMapId();
+    return evaluate(`(()=>{const raw=localStorage.getItem(${JSON.stringify(DRAFT_KEY)});if(!raw)return null;const map=JSON.parse(raw).maps?.[${JSON.stringify(mapId)}];return map?.nodes?.[${JSON.stringify(sourceId)}]?.edges ?? null;})()`);
   };
 
   await send('Runtime.enable'); await send('Page.enable');
@@ -180,18 +214,94 @@ try {
   assert((await savedNode(created)) === null, '删除节点直接写进了草稿');
   assert(await evaluate(`![...document.querySelectorAll('.config-graph-node')].some(g => g.dataset.nodeId === ${JSON.stringify(created)})`), '被删的节点从拓扑图上消失');
 
-  // ⑧ 换一张层级更深的地图，确认命中测试在缩放/滚动后的图上依然成立
+  // ⑧ 点连线 → 打开的是这条路线的表单，而不是它起点的节点表单
+  const edgeId = await evaluate(`document.querySelector('.config-graph-edge[data-edge-id]').dataset.edgeId`);
+  const [edgeSource, edgeIndex] = edgeId.split('#');
+  assert(Boolean(edgeId), `拓扑图连线带上了 data-edge-id（${edgeId}）`);
+  // 下面要按的是曲线的数学中点——人手做不到。量一下偏离多少像素还能点中，
+  // 否则「能点」只是脚本自己算得准，策划的鼠标照样点不着。
+  const slack = await evaluate(`(()=>{
+    const g=document.querySelector('.config-graph-edge[data-edge-id]');
+    const p=g.querySelector('path.hit');
+    const pt=p.getPointAtLength(p.getTotalLength()/2);
+    const m=p.getScreenCTM();
+    const x=m.a*pt.x+m.c*pt.y+m.e, y=m.b*pt.x+m.d*pt.y+m.f;
+    let best=0;
+    for(let d=1;d<=12;d++){
+      const up=document.elementFromPoint(x,y-d), down=document.elementFromPoint(x,y+d);
+      if((up&&g.contains(up))||(down&&g.contains(down))) best=d; else break;
+    }
+    return best;
+  })()`);
+  assert(slack >= 5, `偏离连线中心 ${slack}px 仍能点中（1.5px 的线靠透明热区撑开）`);
+  const probe = await realClickEdge(edgeId);
+  assert(await evaluate(`document.querySelector('.config-edge-modal')?.dataset.edgeId === ${JSON.stringify(edgeId)}`), `真鼠标点在连线上打开了这条路线的表单（命中 ${probe.who}）`);
+  assert(await evaluate(`!document.querySelector('.config-node-modal[data-node-id]')`), '点连线不会再打开起点节点的表单');
+  assert(await evaluate(`document.querySelector('.config-graph-edge[data-edge-id=${JSON.stringify(edgeId)}]').classList.contains('selected')`), '被编辑的连线在图上高亮');
+  assert(await evaluate(`document.querySelector('.config-node-modal-save').disabled`), '路线浮层没有改动时保存按钮是禁用的');
+  assert(await evaluate(`document.querySelector('.config-node-modal-delete').textContent.trim() === '删除路线'`), '路线浮层底部是「删除路线」而不是删节点');
+  await shot('06-edge-modal');
+
+  // ⑨ 改路线名 → 保存一次落盘，图上的连线标签同步更新
+  const routeName = `冒烟路线-${Date.now() % 100000}`;
+  await setInputAt('.config-node-modal-body input', 1, routeName);
+  assert((await savedEdges(edgeSource))?.[Number(edgeIndex)]?.label !== routeName, '点保存之前路线改动没有落到 localStorage');
+  await realClick('.config-node-modal-save');
+  assert(await evaluate(`!document.querySelector('.config-edge-modal')`), '保存后路线浮层自动关闭');
+  assert((await savedEdges(edgeSource))?.[Number(edgeIndex)]?.label === routeName, '路线保存一次就写进了 localStorage 的 catalog 草稿');
+  assert(await evaluate(`[...document.querySelectorAll('.config-graph-edge text')].some(t => t.textContent.startsWith('冒烟路线'))`), '图上的连线标签换成了新名字');
+  await reload();
+  assert((await savedEdges(edgeSource))?.[Number(edgeIndex)]?.label === routeName, '刷新页面后路线改名仍然保留');
+  await shot('07-edge-saved');
+
+  // ⑩ 节点表单里的路线只剩只读一览，编辑入口唯一
+  await realClick(`.config-graph-node[data-node-id="${edgeSource}"]`);
+  assert(await evaluate(`!!document.querySelector('.config-route-summary')`), '节点表单里保留了路线的只读一览');
+  assert(await evaluate(`!document.querySelector('.config-node-modal-body .config-route-row')`), '节点表单里不再有可改的路线字段，避免同一条边两个编辑入口');
+  assert(await evaluate(`[...document.querySelectorAll('.config-route-summary strong')].some(t => t.textContent === ${JSON.stringify(routeName)})`), '只读一览显示的是刚保存的路线名');
+  await shot('07b-node-route-summary');
+  await evaluate(`window.confirm = () => true`);
+  await realClick('.config-node-modal-cancel');
+
+  // ⑪ 新增路线：选起点终点 → 直接进这条新路线的表单
+  const before = (await savedEdges(edgeSource))?.length ?? 0;
+  await setSelect('.config-route-create select:first-of-type', edgeSource);
+  await realClick('.config-route-create button');
+  assert(await evaluate(`document.querySelector('.config-edge-modal')?.dataset.edgeId === ${JSON.stringify(`${edgeSource}#${before}`)}`), '新增路线后自动打开它的表单');
+  assert((await savedEdges(edgeSource))?.length === before + 1, '新增的路线立刻落盘，图上马上能看到这条连线');
+  await shot('08-edge-created');
+
+  // 新增路线那一行挤了两个下拉 + 箭头 + 按钮，flex 默认会把按钮压成一列一个字。
+  // 光看 CSS 写没写看不出来，直接量按钮盒子。
+  const bar = await evaluate(`(()=>{const b=document.querySelector('.config-route-create button');const r=b.getBoundingClientRect();return {w:r.width,h:r.height,line:parseFloat(getComputedStyle(b).fontSize)};})()`);
+  // 单行 = 上下 padding 各 6 + 一行 10px 字，26px 上下；竖排 5 个字会到 80px 以上。
+  assert(bar.h < 34 && bar.w > 60, `新增路线按钮是单行而不是竖条（${Math.round(bar.w)}×${Math.round(bar.h)}，字号 ${bar.line}）`);
+
+  // ⑫ 删除路线：确认后落盘并收起浮层
+  await evaluate(`window.confirm = () => true`);
+  await realClick('.config-node-modal-delete');
+  assert(await evaluate(`!document.querySelector('.config-edge-modal')`), '删除路线后浮层关闭');
+  assert((await savedEdges(edgeSource))?.length === before, '删除路线直接写进了草稿');
+
+  // ⑬ 键盘通路：连线也能聚焦、Enter 打开、Esc 关闭
+  assert(await evaluate(`(()=>{const g=document.querySelector('.config-graph-edge[data-edge-id]');g.focus();return document.activeElement===g;})()`), 'SVG 连线可以获得键盘焦点');
+  await pressKey('Enter', 'Enter', 13);
+  assert(await evaluate(`!!document.querySelector('.config-edge-modal')`), '真键盘 Enter 也能打开路线浮层');
+  await pressKey('Escape', 'Escape', 27);
+  assert(await evaluate(`!document.querySelector('.config-edge-modal')`), '真键盘 Esc 关闭路线浮层');
+
+  // ⑭ 换一张层级更深的地图，确认命中测试在缩放/滚动后的图上依然成立
   await realClick('.config-record-list button:nth-of-type(2)');
   await waitFor(`document.querySelector('.config-editor-head h2').textContent.trim() !== ${JSON.stringify(mapId)}`);
   console.log('second map under test:', await currentMapId());
   const deepNode = await evaluate(`[...document.querySelectorAll('.config-graph-node[data-node-id]')].at(-1).dataset.nodeId`);
   await realClick(`.config-graph-node[data-node-id="${deepNode}"]`);
   assert(await evaluate(`document.querySelector('.config-node-modal')?.dataset.nodeId === ${JSON.stringify(deepNode)}`), `另一张地图上最末层的节点也点得开（${deepNode}）`);
-  await shot('05-second-map');
+  await shot('09-second-map');
   await evaluate(`window.confirm = () => true`);
   await realClick('.config-node-modal-cancel');
 
-  // ⑨ 键盘通路：Tab 能聚焦到图上的节点，Enter 打开、Esc 关闭
+  // ⑮ 键盘通路：Tab 能聚焦到图上的节点，Enter 打开、Esc 关闭
   const focused = await evaluate(`(()=>{const g=document.querySelector('.config-graph-node[data-node-id]');g.focus();return document.activeElement===g;})()`);
   assert(focused, 'SVG 节点可以获得键盘焦点');
   await pressKey('Enter', 'Enter', 13);

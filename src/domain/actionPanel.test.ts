@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bundledCatalog } from './catalog';
-import { cargoCapacity, cargoSlotCapacity, confirmExtractionPlan, createInitialState, eventCheckRisk, inventorySlots, inventoryWeight, primaryOutcomeForRoll, resolveEvent, sellWarehouseItem, startExpedition } from './engine';
+import { cargoCapacity, cargoSlotCapacity, confirmExtractionPlan, createInitialState, eventCheckRisk, inventorySlots, inventoryWeight, mapNodeXp, primaryOutcomeForRoll, resolveEvent, sellWarehouseItem, startExpedition } from './engine';
 import type { ExtractionPlan } from './engine';
 
 function fixture() {
@@ -98,7 +98,7 @@ describe('action panel engine transactions', () => {
     const { catalog, state, e } = fixture(); catalog.maps[e.mapId].nodes[e.currentNodeId!].firstExtractionRewards = {};
     e.initialCargo = { test: 5 }; const before = structuredClone(state.itemAcquisitionCounts);
     const next = confirmExtractionPlan(state, e.id, { keep: { test: 2 }, sell: { test: 3 }, discard: {} }, 10, catalog);
-    expect(next.settlements[0].xpAward).toBe(10 * (catalog.maps[e.mapId].xpMultiplier ?? 1));
+    expect(next.settlements[0].xpAward).toBe(mapNodeXp(e.mapId, catalog));
     expect(next.itemAcquisitionCounts).toEqual(before);
   });
   it('stores both real lucky dice and the pre-injury risk, including defeat reports', () => {

@@ -10,8 +10,8 @@ export function mapNodes(record: Record_): Record_ {
   return isRecord(record.nodes) ? record.nodes : {};
 }
 
-/** 草稿与已保存节点是否有差异；顺序不同但内容相同的对象视为无改动。 */
-export function isNodeDirty(draft: unknown, saved: unknown): boolean {
+/** 草稿与已保存内容是否有差异；节点浮层和路线浮层共用。顺序不同但内容相同视为无改动。 */
+export function isDraftDirty(draft: unknown, saved: unknown): boolean {
   return stableStringify(draft) !== stableStringify(saved);
 }
 
@@ -128,4 +128,103 @@ export const NODE_ROLE_LABELS: Record<string, string> = {
   terminal: "固定终点",
   extractable: "中途撤离点",
   normal: "探索节点",
+};
+
+// ——— 路线（拓扑图上的连线）———
+// 路线没有全局唯一 key（route id 只在所属节点内唯一），所以一律用
+// 「起点 id + 在 edges 数组里的原始下标」定位，和拓扑图连线的 key 保持一致。
+
+/** 取某条路线；节点不存在或下标越界时返回 null。 */
+export function edgeAt(
+  nodes: Record_,
+  sourceId: string,
+  index: number,
+): Record_ | null {
+  const node = nodes[sourceId];
+  if (!isRecord(node) || !Array.isArray(node.edges)) return null;
+  const edge = node.edges[index];
+  return isRecord(edge) ? edge : null;
+}
+
+/** 把路线草稿写回地图记录；定位不到时返回 null。 */
+export function applyEdgeDraft(
+  record: Record_,
+  sourceId: string,
+  index: number,
+  draft: Record_,
+): Record_ | null {
+  if (!edgeAt(mapNodes(record), sourceId, index)) return null;
+  const next = structuredClone(record);
+  const node = mapNodes(next)[sourceId] as Record_;
+  (node.edges as unknown[])[index] = structuredClone(draft);
+  return next;
+}
+
+/** 删除一条路线；定位不到时返回 null。 */
+export function removeEdgeFromMap(
+  record: Record_,
+  sourceId: string,
+  index: number,
+): Record_ | null {
+  if (!edgeAt(mapNodes(record), sourceId, index)) return null;
+  const next = structuredClone(record);
+  const node = mapNodes(next)[sourceId] as Record_;
+  (node.edges as unknown[]).splice(index, 1);
+  return next;
+}
+
+/**
+ * 在起点上追加一条默认路线，返回新记录和它的下标（好让调用方直接打开浮层）。
+ * 起点不存在、或终点就是起点自己时返回 null。
+ */
+export function addEdgeToMap(
+  record: Record_,
+  sourceId: string,
+  toNodeId: string,
+): { record: Record_; index: number } | null {
+  const nodes = mapNodes(record);
+  if (!isRecord(nodes[sourceId]) || !Object.hasOwn(nodes, toNodeId)) return null;
+  if (sourceId === toNodeId) return null;
+  const next = structuredClone(record);
+  const node = mapNodes(next)[sourceId] as Record_;
+  const edges = Array.isArray(node.edges) ? node.edges : [];
+  const used = new Set(
+    edges.flatMap((edge) =>
+      isRecord(edge) && typeof edge.id === "string" ? [edge.id] : [],
+    ),
+  );
+  let suffix = edges.length + 1;
+  while (used.has(`route-${suffix}`)) suffix += 1;
+  edges.push({
+    id: `route-${suffix}`,
+    label: "新路线",
+    description: "",
+    toNodeId,
+    durationMs: 10 * 60 * 1_000,
+  });
+  node.edges = edges;
+  return { record: next, index: edges.length - 1 };
+}
+
+/** 路线在拓扑图上的角色，浮层标题和连线配色共用同一套判定。 */
+export function edgeRole(
+  edge: unknown,
+  nodes: Record_,
+): "hidden" | "gated" | "dangling" | "normal" {
+  if (!isRecord(edge)) return "dangling";
+  if (typeof edge.toNodeId !== "string" || !Object.hasOwn(nodes, edge.toNodeId)) {
+    return "dangling";
+  }
+  if (edge.hidden === true) return "hidden";
+  if (isRecord(edge.requirement) && isRecord(edge.requirement.secondary)) {
+    return "gated";
+  }
+  return "normal";
+}
+
+export const EDGE_ROLE_LABELS: Record<string, string> = {
+  hidden: "隐藏路线",
+  gated: "有属性门槛",
+  dangling: "指向不存在的节点",
+  normal: "普通路线",
 };

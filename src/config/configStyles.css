@@ -1062,6 +1062,7 @@
 
 .config-node-create {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
@@ -1195,6 +1196,39 @@
   font-size: 8px;
 }
 
+.config-graph-edge {
+  cursor: pointer;
+}
+
+/* 1.5px 的连线鼠标根本压不中，用一条透明粗线把点击热区撑到 14px。
+   fill:none 必须留着，否则贝塞尔曲线围出的整块面积都会变成热区。 */
+.config-graph-edge > path.hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.config-graph-edge:focus {
+  outline: none;
+}
+
+.config-graph-edge:hover > path:not(.hit) {
+  stroke: #5a6553;
+  stroke-width: 2.4;
+}
+
+.config-graph-edge:focus-visible > path:not(.hit),
+.config-graph-edge.selected > path:not(.hit) {
+  stroke: #3f6cb5;
+  stroke-width: 2.8;
+}
+
+.config-graph-edge.selected text {
+  fill: #2f5490;
+  font-weight: 700;
+}
+
 .config-graph-node {
   cursor: pointer;
 }
@@ -1281,6 +1315,7 @@
 
 .config-node-create > div:first-child {
   display: grid;
+  flex: 1 1 260px;
   gap: 2px;
 }
 
@@ -1294,9 +1329,31 @@
   font-size: 9px;
 }
 
+/* 路线那一行有两个下拉 + 箭头 + 按钮，默认的 flex 收缩会把按钮压成
+   一列一个字。这里禁止收缩，宽度不够就整行换到下一行。 */
 .config-node-create > div:last-child {
   display: flex;
+  flex: none;
+  align-items: center;
   gap: 6px;
+}
+
+.config-node-create select {
+  flex: 0 1 150px;
+  min-width: 0;
+  max-width: 165px;
+  padding: 6px 8px;
+  border: 1px solid #ccd1c8;
+  border-radius: 7px;
+  outline: none;
+  background: white;
+  font-size: 10px;
+}
+
+.config-node-create-arrow {
+  flex: none;
+  color: #77806f;
+  font-size: 11px;
 }
 
 .config-node-create input {
@@ -1310,7 +1367,9 @@
 }
 
 .config-node-create button {
+  flex: none;
   padding: 6px 9px;
+  white-space: nowrap;
   color: white;
   border: 0;
   border-radius: 7px;
@@ -2095,6 +2154,74 @@
   opacity: 0.45;
 }
 
+/* 节点表单里的路线一览是只读的，编辑入口在拓扑图的连线上。 */
+.config-route-summary {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-route-summary li {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 1px solid #dce1d8;
+  border-radius: 7px;
+  background: #f9faf7;
+  font-size: 10px;
+}
+
+.config-route-summary strong {
+  color: #3c4739;
+}
+
+.config-route-summary span {
+  color: #616c5d;
+}
+
+.config-route-summary em {
+  margin-left: auto;
+  color: #828b7d;
+  font-style: normal;
+  font-size: 9px;
+}
+
+.config-route-summary b {
+  padding: 1px 7px;
+  color: #765f92;
+  border: 1px solid #c8badc;
+  border-radius: 999px;
+  background: #f5f0fa;
+  font-size: 9px;
+}
+
+.config-route-summary li.dangling b {
+  color: #a2503f;
+  border-color: #c77a6c;
+  background: #fff0ec;
+}
+
+.config-edge-modal {
+  width: min(720px, 100%);
+}
+
+.config-edge-modal .config-route-row {
+  border: 0;
+  background: transparent;
+}
+
+.config-edge-modal .config-node-modal-body > .config-form {
+  padding: 12px;
+}
+
+.config-edge-modal .config-route-editor {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .config-route-list {
   display: grid;
   gap: 7px;
@@ -2413,6 +2540,19 @@
   background: #edf6f3;
 }
 
+.config-node-role.hidden {
+  color: #765f92;
+  border-color: #a893c1;
+  background: #f4effa;
+}
+
+.config-node-role.gated {
+  color: #856b1c;
+  border-color: #b99a43;
+  background: #fbf2d6;
+}
+
+.config-node-role.dangling,
 .config-node-role.unreachable {
   color: #a2503f;
   border-color: #c77a6c;

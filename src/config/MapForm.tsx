@@ -14,12 +14,18 @@ import type {
   NodeLootDefinition,
 } from "../domain/types";
 import {
+  addEdgeToMap,
+  applyEdgeDraft,
   applyNodeDraft,
   countIncomingEdges,
-  isNodeDirty,
+  edgeAt,
+  EDGE_ROLE_LABELS,
+  edgeRole,
+  isDraftDirty,
   NODE_ROLE_LABELS,
   nodeDepths,
   nodeRole,
+  removeEdgeFromMap,
   removeNodeFromMap,
 } from "./mapNodeDraft";
 
@@ -768,291 +774,253 @@ function CompositionEditor({
   );
 }
 
-function RouteEditor({
-  nodeId,
-  edges,
+/**
+ * 单条路线的表单字段。路线编辑的入口是「点拓扑图上的连线」，所以这里只管一条，
+ * 不再像以前那样把起点的全部路线摊在节点表单里。
+ */
+function RouteFields({
+  route,
+  sourceId,
   nodes,
   catalog,
   onChange,
 }: {
+  route: Record_;
+  sourceId: string;
+  nodes: Record_;
+  catalog: Catalog;
+  onChange: (patch: Record_) => void;
+}) {
+  const targets = Object.entries(nodes).filter(([targetId]) => targetId !== sourceId);
+  const requirement = isRecord(route.requirement) ? route.requirement : {};
+  const secondary = isRecord(requirement.secondary) ? requirement.secondary : undefined;
+  const isHiddenRoute = route.hidden === true;
+  const tagIds = Object.keys(catalog.tags);
+
+  return (
+    <div className="config-route-row">
+      <div className="config-route-row-head">
+        <label className="config-field">
+          <span>路线 ID</span>
+          <input
+            value={typeof route.id === "string" ? route.id : ""}
+            onChange={(event) => onChange({ id: event.target.value })}
+          />
+        </label>
+        <label className="config-field">
+          <span>显示名称</span>
+          <input
+            value={typeof route.label === "string" ? route.label : ""}
+            onChange={(event) => onChange({ label: event.target.value })}
+          />
+        </label>
+        <label className="config-field">
+          <span>目标节点</span>
+          <select
+            value={typeof route.toNodeId === "string" ? route.toNodeId : ""}
+            onChange={(event) => onChange({ toNodeId: event.target.value })}
+          >
+            <option value="">选择目标节点</option>
+            {targets.map(([targetId, target]) => (
+              <option key={targetId} value={targetId}>
+                {isRecord(target) && typeof target.name === "string"
+                  ? target.name
+                  : targetId}
+                （{targetId}）
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="config-field config-route-duration">
+          <span>行进分钟</span>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={typeof route.durationMs === "number" ? route.durationMs / 60_000 : 0}
+            onChange={(event) =>
+              onChange({
+                durationMs: Math.max(
+                  0,
+                  Math.round(inputNumber(event.target.value) * 60_000),
+                ),
+              })
+            }
+          />
+        </label>
+      </div>
+      <label className="config-field">
+        <span>路线说明</span>
+        <input
+          value={typeof route.description === "string" ? route.description : ""}
+          onChange={(event) => onChange({ description: event.target.value })}
+        />
+      </label>
+      <div className="config-route-conditions">
+        <div className="config-route-condition">
+          <label className="config-check">
+            <input
+              type="checkbox"
+              checked={Boolean(secondary)}
+              onChange={(event) =>
+                onChange({
+                  requirement: {
+                    ...requirement,
+                    secondary: event.target.checked
+                      ? { stat: "eloquence", value: 1 }
+                      : undefined,
+                  },
+                })
+              }
+            />
+            <span>次要属性门槛</span>
+            <small>路线始终可见，不满足时置灰并显示差值。</small>
+          </label>
+          {secondary && (
+            <div className="config-route-condition-fields">
+              <select
+                value={typeof secondary.stat === "string" ? secondary.stat : "eloquence"}
+                onChange={(event) =>
+                  onChange({
+                    requirement: {
+                      ...requirement,
+                      secondary: { ...secondary, stat: event.target.value },
+                    },
+                  })
+                }
+              >
+                {SECONDARY_STAT_KEYS.map((stat) => (
+                  <option key={stat} value={stat}>
+                    {SECONDARY_STAT_LABELS[stat]}
+                  </option>
+                ))}
+              </select>
+              <span>≥</span>
+              <input
+                aria-label="次要属性最低值"
+                type="number"
+                min="1"
+                step="1"
+                value={typeof secondary.value === "number" ? secondary.value : 1}
+                onChange={(event) =>
+                  onChange({
+                    requirement: {
+                      ...requirement,
+                      secondary: {
+                        ...secondary,
+                        value: Math.max(1, Math.floor(inputNumber(event.target.value))),
+                      },
+                    },
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="config-route-condition">
+          <label className="config-check">
+            <input
+              type="checkbox"
+              checked={isHiddenRoute}
+              onChange={(event) =>
+                onChange({
+                  requirement: {
+                    ...requirement,
+                    tagId: event.target.checked ? tagIds[0] ?? "" : undefined,
+                  },
+                  hidden: event.target.checked || undefined,
+                })
+              }
+            />
+            <span>隐藏路线（需要 Tag 触发）</span>
+            <small>感知不会揭示；实际走过后永久显示，但再次通行仍需 Tag。</small>
+          </label>
+          {isHiddenRoute && (
+            <div className="config-route-tag-fields">
+              <select
+                value={typeof requirement.tagId === "string" ? requirement.tagId : ""}
+                onChange={(event) =>
+                  onChange({
+                    requirement: { ...requirement, tagId: event.target.value },
+                  })
+                }
+              >
+                {!tagIds.length && <option value="">没有可用 Tag</option>}
+                {Object.values(catalog.tags).map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}（{tag.id}）
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 节点表单里的路线一览：只读。改路线要去拓扑图上点那条连线，
+ * 否则同一条边会有两个编辑入口，保存时互相覆盖。
+ */
+function RouteSummary({
+  nodeId,
+  edges,
+  nodes,
+}: {
   nodeId: string;
   edges: unknown;
   nodes: Record_;
-  catalog: Catalog;
-  onChange: (next: Record_[]) => void;
 }) {
   const routes = Array.isArray(edges)
     ? edges.filter((edge): edge is Record_ => isRecord(edge))
     : [];
-  const targets = Object.entries(nodes).filter(([targetId]) => targetId !== nodeId);
-
-  function updateRoute(index: number, patch: Record_): void {
-    onChange(
-      routes.map((route, routeIndex) =>
-        routeIndex === index ? { ...route, ...patch } : route,
-      ),
-    );
-  }
-
-  function addRoute(): void {
-    const targetId = targets[0]?.[0];
-    if (!targetId) return;
-    const used = new Set(
-      routes.flatMap((route) =>
-        typeof route.id === "string" ? [route.id] : [],
-      ),
-    );
-    let suffix = routes.length + 1;
-    while (used.has(`route-${suffix}`)) suffix += 1;
-    onChange([
-      ...routes,
-      {
-        id: `route-${suffix}`,
-        label: "新路线",
-        description: "",
-        toNodeId: targetId,
-        durationMs: 10 * 60 * 1_000,
-      },
-    ]);
-  }
 
   return (
     <div className="config-field config-route-editor">
       <div className="config-loot-section-title">
         <div>
           <span>下一步路线</span>
-          <small>同一节点可以配置多条路线，玩家抵达后从中选择一条。</small>
+          <small>在拓扑图上点这个节点射出的连线来编辑或删除；新增路线用图下方的「新增路线」。</small>
         </div>
-        <button type="button" disabled={!targets.length} onClick={addRoute}>
-          ＋ 添加路线
-        </button>
       </div>
-      {!!routes.length && (
-        <div className="config-route-list">
+      {routes.length ? (
+        <ul className="config-route-summary">
           {routes.map((route, index) => {
-            const routeId =
-              typeof route.id === "string" ? route.id : `route-${index + 1}`;
-            const requirement = isRecord(route.requirement)
-              ? route.requirement
-              : {};
-            const secondary = isRecord(requirement.secondary)
-              ? requirement.secondary
-              : undefined;
-            const isHiddenRoute = route.hidden === true;
-            const tagIds = Object.keys(catalog.tags);
+            const toNodeId = typeof route.toNodeId === "string" ? route.toNodeId : "";
+            const target = nodes[toNodeId];
+            const targetName =
+              isRecord(target) && typeof target.name === "string" ? target.name : toNodeId;
+            const role = edgeRole(route, nodes);
             return (
-              <div className="config-route-row" key={index}>
-                <div className="config-route-row-head">
-                  <label className="config-field">
-                    <span>路线 ID</span>
-                    <input
-                      value={routeId}
-                      onChange={(event) => updateRoute(index, { id: event.target.value })}
-                    />
-                  </label>
-                  <label className="config-field">
-                    <span>显示名称</span>
-                    <input
-                      value={typeof route.label === "string" ? route.label : ""}
-                      onChange={(event) =>
-                        updateRoute(index, { label: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label className="config-field">
-                    <span>目标节点</span>
-                    <select
-                      value={typeof route.toNodeId === "string" ? route.toNodeId : ""}
-                      onChange={(event) =>
-                        updateRoute(index, { toNodeId: event.target.value })
-                      }
-                    >
-                      <option value="">选择目标节点</option>
-                      {targets.map(([targetId, target]) => (
-                        <option key={targetId} value={targetId}>
-                          {isRecord(target) && typeof target.name === "string"
-                            ? target.name
-                            : targetId}
-                          （{targetId}）
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="config-field config-route-duration">
-                    <span>行进分钟</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={
-                        typeof route.durationMs === "number"
-                          ? route.durationMs / 60_000
-                          : 0
-                      }
-                      onChange={(event) =>
-                        updateRoute(index, {
-                          durationMs: Math.max(
-                            0,
-                            Math.round(inputNumber(event.target.value) * 60_000),
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="config-row-delete"
-                    title="删除路线"
-                    onClick={() =>
-                      onChange(routes.filter((_, routeIndex) => routeIndex !== index))
-                    }
-                  >
-                    ×
-                  </button>
-                </div>
-                <label className="config-field">
-                  <span>路线说明</span>
-                  <input
-                    value={
-                      typeof route.description === "string" ? route.description : ""
-                    }
-                    onChange={(event) =>
-                      updateRoute(index, { description: event.target.value })
-                    }
-                  />
-                </label>
-                <div className="config-route-conditions">
-                  <div className="config-route-condition">
-                    <label className="config-check">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(secondary)}
-                        onChange={(event) =>
-                          updateRoute(index, {
-                            requirement: {
-                              ...requirement,
-                              secondary: event.target.checked
-                                ? { stat: "eloquence", value: 1 }
-                                : undefined,
-                            },
-                          })
-                        }
-                      />
-                      <span>次要属性门槛</span>
-                      <small>路线始终可见，不满足时置灰并显示差值。</small>
-                    </label>
-                    {secondary && (
-                      <div className="config-route-condition-fields">
-                        <select
-                          value={
-                            typeof secondary.stat === "string"
-                              ? secondary.stat
-                              : "eloquence"
-                          }
-                          onChange={(event) =>
-                            updateRoute(index, {
-                              requirement: {
-                                ...requirement,
-                                secondary: {
-                                  ...secondary,
-                                  stat: event.target.value,
-                                },
-                              },
-                            })
-                          }
-                        >
-                          {SECONDARY_STAT_KEYS.map((stat) => (
-                            <option key={stat} value={stat}>
-                              {SECONDARY_STAT_LABELS[stat]}
-                            </option>
-                          ))}
-                        </select>
-                        <span>≥</span>
-                        <input
-                          aria-label="次要属性最低值"
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={
-                            typeof secondary.value === "number"
-                              ? secondary.value
-                              : 1
-                          }
-                          onChange={(event) =>
-                            updateRoute(index, {
-                              requirement: {
-                                ...requirement,
-                                secondary: {
-                                  ...secondary,
-                                  value: Math.max(
-                                    1,
-                                    Math.floor(inputNumber(event.target.value)),
-                                  ),
-                                },
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="config-route-condition">
-                    <label className="config-check">
-                      <input
-                        type="checkbox"
-                        checked={isHiddenRoute}
-                        onChange={(event) =>
-                          updateRoute(index, {
-                            requirement: {
-                              ...requirement,
-                              tagId: event.target.checked
-                                ? tagIds[0] ?? ""
-                                : undefined,
-                            },
-                            hidden: event.target.checked || undefined,
-                          })
-                        }
-                      />
-                      <span>隐藏路线（需要 Tag 触发）</span>
-                      <small>感知不会揭示；实际走过后永久显示，但再次通行仍需 Tag。</small>
-                    </label>
-                    {isHiddenRoute && (
-                      <div className="config-route-tag-fields">
-                        <select
-                          value={requirement.tagId as string}
-                          onChange={(event) =>
-                            updateRoute(index, {
-                              requirement: {
-                                ...requirement,
-                                tagId: event.target.value,
-                              },
-                            })
-                          }
-                        >
-                          {!tagIds.length && <option value="">没有可用 Tag</option>}
-                          {Object.values(catalog.tags).map((tag) => (
-                            <option key={tag.id} value={tag.id}>
-                              {tag.name}（{tag.id}）
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <li key={`${nodeId}-${index}`} className={role}>
+                <strong>{typeof route.label === "string" ? route.label : "未命名路线"}</strong>
+                <span>→ {targetName || "（未选目标）"}</span>
+                <em>
+                  {typeof route.durationMs === "number"
+                    ? `${Math.round(route.durationMs / 6_000) / 10} 分钟`
+                    : "未设时长"}
+                </em>
+                {role !== "normal" && <b>{EDGE_ROLE_LABELS[role]}</b>}
+              </li>
             );
           })}
-        </div>
-      )}
-      {!routes.length && (
+        </ul>
+      ) : (
         <p className="config-form-note">
           当前没有下一步路线。终点可以留空；非终点节点应至少添加一条路线。
         </p>
       )}
     </div>
   );
+}
+
+/** 路线在地图里的定位：起点 + 在该节点 edges 数组里的原始下标。 */
+interface EdgeRef {
+  sourceId: string;
+  index: number;
 }
 
 interface GraphPoint {
@@ -1066,12 +1034,16 @@ function MapGraphPreview({
   nodes,
   startNodeId,
   selectedNodeId,
+  selectedEdge,
   onSelectNode,
+  onSelectEdge,
 }: {
   nodes: Record_;
   startNodeId: string;
   selectedNodeId: string;
+  selectedEdge: EdgeRef | null;
   onSelectNode: (nodeId: string) => void;
+  onSelectEdge: (sourceId: string, index: number) => void;
 }) {
   const nodeIds = Object.keys(nodes);
   let danglingEdges = 0;
@@ -1134,7 +1106,7 @@ function MapGraphPreview({
         <div>
           <strong>地图拓扑预览</strong>
           <span>
-            {nodeIds.length} 个节点 · {edgeCount} 条单向路径 · 点击节点编辑
+            {nodeIds.length} 个节点 · {edgeCount} 条单向路径 · 点节点或连线直接编辑
           </span>
         </div>
         <div className="config-graph-legend">
@@ -1179,16 +1151,37 @@ function MapGraphPreview({
               ? `M ${x1} ${y1} C ${x1 + controlOffset} ${y1}, ${x2 - controlOffset} ${y2}, ${x2} ${y2}`
               : `M ${x1} ${y1} C ${x1 + controlOffset} ${y1 - 42}, ${x2 - controlOffset} ${y2 - 42}, ${x2} ${y2}`;
             const label = typeof edge.label === "string" ? edge.label : "未命名路线";
+            const selected =
+              selectedEdge?.sourceId === sourceId && selectedEdge.index === index;
+            const targetNode = nodes[target.id];
+            const targetName =
+              isRecord(targetNode) && typeof targetNode.name === "string"
+                ? targetNode.name
+                : target.id;
             return (
               <g
-                className={`config-graph-edge ${edge.hidden === true ? "hidden" : ""}`}
+                className={`config-graph-edge ${edge.hidden === true ? "hidden" : ""}${
+                  selected ? " selected" : ""
+                }`}
                 key={`${sourceId}-${index}`}
+                data-edge-id={`${sourceId}#${index}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`编辑路线 ${label}`}
+                onClick={() => onSelectEdge(sourceId, index)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  event.preventDefault();
+                  onSelectEdge(sourceId, index);
+                }}
               >
+                {/* 1.5px 的线根本点不中，叠一条透明粗线当点击热区。 */}
+                <path className="hit" d={path} />
                 <path d={path} markerEnd="url(#config-map-arrow)" />
                 <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 7}>
                   {label.length > 10 ? `${label.slice(0, 10)}…` : label}
                 </text>
-                <title>{label}</title>
+                <title>{label} → {targetName}</title>
               </g>
             );
           })}
@@ -1474,13 +1467,7 @@ function NodeLootEditor({
         </>
       )}
 
-      <RouteEditor
-        nodeId={nodeId}
-        edges={node.edges}
-        nodes={nodes}
-        catalog={catalog}
-        onChange={(edges) => onNodeChange({ edges })}
-      />
+      <RouteSummary nodeId={nodeId} edges={node.edges} nodes={nodes} />
     </div>
   );
 }
@@ -1510,7 +1497,7 @@ function NodeEditorModal({
 }) {
   // 浮层里改的是节点副本，点保存才写回地图；取消/关闭直接丢弃。
   const [draft, setDraft] = useState<Record_>(() => structuredClone(node));
-  const dirty = isNodeDirty(draft, node);
+  const dirty = isDraftDirty(draft, node);
   const dialogRef = useRef<HTMLDivElement>(null);
   const draftName = typeof draft.name === "string" ? draft.name : nodeId;
   const incoming = countIncomingEdges(nodes, nodeId);
@@ -1628,6 +1615,155 @@ function NodeEditorModal({
   );
 }
 
+function EdgeEditorModal({
+  edgeRef,
+  edge,
+  catalog,
+  nodes,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  edgeRef: EdgeRef;
+  edge: Record_;
+  catalog: Catalog;
+  nodes: Record_;
+  onSave: (draft: Record_) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  // 和节点浮层同一套规矩：改的是副本，点保存才写回地图。
+  const [draft, setDraft] = useState<Record_>(() => structuredClone(edge));
+  const dirty = isDraftDirty(draft, edge);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const role = edgeRole(draft, nodes);
+  const label = typeof draft.label === "string" ? draft.label : "未命名路线";
+  const sourceNode = nodes[edgeRef.sourceId];
+  const sourceName =
+    isRecord(sourceNode) && typeof sourceNode.name === "string"
+      ? sourceNode.name
+      : edgeRef.sourceId;
+  const targetNode = typeof draft.toNodeId === "string" ? nodes[draft.toNodeId] : undefined;
+  const targetName =
+    isRecord(targetNode) && typeof targetNode.name === "string"
+      ? targetNode.name
+      : typeof draft.toNodeId === "string" && draft.toNodeId
+        ? draft.toNodeId
+        : "（未选目标）";
+
+  const requestClose = useCallback(() => {
+    if (dirty && !window.confirm(`路线“${label}”还有未保存的改动，确定放弃吗？`)) {
+      return;
+    }
+    onClose();
+  }, [dirty, label, onClose]);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, [edgeRef.sourceId, edgeRef.index]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        requestClose();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [requestClose]);
+
+  function deleteEdge(): void {
+    if (!window.confirm(`确认删除路线“${label}”（${sourceName} → ${targetName}）？`)) {
+      return;
+    }
+    onDelete();
+  }
+
+  return (
+    <div
+      className="config-node-modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) requestClose();
+      }}
+    >
+      <div
+        className="config-node-modal config-edge-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`编辑路线 ${label}`}
+        data-edge-id={`${edgeRef.sourceId}#${edgeRef.index}`}
+        ref={dialogRef}
+        tabIndex={-1}
+      >
+        <header className="config-node-modal-head">
+          <span>
+            <strong>{label}</strong>
+            <code>
+              {sourceName} → {targetName}
+            </code>
+            <em className={`config-node-role ${role === "normal" ? "" : role}`}>
+              {EDGE_ROLE_LABELS[role] ?? "普通路线"}
+            </em>
+          </span>
+          <button
+            type="button"
+            className="config-node-modal-close"
+            aria-label="关闭路线编辑"
+            onClick={requestClose}
+          >
+            ×
+          </button>
+        </header>
+
+        <div className="config-node-modal-body">
+          <div className="config-form">
+            <RouteFields
+              route={draft}
+              sourceId={edgeRef.sourceId}
+              nodes={nodes}
+              catalog={catalog}
+              onChange={(patch) => setDraft((previous) => ({ ...previous, ...patch }))}
+            />
+          </div>
+        </div>
+
+        <footer className="config-node-modal-foot">
+          <button type="button" className="config-node-modal-delete" onClick={deleteEdge}>
+            删除路线
+          </button>
+          <span className="config-node-modal-state">
+            {dirty ? "有未保存的改动" : "与已保存内容一致"}
+          </span>
+          <button type="button" className="config-node-modal-cancel" onClick={requestClose}>
+            取消
+          </button>
+          <button
+            type="button"
+            className="config-node-modal-save"
+            disabled={!dirty}
+            onClick={() => onSave(draft)}
+          >
+            保存
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+/** 浮层状态：要么在编辑一个节点，要么在编辑一条路线，不会同时。 */
+type Editing =
+  | { kind: "node"; nodeId: string }
+  | { kind: "edge"; ref: EdgeRef }
+  | null;
+
+function nodeLabel(nodes: Record_, nodeId: string): string {
+  const node = nodes[nodeId];
+  const name = isRecord(node) && typeof node.name === "string" ? node.name : nodeId;
+  return `${name}（${nodeId}）`;
+}
+
 export function MapForm({
   record,
   catalog,
@@ -1641,13 +1777,33 @@ export function MapForm({
   onSave?: (next: Record_) => void;
 }) {
   const nodes = isRecord(record.nodes) ? record.nodes : {};
+  const nodeIds = Object.keys(nodes);
   const [newNodeId, setNewNodeId] = useState("");
+  const [newEdgeFrom, setNewEdgeFrom] = useState("");
+  const [newEdgeTo, setNewEdgeTo] = useState("");
   const [structureError, setStructureError] = useState("");
-  const [editingNodeId, setEditingNodeId] = useState("");
+  // 一次只开一个浮层：节点草稿里也带着 edges，两个浮层同开保存时会互相覆盖。
+  const [editing, setEditing] = useState<Editing>(null);
   const startNodeId =
     typeof record.startNodeId === "string" ? record.startNodeId : "";
+  const editingNodeId = editing?.kind === "node" ? editing.nodeId : "";
   const editingNode =
     editingNodeId && isRecord(nodes[editingNodeId]) ? nodes[editingNodeId] : null;
+  const editingEdgeRef = editing?.kind === "edge" ? editing.ref : null;
+  const editingEdge = editingEdgeRef
+    ? edgeAt(nodes, editingEdgeRef.sourceId, editingEdgeRef.index)
+    : null;
+
+  // 新增路线的起点/终点：选中的节点被删掉后自动回落，不会留下空选择。
+  const edgeFromId = nodeIds.includes(newEdgeFrom)
+    ? newEdgeFrom
+    : nodeIds.includes(startNodeId)
+      ? startNodeId
+      : nodeIds[0] ?? "";
+  const edgeToCandidates = nodeIds.filter((nodeId) => nodeId !== edgeFromId);
+  const edgeToId = edgeToCandidates.includes(newEdgeTo)
+    ? newEdgeTo
+    : edgeToCandidates[0] ?? "";
 
   function updateMap(patch: Record_): void {
     onChange({ ...record, ...patch });
@@ -1662,7 +1818,39 @@ export function MapForm({
 
   function saveNode(nodeId: string, draft: Record_): void {
     commit(applyNodeDraft(record, nodeId, draft));
-    setEditingNodeId("");
+    setEditing(null);
+  }
+
+  function saveEdge(ref: EdgeRef, draft: Record_): void {
+    const next = applyEdgeDraft(record, ref.sourceId, ref.index, draft);
+    if (!next) {
+      setStructureError("这条路线已经不在地图里了，改动没有保存。");
+      setEditing(null);
+      return;
+    }
+    commit(next);
+    setEditing(null);
+  }
+
+  function deleteEdge(ref: EdgeRef): void {
+    const next = removeEdgeFromMap(record, ref.sourceId, ref.index);
+    if (!next) {
+      setStructureError("这条路线已经不在地图里了。");
+      setEditing(null);
+      return;
+    }
+    commit(next);
+    setEditing(null);
+  }
+
+  function addEdge(): void {
+    const added = addEdgeToMap(record, edgeFromId, edgeToId);
+    if (!added) {
+      setStructureError("新增路线需要选择两个不同的节点。");
+      return;
+    }
+    commit(added.record);
+    setEditing({ kind: "edge", ref: { sourceId: edgeFromId, index: added.index } });
   }
 
   function addNode(): void {
@@ -1695,7 +1883,7 @@ export function MapForm({
       ...(!record.startNodeId ? { startNodeId: id } : {}),
     });
     setNewNodeId("");
-    setEditingNodeId(id);
+    setEditing({ kind: "node", nodeId: id });
   }
 
   function deleteNode(nodeId: string): void {
@@ -1705,7 +1893,7 @@ export function MapForm({
       return;
     }
     commit(next);
-    setEditingNodeId("");
+    setEditing(null);
   }
 
   return (
@@ -1739,6 +1927,21 @@ export function MapForm({
               updateMap({ number: Math.max(1, Math.floor(inputNumber(event.target.value))) })
             }
           />
+        </label>
+        <label className="config-field">
+          <span>每节点基础经验</span>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={intValue(record.nodeXp, 10)}
+            onChange={(event) =>
+              updateMap({
+                nodeXp: Math.max(0, Math.floor(inputNumber(event.target.value))),
+              })
+            }
+          />
+          <small>每完成一个非起始节点获得的经验；不包含战利品经验。</small>
         </label>
         <label className="config-field">
           <span>起始节点</span>
@@ -1813,7 +2016,11 @@ export function MapForm({
         nodes={nodes}
         startNodeId={startNodeId}
         selectedNodeId={editingNodeId}
-        onSelectNode={setEditingNodeId}
+        selectedEdge={editingEdgeRef}
+        onSelectNode={(nodeId) => setEditing({ kind: "node", nodeId })}
+        onSelectEdge={(sourceId, index) =>
+          setEditing({ kind: "edge", ref: { sourceId, index } })
+        }
       />
 
       <div className="config-node-create">
@@ -1838,6 +2045,50 @@ export function MapForm({
           <button type="button" onClick={addNode}>＋ 新增节点</button>
         </div>
       </div>
+
+      <div className="config-node-create config-route-create">
+        <div>
+          <strong>路线编辑</strong>
+          <small>
+            点击上方拓扑图里的连线打开路线表单，改完点保存即写入配置；新增路线在这里选起点和终点。
+          </small>
+        </div>
+        <div>
+          <select
+            aria-label="新增路线的起点"
+            value={edgeFromId}
+            onChange={(event) => {
+              setNewEdgeFrom(event.target.value);
+              setStructureError("");
+            }}
+          >
+            {nodeIds.map((nodeId) => (
+              <option key={nodeId} value={nodeId}>
+                {nodeLabel(nodes, nodeId)}
+              </option>
+            ))}
+          </select>
+          <span className="config-node-create-arrow">→</span>
+          <select
+            aria-label="新增路线的终点"
+            value={edgeToId}
+            onChange={(event) => {
+              setNewEdgeTo(event.target.value);
+              setStructureError("");
+            }}
+          >
+            {!edgeToCandidates.length && <option value="">没有可选终点</option>}
+            {edgeToCandidates.map((nodeId) => (
+              <option key={nodeId} value={nodeId}>
+                {nodeLabel(nodes, nodeId)}
+              </option>
+            ))}
+          </select>
+          <button type="button" disabled={!edgeToId} onClick={addEdge}>
+            ＋ 新增路线
+          </button>
+        </div>
+      </div>
       {structureError && <p className="config-editor-error">{structureError}</p>}
       {!Object.keys(nodes).length && (
         <p className="config-form-note">当前地图没有可编辑的节点。</p>
@@ -1860,7 +2111,20 @@ export function MapForm({
           canDelete={Object.keys(nodes).length > 1}
           onSave={(draft) => saveNode(editingNodeId, draft)}
           onDelete={() => deleteNode(editingNodeId)}
-          onClose={() => setEditingNodeId("")}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {editingEdgeRef && editingEdge && (
+        <EdgeEditorModal
+          key={`${editingEdgeRef.sourceId}#${editingEdgeRef.index}`}
+          edgeRef={editingEdgeRef}
+          edge={editingEdge}
+          catalog={catalog}
+          nodes={nodes}
+          onSave={(draft) => saveEdge(editingEdgeRef, draft)}
+          onDelete={() => deleteEdge(editingEdgeRef)}
+          onClose={() => setEditing(null)}
         />
       )}
     </div>
