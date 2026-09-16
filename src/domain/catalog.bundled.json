@@ -2336,9 +2336,9 @@
       "requirement": {
         "currency": 800,
         "items": {
-          "iron-sheet": 8,
-          "wood-strip": 4,
-          "nail": 12
+          "iron-sheet": 2,
+          "wood-strip": 2,
+          "nail": 4
         }
       },
       "reward": {
@@ -2377,10 +2377,11 @@
       "requirement": {
         "currency": 1500,
         "items": {
-          "nail": 20,
-          "wood-strip": 8,
-          "spring": 4,
-          "bearing": 4
+          "wood-strip": 4,
+          "spring": 2,
+          "bearing": 2,
+          "rubber-block": 4,
+          "screw": 4
         }
       },
       "reward": {
