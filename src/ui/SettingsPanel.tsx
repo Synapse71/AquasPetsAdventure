@@ -3,7 +3,6 @@ import type { GameState } from '../domain/types';
 import { downloadSaveBackup } from '../persistence/saveBackup';
 import type { DesktopState, LoginItemState } from './desktopBridge';
 import { PET_MENUS, menuIcon } from './PetDesktop';
-import { PetPortrait } from './CodexPanel';
 import { useUIState } from './uiState';
 import './simplePanels.css';
 import { petMetrics, MIN_PET_CANVAS, MAX_PET_CANVAS } from '../../desktop/geometry.mjs';
@@ -84,7 +83,7 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
           onPointerDown={e => { if(e.button!==0)return; resizing.current=true; apply({resizing:true}); if(e.isTrusted)e.currentTarget.setPointerCapture(e.pointerId); }}
           onPointerUp={endResize} onPointerCancel={endResize} onLostPointerCapture={endResize}
           onChange={e => apply({canvas:Number(e.target.value)})} /><output>{size}px</output></label>
-        <div className="st-preview"><PetPortrait /><div className="st-preview-info"><span className="st-ruler" style={{width:menuWidth}}>菜单宽 {menuWidth.toFixed(1)}px</span>
+        <div className="st-preview"><img className="st-pet-standing" src={`${import.meta.env.BASE_URL}pet-sprites/standing.png`} alt="桌宠静止预览" draggable={false} /><div className="st-preview-info"><span className="st-ruler" style={{width:menuWidth}}>菜单宽 {menuWidth.toFixed(1)}px</span>
           <div className="st-menu-preview" aria-label="真实像素气泡预览" style={{width:menuWidth,gap}}>{PET_MENUS.map(menu => <span key={menu.id} style={{width:bubble,height:bubble}}><img src={menuIcon(menu.icon)} alt={menu.label} /></span>)}</div>
           <span className="sp-muted">气泡直径 {bubble}px · 悬停气泡可查看功能名称</span>
           {!desktop && <span className="sp-muted">大小与置顶设置仅在桌面客户端可用。</span>}

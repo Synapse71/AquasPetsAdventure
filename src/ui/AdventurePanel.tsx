@@ -6,7 +6,7 @@ import type { Expedition, GameState, Inventory, SecondaryStatKey, Settlement, St
 import { AdventureItems } from './AdventureItems';
 import { AdventureMap } from './AdventureMap';
 import { ExpeditionView } from './ExpeditionView';
-import { PetPortrait } from './CodexPanel';
+import { PetPortrait } from './PetPortrait';
 import { changeQuantity, isInventory, latestUnlockedMapId, STAT_LABELS, subtract, timeLabel } from './adventureModel';
 import { saleValue } from './inventoryPanelModel';
 import { itemTagLabel } from '../domain/itemTags';

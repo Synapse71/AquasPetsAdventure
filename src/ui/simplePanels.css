@@ -41,7 +41,7 @@
 .st-switch { appearance:none; width:40px; height:22px; border:0; border-radius:999px; background:var(--sp-line); position:relative; cursor:pointer; margin:0; }
 .st-switch:before { content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; background:#fff; border-radius:50%; }.st-switch:checked { background:var(--sp-accent); }.st-switch:checked:before { left:21px; }
 .st-preview { height:150px; padding:14px 16px; border:1px solid var(--sp-line); border-radius:11px; background:var(--sp-field); margin:10px 0; display:flex; gap:24px; align-items:center; }
-.st-preview>.sp-portrait { width:110px; flex:none; background:none; }.st-preview-info { display:flex; flex-direction:column; gap:9px; font-size:11px; }
+.st-preview>.st-pet-standing { width:110px; height:auto; flex:none; object-fit:contain; }.st-preview-info { display:flex; flex-direction:column; gap:9px; font-size:11px; }
 .st-ruler { text-align:center; display:block; border-left:1px solid var(--sp-muted); border-right:1px solid var(--sp-muted); color:var(--sp-muted); }
 .st-menu-preview { display:flex; gap:4px; }.st-menu-preview>span { border-radius:50%; flex:none; display:grid; place-items:center; border:1px solid var(--sp-line); background:var(--sp-panel); }
 .st-menu-preview img { width:92%; height:92%; object-fit:contain; }

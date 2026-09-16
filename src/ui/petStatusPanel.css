@@ -8,7 +8,7 @@
 .ps-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .ps-header { position:sticky; top:0; z-index:10; background:var(--ps-panel); height:88px; display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--ps-line); }
 .ps-avatar { width:64px; height:64px; border-radius:12px; background:var(--ps-field); overflow:hidden; flex:none; display:grid; place-items:center; }
-.ps-avatar>div { width:64px; height:60px; background-size:640px auto; background-repeat:no-repeat; }
+.ps-avatar>.sp-portrait { width:64px; height:64px; }
 .ps-identity { flex:1; min-width:0; }.ps-identity h2 { font-size:17px; font-weight:650; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ps-identity select { width:100%; border:0; background:var(--ps-field); color:var(--ps-ink); border-radius:5px; font-size:14px; font-weight:600; }
 .ps-level { display:flex; gap:12px; color:var(--ps-secondary); font-size:12px; white-space:nowrap; }.ps-xp { height:5px; border-radius:3px; background:var(--ps-field); overflow:hidden; margin-top:6px; }.ps-xp i { display:block; height:100%; background:var(--ps-accent); border-radius:3px; }

@@ -8,11 +8,9 @@ import { codexGroups, codexItemCount } from './codexGroups';
 import { lootIconUrl } from './lootIcons';
 import { useUIState } from './uiState';
 import './simplePanels.css';
+import { PetPortrait } from './PetPortrait';
 
 const COLORS: Record<Rarity, string> = { common:'#e3e3e3', uncommon:'#a8dc82', rare:'#74b9f0', epic:'#b98bee', legendary:'#f3c63c', mythic:'#f08a86' };
-export function PetPortrait({ known = true }: { known?: boolean }) {
-  return <div className={`sp-portrait${known ? '' : ' unknown'}`} aria-hidden="true"><div style={{ backgroundImage:`url(${import.meta.env.BASE_URL}pet-sprites/blink-plain.webp)` }} /></div>;
-}
 export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => void }) {
   const [tab, setTab] = useUIState<'item' | 'pet'>('codex-tab', 'item', (v): v is 'item' | 'pet' => v === 'item' || v === 'pet');
   const [tip, setTip] = useState<{id:string;x:number;y:number} | null>(null);

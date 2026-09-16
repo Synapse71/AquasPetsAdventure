@@ -11,6 +11,7 @@ import type { GameState, StatKey } from '../domain/types';
 import { emptyPoints, isStatusDrafts, pointCount, previewPet, PRIMARY_KEYS, statusDraftBasis, validStatusDraft, type PetStatusDraft, type PetStatusDrafts } from './petStatusDraft';
 import { useUIState } from './uiState';
 import './petStatusPanel.css';
+import { PetPortrait } from './PetPortrait';
 
 const iconFiles = import.meta.glob<string>('../../assets/ui-prototype/icons/{stat-fitness,stat-perception,stat-technique,stat-eloquence,stat-lore,stat-courage,stat-guile,stat-injury,coin}.png', { eager: true, query: '?url', import: 'default' });
 const icon = (name: string) => iconFiles[`../../assets/ui-prototype/icons/${name}.png`];
@@ -75,7 +76,7 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
   return <div className="pet-status-panel" data-testid="pet-status-panel">
     <h1 className="ps-sr-only" id="window-title-pets">状态</h1>
     <header className="ps-header">
-      <div className="ps-avatar" aria-hidden="true"><div style={{ backgroundImage: `url(${import.meta.env.BASE_URL}pet-sprites/blink-plain.webp)` }} /></div>
+      <div className="ps-avatar" aria-hidden="true">{pet.id === 'gugugaga' ? <PetPortrait /> : <span>◇</span>}</div>
       <div className="ps-identity">
         {pets.length > 1 ? <select aria-label="选择宠物" value={pet.id} onChange={e => setSelected(e.target.value)}>{pets.map(p => <option key={p.id} value={p.id}>{p.name}{p.unspentPoints > 0 ? ' · 有待分配点数' : ''}</option>)}</select> : <h2>{pet.name}</h2>}
         <div className="ps-level">Lv.{pet.level}<span>{pet.level >= maxLevel() ? '已满级' : `${number(pet.xp)} / ${number(xpToNextLevel(pet.level))} 经验`}</span></div>
