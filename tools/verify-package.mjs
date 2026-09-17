@@ -22,6 +22,9 @@ for (const archive of archives) {
   for (const file of files.filter(file => /\.(?:html|css|js|cjs|mjs|json)$/.test(file))) {
     const content = asar.extractFile(archive, file).toString();
     assert(!/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:sk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/.test(content), `Credential-like content in ${file}`);
+    // GM 后台和配置台只在 import.meta.env.DEV 下存在，靠 Rollup 摇掉。
+    // src/config/productionBundle.test.ts 在构建那一层守着，这里是流水线末端再查一次真实归档。
+    assert(!/__idleGm|idle-gm-root|gm-panel|__idle-config\//.test(content), `Dev-only console leaked into packaged file: ${file}`);
   }
   console.log(JSON.stringify({ archive, files: files.length, sha256: createHash('sha256').update(readFileSync(archive)).digest('hex'), status: 'PASS' }));
 }

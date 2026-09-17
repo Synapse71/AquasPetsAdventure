@@ -123,6 +123,33 @@ nextState = action(previousState, input)
   连线的命中点是沿路径取中点再用 `getScreenCTM()` 换算屏幕坐标（按包围盒中心会落在曲线外），另外单独量一次偏离多少像素仍能点中。
 - 配置台仍保留 Raw JSON 模式处理低频字段；发布前的完整校验会检查事件文本、选项 ID、检定字段、奖励引用、门槛引用和事件池重复成员。
 - 配置台可以导入 / 导出整份目录 JSON，策划改完再「应用到 Demo」。
+
+### `src/gm/`
+
+GM 后台，只在开发模式存在：`npm run dev:desktop`（或 `npm run dev`）启动后，窗口左下角有一块浮层，
+收起后是一个 `GM` 圆钮。配置台界面（`?config=1`）不挂它。
+
+- `gmActions.ts`：全部 GM 操作的纯函数——立即抵达、快进 N 毫秒、基地伤势痊愈、加减金币，
+  外加两个查询（在基地养伤的宠物数、最近一次抵达倒计时）。
+  每个操作都是「旧存档 → 新存档」，改完一律再过一遍 `tick`：抵达掉落、伤势档位这些结算仍走引擎原来的流程，
+  GM 只负责把时间拨过去，不自己实现一套。战报和日志的 `createdAt` 是历史记录，快进不会动它们。
+  出门在外的宠物没有 `injuryRecoveredAt`（出发会清掉，途中本来就不自愈），所以「伤势痊愈」只作用于基地里的宠物。
+  由 `gmActions.test.ts` 覆盖。
+- `GmPanel.tsx` / `mountGmPanel.tsx`：面板挂在 `#root` 之外的独立 React 根上，不参与游戏的 state，
+  只通过 `window.__idleGm`（`App.tsx` 里一个 dev-gated 的 `useEffect` 挂上去的把手）读写存档。
+  根节点带 `data-desktop-ui`：桌宠窗口默认整块鼠标穿透，带这个属性的元素才点得到。
+  面板固定在窗口左下角，那一片是 `computeNativeLayout` 一直为面板预留的透明区域，不会挡住宠物。
+
+**打包绝对不会带上它**，由两道闸守着：
+
+1. `src/config/productionBundle.test.ts` 真的跑一次生产构建，断言模块图里没有 `/src/gm/`，
+   并在产物文本里搜 `__idleGm` / `idle-gm-root` / `gm-panel` / `GM 后台`。
+   这条断言被反向验证过：往 `App.tsx` 里加一句静态 `import { GmPanel }`，测试会挂。
+2. `tools/verify-package.mjs` 在流水线末端扫真实的 `app.asar`，同样的标记出现在任何 html/css/js/json 里就报错。
+
+原理是 `main.tsx` 里那句 `if (import.meta.env.DEV && !editing)`：生产构建把 `import.meta.env.DEV` 替换成字面 `false`，
+整个 `if` 连同里面的动态 `import("./gm/mountGmPanel")` 被 Rollup 摇掉。
+生产产物只多出 `App.tsx` 里那个被掏空的 `useEffect` 外壳（约 30 字节）。
 - 开发服务器启动时，配置台还提供「覆盖游戏数据」：先由服务端对当前草稿做完整校验，并与磁盘上的 `catalog.bundled.json` 逐分类比较新增、删除和修改的记录 ID；玩家确认摘要后，服务端再次校验并检查内置目录与草稿指纹都未变化，再用临时文件原子覆盖内置 JSON。存在错误时禁止覆盖，警告允许在明确确认后继续。
 - 覆盖成功会清除浏览器里的草稿/已应用覆盖层并重置 Demo 存档，使下一次加载直接使用刚写入的代码内置目录。该能力只挂载在 `npm run dev` 的本地 Vite 服务中，生产构建不会暴露写文件接口。
 

@@ -1,0 +1,33 @@
+/* GM 后台的样式跟着 src/gm/ 一起被排除在生产产物之外，所以不进 styles.css。
+   data-desktop-ui 由 PetDesktop 的命中测试识别：桌宠窗口默认整块鼠标穿透，
+   带这个属性的元素才点得到。面板固定在窗口左下角——那一片是给面板预留的
+   透明区域（computeNativeLayout 一直把它算进窗口大小里），不会挡住宠物。 */
+.gm-panel, .gm-chip {
+  position: fixed; left: 10px; bottom: 10px; z-index: 9999;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+.gm-chip {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid #3b4250;
+  background: #1f2430e6; color: #f4c343; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.gm-panel {
+  width: 214px; padding: 9px 10px 8px; border-radius: 10px;
+  border: 1px solid #3b4250; background: #1f2430f2; color: #e7eaf1;
+  box-shadow: 0 6px 20px #0006;
+}
+.gm-panel header { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+.gm-panel header strong { font-size: 12px; color: #f4c343; }
+.gm-panel header span { font-size: 10px; color: #8b93a3; }
+.gm-panel header button {
+  margin-left: auto; width: 20px; height: 20px; padding: 0; line-height: 1;
+  border: 1px solid #3b4250; border-radius: 6px; background: transparent; color: #8b93a3; cursor: pointer;
+}
+.gm-status { margin: 0 0 7px; font-size: 11.5px; color: #b9c0cd; font-variant-numeric: tabular-nums; }
+.gm-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.gm-actions button {
+  flex: none; padding: 4px 9px; font-size: 11px; white-space: nowrap; cursor: pointer;
+  border: 1px solid #454d5d; border-radius: 6px; background: #2b3242; color: #e7eaf1;
+}
+.gm-actions button:hover:not(:disabled) { border-color: #f4c343; }
+.gm-actions button:disabled { opacity: .4; cursor: default; }
+.gm-note { margin: 7px 0 0; font-size: 10px; line-height: 1.5; color: #79818f; }

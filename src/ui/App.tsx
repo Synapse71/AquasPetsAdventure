@@ -198,6 +198,15 @@ export function App() {
     }
   }, []);
 
+  // GM 后台（src/gm/，只在 dev 存在）靠这个把手读写存档，免得把 GM 代码塞进 App 的组件树。
+  // 生产构建里 import.meta.env.DEV 是字面 false，整个函数体会被摇掉。
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const target = window as typeof window & { __idleGm?: unknown };
+    target.__idleGm = { getGame: () => gameRef.current, run };
+    return () => { delete target.__idleGm; };
+  }, [run]);
+
   const attentionExpedition = game.expeditions.find(entry => entry.phase !== "traveling");
   const pendingTask = Object.values(catalog.tasks).some(task => taskIsAvailable(game, task.id) && taskCanComplete(game, task.id));
   const pendingPoints = Object.values(game.pets).some(pet => pet.unspentPoints > 0);
