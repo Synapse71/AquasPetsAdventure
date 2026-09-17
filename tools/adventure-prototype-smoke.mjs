@@ -56,6 +56,12 @@ try {
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     await sleep(450);
   };
+  // 开箱时长现在跟战利品稀有度走（普通 1.286s，稀有度视频 5.04s），
+  // 固定 sleep 会在高稀有度节点上等不到开箱完成，改成等战利品真的摆出来。
+  const openChest = async () => {
+    await click('.ap-chest');
+    await waitFor(`document.querySelector('.ap-loot-float').childElementCount>0`);
+  };
   const shot = async name => {
     const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     writeFileSync(join(out, name + '.png'), Buffer.from(capture.data, 'base64'));
@@ -125,7 +131,7 @@ try {
   let arrived=await stored(),ex=arrived.expeditions[0];
   assert(ex.pendingLoot&&JSON.stringify(ex.cargo)==='{"paper":1}','arrival creates pending loot without automatically adding it to cargo');
   const seedBefore=ex.currentSeed,pendingBefore=JSON.stringify(ex.pendingLoot);
-  await click('.ap-chest');await sleep(1400);await shot('09-chest-open');
+  await openChest();await shot('09-chest-open');
   assert((await stored()).expeditions[0].currentSeed===seedBefore,'opening chest never rerolls loot');
   await send('Page.reload');await loaded();await open();
   assert(JSON.stringify((await stored()).expeditions[0].pendingLoot)===pendingBefore,'unclaimed loot and opened chest survive restart');
@@ -207,11 +213,11 @@ try {
   assert((await stored()).expeditions.length===0&&await evaluate(`!!document.querySelector('.ap-verdict.show')`),'fatal result is saved while the final dice animation still completes');
   await textButton('查看结果');await click('.ap-footer .ap-primary');await shot('23-defeat-report');
   const abandon=structuredClone(arrived);ex=abandon.expeditions[0];ex.pendingLoot={paper:3};ex.arrivalLoot={paper:3};ex.cargo={};delete ex.lastResolution;
-  await openState(abandon);await click('.ap-chest');await sleep(1400);await click('.ap-loot-card');
+  await openState(abandon);await openChest();await click('.ap-loot-card');
   assert((await stored()).expeditions[0].cargo.paper===1&&(await stored()).expeditions[0].pendingLoot.paper===2,'left click picks exactly one item');
   await evaluate(`document.querySelector('.ap-loot-card').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}))`);await sleep(500);
   assert((await stored()).expeditions[0].cargo.paper===3&&Object.keys((await stored()).expeditions[0].pendingLoot).length===0,'right click picks the remaining stack without duplicating loot');
-  await openState(abandon);await click('.ap-chest');await sleep(1400);await click('.ap-footer .ap-primary');
+  await openState(abandon);await openChest();await click('.ap-footer .ap-primary');
   assert(await evaluate(`!!document.querySelector('[aria-label="放弃未拾取战利品"]')`),'leaving unclaimed loot requires confirmation');
   await textButton('回去拾取');assert((await stored()).expeditions[0].pendingLoot.paper===3,'cancel preserves unclaimed loot');
   await click('.ap-footer .ap-primary');await textButton('确认丢弃并继续');

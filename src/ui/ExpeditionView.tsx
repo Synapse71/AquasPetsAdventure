@@ -10,6 +10,7 @@ import { ExtractionView } from './ExtractionView';
 import { EventOptionInfo } from './EventOptionInfo';
 import { useUIState } from './uiState';
 import { lootIconUrl } from './lootIcons';
+import { RARITY_CHEST_MS, rarityChestFx, topLootRarity } from './chestRarity';
 import chestClosed from '../../assets/ui-prototype/chest/closed-frame.png';
 import chestOpen from '../../assets/ui-prototype/chest/open-frame.png';
 import chestAnimation from '../../assets/ui-prototype/chest/open-anim.webp';
@@ -108,6 +109,21 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const weight=inventoryWeight(expedition.cargo),capacity=cargoCapacity(game,expedition),slots=cargoSlotCapacity(game,expedition),used=cargoSlotsUsed(expedition),overSlots=used>slots;
   const over=overloadPenalty(weight/Math.max(1,capacity));
   const remainder=Object.values(expedition.pendingLoot??{}).reduce((s,q)=>s+q,0);
+  // 开箱动画看这次到站开出了什么：有普通以上的东西就播那一档的视频，全是普通物品维持原来的木箱动画。
+  // 判定用 arrivalLoot 而不是 pendingLoot——边拾取边缩水的话，播到一半动画会降档。
+  const lootRarity=topLootRarity(expedition.arrivalLoot),rarityFx=rarityChestFx(lootRarity);
+  const playFx=!!rarityFx && !(typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // 有这一档素材时，闭合 / 播放 / 播完三态全部用它：闭合图就是视频首帧、末帧图就是视频末帧，
+  // 所以点下去宝箱不会当场换成另一只，也不会跳尺寸。没有素材的档（目前是 common）走原来的木箱动画。
+  const chestShowsFx=!!rarityFx;
+  const finishChest=()=>{clearTimeout(chestTimer.current);setOpened(arrivalKey);setChestPlaying(false);};
+  const openChest=()=>{
+    if(chestPlaying)return;
+    setChestPlaying(true);
+    // 视频靠 onEnded 收尾，这个定时器是兜底（解码失败、被策略挡住时也要能继续）。
+    // 关掉动效时没有动画可等，有素材的档直接开箱，不要干等一段空白。
+    chestTimer.current=window.setTimeout(finishChest,playFx?RARITY_CHEST_MS:rarityFx?0:1286);
+  };
   const room=(id:string)=>{const stack=itemStackSize(id),held=expedition.cargo[id]??0;return (held%stack?stack-held%stack:0)+Math.max(0,slots-used)*stack;};
   const duration=map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.durationMs??START_TRAVEL_DURATION_MS;
   const progress=Math.max(0,Math.min(100,100*(1-(expedition.arriveAt-now)/Math.max(1,duration))));
@@ -154,10 +170,10 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button></div>
     <div className={`ap-body${expedition.phase==='traveling' && !showResult?' ap-center':''}`} onScroll={()=>setTip(undefined)}>
       {arrival ? <div className="ap-transfer ap-arrival-layout">
-        <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage"><div className="ap-loot-float">{opened===arrivalKey && !chestPlaying && (remainder ? Object.entries(expedition.arrivalLoot).map(([id])=>{
+        <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage">{chestShowsFx&&<div className="ap-chest-fx" data-rarity={lootRarity} aria-hidden="true">{playFx&&chestPlaying?<video key={rarityFx!.clip} src={rarityFx!.clip} autoPlay muted playsInline preload="auto" onEnded={finishChest}/>:<img src={opened===arrivalKey?rarityFx!.still:rarityFx!.closed} alt=""/>}</div>}<div className="ap-loot-float">{opened===arrivalKey && !chestPlaying && (remainder ? Object.entries(expedition.arrivalLoot).map(([id])=>{
           const q=expedition.pendingLoot?.[id]??0,item=catalog.items[id];
           return q ? <button key={id} className={`ap-loot-card${taking===id?' taking':''}`} disabled={!room(id)} aria-label={`拾取 ${item.name} ×${q}`} title={item.name} style={{'--item-color':colors[item.rarity]} as React.CSSProperties} onClick={()=>take(id)} onContextMenu={e=>{e.preventDefault();take(id,true);}}><span/><img src={lootIconUrl(id)} alt=""/>{q>1&&<b>{q}</b>}</button> : <span key={id} className="ap-loot-slot"/>;
-        }) : <p className="ap-muted">战利品已全部收入背包</p>)}</div><button className={`ap-chest ${opened===arrivalKey?'open':'closed'}`} disabled={opened===arrivalKey || chestPlaying} aria-label="开启宝箱" onClick={()=>{if(chestPlaying)return;setChestPlaying(true);chestTimer.current=window.setTimeout(()=>{setOpened(arrivalKey);setChestPlaying(false);},1286);}}><img src={chestPlaying?chestAnimation:opened===arrivalKey?chestOpen:chestClosed} alt="宝箱"/>{opened!==arrivalKey&&!chestPlaying&&<span>点击开启</span>}</button></div></section>
+        }) : <p className="ap-muted">战利品已全部收入背包</p>)}</div><button className={`ap-chest ${opened===arrivalKey?'open':'closed'}${chestShowsFx?' fx':''}`} disabled={opened===arrivalKey || chestPlaying} aria-label="开启宝箱" onClick={openChest}>{!chestShowsFx&&<img src={chestPlaying?chestAnimation:opened===arrivalKey?chestOpen:chestClosed} alt="宝箱"/>}{opened!==arrivalKey&&!chestPlaying&&<span>点击开启</span>}</button></div></section>
         <section className="ap-bag-col"><h3>探险背包 <span>{used} / {slots} 格</span></h3><div className="ap-loadout-tools">{gauges}<button onClick={()=>setShowBag(true)}>整理</button></div><AdventureItems inventory={expedition.cargo} slots={slots}/></section>
       </div> : showResult || (expedition.phase==='awaiting-event' && event) ? <>
         {eventCard}

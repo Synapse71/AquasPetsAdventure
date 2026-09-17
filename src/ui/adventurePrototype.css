@@ -133,6 +133,19 @@
 .ap-chest img { width:100%; height:100%; object-fit:contain; }
 .ap-chest.closed:hover img { transform:scale(1.05); transition:transform .15s; }
 .ap-chest>span { position:absolute; left:50%; bottom:-40px; transform:translateX(-50%); font-size:18px; color:var(--ap-accent); font-weight:700; white-space:nowrap; animation:ap-chest-cta 1.6s ease-in-out infinite; }
+/* 稀有度开箱视频。原片自带纯白背景，面板也是白的，所以直接铺上去，不抠图、不混合。
+   素材由 tools/build-chest-rarity.py 从原片转出（H.264，各处都能硬解），
+   画幅就是按开箱区做的，这里拉伸铺满 `.ap-chest-stage`。 */
+.ap-chest-fx { position:absolute; inset:0; pointer-events:none; }
+.ap-chest-fx>* { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; }
+/* 没开箱之前，整块开箱区画的就是这一档的闭合宝箱，所以点击热区也得是整块，
+   不能还留在原来那个 168px 的槽位上——画在哪儿就得点哪儿。
+   开箱之后按钮变回 168px 槽位（已 disabled、不画图），把上层让给战利品卡片。 */
+.adventure-panel .ap-chest.fx.closed { position:absolute; inset:0; width:auto; height:auto; }
+/* 提示叠在宝箱画面上，原来的描金字读不出来，改成深色药丸。
+   按钮撑满整块开箱区，所以这里不能再用原来那个 bottom:-40px（会跑到开箱区外面）。
+   视频里箱体底边在画幅 72% 处，22% 正好把提示放在箱子下面一点点。 */
+.ap-chest.fx>span { bottom:22%; font-size:13px; font-weight:600; color:#fff; background:#1f232bd9; padding:4px 12px; border-radius:999px; }
 .ap-loot-float { width:100%; min-height:104px; max-height:210px; flex:none; display:flex; align-items:center; justify-content:center; gap:9px; flex-wrap:wrap; overflow:auto; padding:12px 0; }
 .adventure-panel .ap-loot-card,.ap-loot-slot { width:58px; height:58px; flex:none; }
 .adventure-panel .ap-loot-card { position:relative; padding:0; border:2px solid var(--ap-line); border-radius:10px; background:var(--ap-panel); overflow:visible; transition:transform .18s,opacity .28s; animation:ap-loot-in .42s cubic-bezier(.34,1.56,.64,1) backwards; }

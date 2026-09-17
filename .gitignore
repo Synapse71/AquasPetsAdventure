@@ -66,5 +66,11 @@ assets/**/*-status.json
 !/assets/ui-prototype/chest/closed-frame.png
 !/assets/ui-prototype/chest/open-frame.png
 !/assets/ui-prototype/chest/open-anim.webp
+# 稀有度开箱：原片 take-1.mp4 是母版留在本机，只版本化 build-chest-rarity.py 转出的成品。
+!/assets/ui-prototype/chest/rarity-v1/
+!/assets/ui-prototype/chest/rarity-v1/*/
+!/assets/ui-prototype/chest/rarity-v1/*/open-anim.mp4
+!/assets/ui-prototype/chest/rarity-v1/*/closed-still.webp
+!/assets/ui-prototype/chest/rarity-v1/*/open-still.webp
 /*.png
 /prototypes/animation-assets.html
