@@ -185,8 +185,6 @@ try {
   assert(saved.expeditions[0].cargo['hemp-rope'] === 23 && saved.expeditions[0].initialCargo['hemp-rope'] === 23, 'cargo discard preserves the engine initial-cargo accounting');
   assert(saved.currency === arrived.currency, 'cargo discard does not grant sale money');
   assert(JSON.stringify(await dimensions()) === JSON.stringify(baseline), 'cargo tab and confirmations never resize the frame');
-  await send('Emulation.setEmulatedMedia', {features:[{name:'prefers-color-scheme',value:'dark'}]});
-  await shot('06-dark');
   await click('.ip-reports');
   assert(await evaluate(`document.querySelector('.ip-dialog').textContent.includes('还没有冒险战报')`), 'reports remain accessible without a third inventory container');
   await click('.ip-dialog-actions button'); await click('.ip-close');

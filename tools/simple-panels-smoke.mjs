@@ -194,9 +194,7 @@ try {
   assert(await evaluate(`document.querySelector('.st-reset-actions .st-danger').disabled`),'incorrect confirmation cannot clear the save');
   await textButton('取消');
   assert((await stored()).currency===4321,'cancel reset leaves the save unchanged');
-  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
-  await shot('07-dark-settings');
-  assert(JSON.stringify(await dimensions())==='[812,750]','preview, confirmation, and theme never change panel size');
+  assert(JSON.stringify(await dimensions())==='[812,750]','preview and confirmation never change panel size');
   await textButton('行动记录');
   assert(await evaluate(`!!document.querySelector('.settings-panel .sp-tabs button[aria-pressed="true"]')&&!!document.querySelector('.st-content > .log-list')&&!document.querySelector('.st-content .panel')&&!document.querySelector('.st-content h2')&&!document.querySelector('.st-content .eyebrow')&&!document.querySelector('.st-content').textContent.includes('LOG')`),'action log is only a list without the old card or duplicated heading');
   await shot('10-action-log');
@@ -226,11 +224,8 @@ try {
     await shot('bookmark-'+label);
   }
   assert(await evaluate(`!!document.querySelector('.window-settings .st-about')`),'settings subpage survives bookmark switching');
-  for(const theme of ['light','dark']) {
-    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
-    assert(await evaluate(`(()=>{const active=document.querySelector('.pet-bookmarks button[aria-current="page"]'),panel=document.querySelector('.window-settings'),r=active.getBoundingClientRect(),p=panel.getBoundingClientRect();return getComputedStyle(active).borderRightWidth==='0px'&&getComputedStyle(active).backgroundColor===getComputedStyle(panel).backgroundColor&&document.elementFromPoint(p.left+.25,r.top+r.height/2)?.closest('button')===active&&[...document.querySelectorAll('.pet-bookmarks button:not([aria-current="page"])')].every(b=>getComputedStyle(b,'::after').content!=='none'&&getComputedStyle(b,'::after').backgroundColor.includes('0.45'))&&getComputedStyle(active,'::after').content==='none'})()`),'inactive bookmarks have a gray overlay and the selected seam is covered in '+theme+' mode');
-    await shot('bookmark-selection-'+theme);
-  }
+  assert(await evaluate(`(()=>{const active=document.querySelector('.pet-bookmarks button[aria-current="page"]'),panel=document.querySelector('.window-settings'),r=active.getBoundingClientRect(),p=panel.getBoundingClientRect();return getComputedStyle(active).borderRightWidth==='0px'&&getComputedStyle(active).backgroundColor===getComputedStyle(panel).backgroundColor&&document.elementFromPoint(p.left+.25,r.top+r.height/2)?.closest('button')===active&&[...document.querySelectorAll('.pet-bookmarks button:not([aria-current="page"])')].every(b=>getComputedStyle(b,'::after').content!=='none'&&getComputedStyle(b,'::after').backgroundColor.includes('0.45'))&&getComputedStyle(active,'::after').content==='none'})()`),'inactive bookmarks have a gray overlay and the selected seam is covered');
+  await shot('bookmark-selection');
   const beforeNavigation=await stored();
   await click(bookmark('行动')); await click('.ap-pet-card');
   await click(bookmark('库存')); await click(bookmark('行动'));

@@ -138,8 +138,6 @@ try {
   assert(JSON.stringify((await stored()).inventory)===JSON.stringify(done.inventory),'report reopening cannot replay inventory rewards');
   await click('.ap-tabs button:nth-child(2)');await shot('15-tasks');
   assert(await evaluate(`!!document.querySelector('.ap-task-layout')&&!document.querySelector('.ap-task-layout').textContent.includes('XP')`),'tasks display actual requirements and no XP reward');
-  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});await shot('16-dark-tasks');
-  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});
   const openEvent=async state=>{await seed(state);await click('.ap-team-list button:first-child');};
   for(const [perception,tier] of [[0,1],[2,2]]) {
     const low=structuredClone(eventState);low.pets[petId].baseStats.perception=perception;

@@ -28,7 +28,6 @@
 .pet-bookmarks button:focus-visible { outline:2px solid #9b751d; outline-offset:-3px; }
 .pet-bookmarks button:disabled { opacity:.45; cursor:default; }
 .pet-bookmarks img { width:28px; height:28px; object-fit:contain; pointer-events:none; }
-@media(prefers-color-scheme:dark) { .pet-bookmarks button { background:#22262f; }.pet-bookmarks button[aria-current=page] { background:#1a1d24; } }
 .pet-panel-host[hidden], .pet-panel-host [hidden] { display: none !important; }
 .pet-panel-host .window-layer { position: absolute; inset: 0; animation: none; }
 .pet-panel-host .game-window { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; transform: none; animation: none; border-radius: 14px; background: #f9f8f2; }

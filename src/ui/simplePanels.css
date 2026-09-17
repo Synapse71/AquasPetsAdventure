@@ -57,4 +57,3 @@
 .st-reset-dialog h2 { margin:0 0 10px; font-size:16px; }.st-reset-dialog p,.st-reset-dialog label { font-size:12px; color:var(--sp-secondary); }
 .st-reset-dialog input { display:block; width:100%; margin-top:8px; border:1px solid var(--sp-line); border-radius:7px; background:var(--sp-field); color:var(--sp-ink); padding:8px; }
 .st-reset-actions { margin-top:18px; display:flex; gap:8px; justify-content:flex-end; }
-@media(prefers-color-scheme:dark) { .pet-panel-host .game-window.window-codex,.pet-panel-host .game-window.window-settings { --sp-panel:#1a1d24; --sp-ink:#e9ebf1; --sp-secondary:#949bab; --sp-muted:#7b8393; --sp-line:#353b47; --sp-field:#22262f; --sp-accent:#dca82f; --sp-warn:#e8735a; --sp-ok:#63b892; }.cd-cell.unknown img,.sp-portrait.unknown>div { filter:brightness(0) invert(1); opacity:.22; } }

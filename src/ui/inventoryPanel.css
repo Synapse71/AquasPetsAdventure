@@ -98,4 +98,3 @@
 .inventory-panel .ip-pet-choice[aria-pressed=true] { border-color:var(--ip-accent); background:var(--ip-field); }
 .ip-pet-choice span { color:var(--ip-secondary); font-size:12px; }
 .ip-reports-body { max-height:380px; overflow:auto; }
-@media(prefers-color-scheme:dark) { .pet-panel-host .game-window.window-inventory { --ip-panel:#1a1d24; --ip-ink:#e9ebf1; --ip-secondary:#949bab; --ip-muted:#7b8393; --ip-line:#353b47; --ip-field:#22262f; --ip-accent:#a87606; --ip-warn:#e8735a; --ip-ok:#63b892; } }

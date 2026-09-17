@@ -140,8 +140,6 @@ try {
   await shot('06-incapacitated');
   const after = await dimensions();
   assert(after.width === baseline.width && after.height === baseline.height, 'panel size never changes across transactions and injury states');
-  await send('Emulation.setEmulatedMedia', {features:[{name:'prefers-color-scheme',value:'dark'}]});
-  await shot('07-dark');
   assert(errors.length === 0, 'status panel has no renderer exceptions');
   writeFileSync(join(out,'result.json'),JSON.stringify({passed:true,profile,baseline,after,errors},null,2));
   console.log(`Screenshots: ${out}`);

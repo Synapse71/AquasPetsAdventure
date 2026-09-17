@@ -83,6 +83,8 @@ try {
     await send('Page.reload');await loaded();await open();
   };
   // Capture the user-provided prototype itself, not a recreated mockup.
+  // 这句压浅色是给原型 HTML 用的——prototypes/expedition-panel.html 自带一段深色样式，
+  // 它是设计稿不是产品代码。产品侧的深色模式已经整个去掉了，别把这句当遗留删掉。
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});
   await send('Page.navigate',{url:'file://'+resolve('prototypes/expedition-panel.html')});
   await waitFor(`!!document.querySelector('#mount .panel')`);
@@ -226,7 +228,6 @@ try {
   await seed(team);for(let i=1;i<=3;i++)await click('.ap-pet-card:nth-child('+i+')');
   assert(await evaluate(`document.querySelector('.ap-pet-card:nth-child(4)').disabled`),'three-pet team limit is preserved');
   await shot('24-team');
-  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});await shot('25-dark');
   }
   assert(errors.length===0,'no renderer exceptions throughout adventure flow');
   writeFileSync(join(out,process.argv.includes('--maps-only')?'maps-result.json':'result.json'),JSON.stringify({passed:true,scope:process.argv.includes('--maps-only')?'maps':'all',profile,errors},null,2));console.log('Screenshots: '+out);

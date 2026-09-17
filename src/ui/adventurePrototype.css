@@ -253,5 +253,4 @@
 @keyframes ap-chest-cta { 0%,100%{opacity:.55} 50%{opacity:1} }
 @keyframes ap-loot-in { from{opacity:0;transform:translateY(46px) scale(.6)} to{opacity:1;transform:translateY(0) scale(1)} }
 @keyframes ap-die-land { 0%{transform:scale(1)} 34%{transform:scale(1.13)} 100%{transform:scale(1)} }
-@media(prefers-color-scheme:dark) { .adventure-panel { --ap-accent:#f0b638; --ap-bad:#e05a4c; --ap-fail:#e2a63f; --ap-success:#4fa87b; --ap-great:#a172dd; } }
 @media(prefers-reduced-motion:reduce) { .ap-map-anchor.pickable::before,.ap-chest>span,.ap-loot-card,.ap-die.land { animation:none!important; } .adventure-panel * { transition-duration:1ms!important; } }
