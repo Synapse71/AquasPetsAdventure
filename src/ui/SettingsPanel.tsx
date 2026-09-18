@@ -70,11 +70,11 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
   const size = desktop?.canvas ?? 300;
   const { menuWidth, bubble, gap } = petMetrics(size);
   return <div className="simple-panel settings-panel">
-    <header className="sp-header"><h1 id="window-title-settings">设置</h1><nav className="sp-tabs" aria-label="设置分类"><button aria-pressed={tab==='settings'} onClick={() => setTab('settings')}>设置</button><button aria-pressed={tab==='log'} onClick={() => setTab('log')}>行动记录</button><button aria-pressed={tab==='about'} onClick={() => setTab('about')}>关于</button></nav><span className="st-version">v0.1.0 · Demo</span><button className="sp-close" aria-label="关闭设置" onClick={onClose}>×</button></header>
+    <header className="sp-header"><h1 id="window-title-settings">设置</h1><nav className="sp-tabs" aria-label="设置分类"><button aria-pressed={tab==='settings'} onClick={() => setTab('settings')}>设置</button><button aria-pressed={tab==='log'} onClick={() => setTab('log')}>行动记录</button><button aria-pressed={tab==='about'} onClick={() => setTab('about')}>关于</button></nav><span className="st-version">v{__APP_VERSION__} · Demo</span><button className="sp-close" aria-label="关闭设置" onClick={onClose}>×</button></header>
     <div className="sp-content st-content">{tab === 'log' ? activity : tab === 'about' ? <div className="st-about">
       <section className="st-section"><h2>版本信息</h2>
         <img className="st-game-logo" src={`${import.meta.env.BASE_URL}icons/aquamarine-1024.png`} alt="游戏图标" draggable={false} />
-        <p className="st-game-name">咕嘎搜撤没有打 v0.1.0 Demo</p>
+        <p className="st-game-name">咕嘎搜撤没有打 v{__APP_VERSION__} Demo</p>
       </section>
       <section className="st-section"><h2>开发者信息</h2><p>Aquamarine Studio</p></section>
     </div> : <>

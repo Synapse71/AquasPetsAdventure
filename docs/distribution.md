@@ -2,8 +2,8 @@
 
 ## 产物与运行
 
-- macOS：`release/AquasPetsAdventure-0.1.0-mac-universal.dmg`。同时包含 Apple Silicon（arm64）和 Intel（x64）。打开 DMG，将 `AquasPetsAdventure.app` 拖入「应用程序」后运行。
-- Windows：`release/AquasPetsAdventure-0.1.0-win-x64.exe`。x64 免安装程序，直接双击运行；首次启动需要解压内置运行时，可能比后续稍慢。不要仅分发 `win-unpacked/` 中的内部 EXE，它离不开同目录的其他文件。
+- macOS：`release/AquasPetsAdventure-0.1.1-mac-universal.dmg`。同时包含 Apple Silicon（arm64）和 Intel（x64）。打开 DMG，将 `AquasPetsAdventure.app` 拖入「应用程序」后运行。
+- Windows：`release/AquasPetsAdventure-0.1.1-win-x64.exe`。x64 免安装程序，直接双击运行；首次启动需要解压内置运行时，可能比后续稍慢。不要仅分发 `win-unpacked/` 中的内部 EXE，它离不开同目录的其他文件。
 - 平常只有桌宠主体，点击宠物展开菜单；通过系统托盘/菜单栏或「设置」退出。隐藏宠物不等于退出。
 
 打包不包含开发者的游戏存档。应用使用用户配置目录保存游戏，升级前可在设置中导出备份。当前没有自动更新或线上发布功能。
