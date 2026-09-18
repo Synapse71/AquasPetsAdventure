@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { bundledCatalog, catalog, setCatalog } from '../domain/catalog';
 import { createInitialState } from '../domain/engine';
 import type { Expedition, GameState } from '../domain/types';
-import { foodEatLabel, foodInCargo } from './foodModel';
+import { foodBuffNote, foodEatLabel, foodInCargo } from './foodModel';
 
 /** 先清空再声明，别在配表上叠加——否则策划改一次数值，测试的含义就变了。 */
 function withFood() {
@@ -76,5 +76,20 @@ describe('吃掉按钮的后果预告', () => {
     withFood();
     const { game, expedition } = team({ a: 'healthy' });
     expect(foodEatLabel(game, expedition, 'canned-food')).toBe('队里没人需要治疗');
+  });
+});
+
+describe('风险说明里的食物注记', () => {
+  const withBuff = (stat: 'fitness' | 'perception' | 'technique', amount: number) =>
+    ({ petIds: ['a'], cargo: {}, foodBuff: { itemId: 'x', stat, amount } }) as unknown as Expedition;
+
+  it('只在 buff 正好加这次检定的属性时才提', () => {
+    expect(foodBuffNote(withBuff('fitness', 2), 'fitness')).toBe('（含食物 +2）');
+    // 加体能的食物不该出现在感知检定的说明里，否则玩家会以为风险少了 2 点却对不上账
+    expect(foodBuffNote(withBuff('fitness', 2), 'perception')).toBe('');
+  });
+
+  it('没有 buff 时什么都不加', () => {
+    expect(foodBuffNote({ petIds: ['a'], cargo: {} } as unknown as Expedition, 'fitness')).toBe('');
   });
 });

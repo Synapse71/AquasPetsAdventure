@@ -1,6 +1,6 @@
 import { catalog } from '../domain/catalog';
 import { INJURY_LABELS, STAT_LABELS } from '../domain/engine';
-import type { Expedition, GameState, InjuryStage, Pet } from '../domain/types';
+import type { Expedition, GameState, InjuryStage, Pet, StatKey } from '../domain/types';
 
 const INJURY_ORDER: InjuryStage[] = ['healthy', 'injured', 'incapacitated'];
 
@@ -38,4 +38,14 @@ export function foodEatLabel(game: GameState, expedition: Expedition, itemId: st
     }
   }
   return parts.join(' · ');
+}
+
+/**
+ * 风险说明里「队伍主属性」那一项要不要注明食物的贡献。
+ * 只有 buff 正好加在这次检定的属性上才提——加体能的食物不该出现在感知检定的说明里，
+ * 那会让玩家以为风险少了 1 点却对不上账。
+ */
+export function foodBuffNote(expedition: Expedition, stat: StatKey): string {
+  const buff = expedition.foodBuff;
+  return buff && buff.stat === stat ? `（含食物 +${buff.amount}）` : '';
 }

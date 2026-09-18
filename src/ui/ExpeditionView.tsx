@@ -11,7 +11,7 @@ import { EventOptionInfo } from './EventOptionInfo';
 import { useUIState } from './uiState';
 import { lootIconUrl } from './lootIcons';
 import { RARITY_CHEST_MS, rarityChestFx, topLootRarity } from './chestRarity';
-import { foodEatLabel, foodInCargo } from './foodModel';
+import { foodBuffNote, foodEatLabel, foodInCargo } from './foodModel';
 import chestClosed from '../../assets/ui-prototype/chest/closed-frame.png';
 import chestOpen from '../../assets/ui-prototype/chest/open-frame.png';
 import chestAnimation from '../../assets/ui-prototype/chest/open-anim.webp';
@@ -176,7 +176,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const eventCard=event && <div className="ap-event-card"><div><strong>{event.title}</strong>{!event.choices.some(c=>resolutionOf(c).type==='leave') && <span className="ap-required-event">无法离开</span>}</div><p>{event.description}</p></div>;
   if(expedition.phase==='extraction' && !showResult && !arrival)return <ExtractionView key={expedition.id} game={game} expedition={expedition} run={run} onFinished={onFinished}/>;
   return <>
-    <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button>{expedition.foodBuff&&<span className="ap-food-buff" title={`来自${catalog.items[expedition.foodBuff.itemId]?.name??expedition.foodBuff.itemId}，整趟有效`}>{MAIN_STAT_LABELS[expedition.foodBuff.stat]} +{expedition.foodBuff.amount}</span>}</div>
+    <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button>{expedition.foodBuff&&<span className="ap-food-buff" title={`来自${catalog.items[expedition.foodBuff.itemId]?.name??expedition.foodBuff.itemId}，整趟有效。队伍级加成，不改变单只宠物的属性。`}>{MAIN_STAT_LABELS[expedition.foodBuff.stat]} +{expedition.foodBuff.amount}</span>}</div>
     <div className={`ap-body${expedition.phase==='traveling' && !showResult?' ap-center':''}`} onScroll={()=>setTip(undefined)}>
       {arrival ? <div className="ap-transfer ap-arrival-layout">
         <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage">{chestShowsFx&&<div className="ap-chest-fx" data-rarity={lootRarity} aria-hidden="true">
@@ -195,7 +195,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
       </div> : showResult || (expedition.phase==='awaiting-event' && event) ? <>
         {eventCard}
         {showJudge && judgedChoice ? <div className="ap-judge">
-          <div className="ap-judge-head"><strong>{judgedChoice.label}</strong><span>{resolution?.type==='primary' ? tier===3?`风险 ${risk}`:hasEventRollAdvantage(game,expedition)?'幸运儿 · 两次掷骰取最高':'' : resolution?.type==='secondary'?`免掷骰 · 取队伍最高${SECONDARY_STAT_LABELS[resolution.stat]}`:''}</span>{resolution?.type==='primary'&&tier===3&&<span className="ap-risk-explanation"><button aria-label="风险计算说明">?</button><span role="tooltip"><b>风险 {risk}</b><br/>事件难度 − 队伍主属性 + 超载惩罚 + 伤势惩罚<br/>骰点减去风险，就是本次结果值。</span></span>}</div>
+          <div className="ap-judge-head"><strong>{judgedChoice.label}</strong><span>{resolution?.type==='primary' ? tier===3?`风险 ${risk}`:hasEventRollAdvantage(game,expedition)?'幸运儿 · 两次掷骰取最高':'' : resolution?.type==='secondary'?`免掷骰 · 取队伍最高${SECONDARY_STAT_LABELS[resolution.stat]}`:''}</span>{resolution?.type==='primary'&&tier===3&&<span className="ap-risk-explanation"><button aria-label="风险计算说明">?</button><span role="tooltip"><b>风险 {risk}</b><br/>事件难度 − 队伍主属性{foodBuffNote(expedition,resolution.stat)} + 超载惩罚 + 伤势惩罚<br/>骰点减去风险，就是本次结果值。</span></span>}</div>
           {resolution?.type==='primary' ? <>
             <div className={`ap-outcome-scale${tier!==3?' undisclosed':''}`} aria-label={tier===3?'骰点结果区间':'情报不足，隐藏结果区间'}>{tier===3 && risk!==undefined && [1,2,3,4,5,6].map(n=><span key={n} className={`${primaryOutcomeForRoll(n,risk)}${showResult&&!rolling&&result?.check?.type==='primary'&&n===Math.max(...result.check.rolls)?' hit':''}`}>{n}</span>)}</div>
             <Dice rolls={showResult && result?.check?.type==='primary'?result.check.rolls:hasEventRollAdvantage(game,expedition)?[1,1]:[1]} animate={rolling} onDone={()=>setRolling(false)} onRoll={!showResult?()=>decide():undefined}/>
