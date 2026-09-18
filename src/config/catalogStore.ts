@@ -724,6 +724,62 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
         }
       }
     }
+    // 食物效果：同样写在物品上、不从稀有度推导，所以也得逐字段校验。
+    // foodBuff 和 foodHeal 互相独立，一件物品可以只有其一、也可以都有（设计文档 9.3）。
+    if (rawItem.foodBuff !== undefined) {
+      const buff = rawItem.foodBuff;
+      const path = `items.${itemId}.foodBuff`;
+      if (!isRecord(buff)) {
+        issues.push({ level: "error", path, message: "食物加成必须是对象 { stat, amount }。" });
+      } else {
+        if (!EVENT_STAT_KEYS.includes(buff.stat as (typeof EVENT_STAT_KEYS)[number])) {
+          issues.push({
+            level: "error",
+            path: `${path}.stat`,
+            // 次要属性是硬门槛，食物能抬高门槛就等于食物是钥匙（设计文档 9.3 不变量 1）。
+            message: `食物只能提升主属性，必须是 ${EVENT_STAT_KEYS.join(" / ")} 之一。`,
+          });
+        }
+        if (
+          typeof buff.amount !== "number" ||
+          !Number.isInteger(buff.amount) ||
+          buff.amount < 1
+        ) {
+          issues.push({
+            level: "error",
+            path: `${path}.amount`,
+            message: "加成必须是不小于 1 的整数。",
+          });
+        }
+      }
+    }
+    if (rawItem.foodHeal !== undefined) {
+      const heal = rawItem.foodHeal;
+      const path = `items.${itemId}.foodHeal`;
+      if (!isRecord(heal)) {
+        issues.push({ level: "error", path, message: "食物治疗必须是对象 { steps }。" });
+      } else if (
+        typeof heal.steps !== "number" ||
+        !Number.isInteger(heal.steps) ||
+        heal.steps < 1 ||
+        heal.steps > 2
+      ) {
+        issues.push({
+          level: "error",
+          path: `${path}.steps`,
+          // 伤势只有 healthy / injured / incapacitated 三档，所以最多回 2 档。
+          message: "恢复档数必须是 1 或 2。",
+        });
+      }
+    }
+    if ((rawItem.foodBuff !== undefined || rawItem.foodHeal !== undefined) &&
+        !(rawItem.tags as string[] | undefined)?.includes("food")) {
+      issues.push({
+        level: "warning",
+        path: `items.${itemId}.tags`,
+        message: "配了食物效果但没有 food 标签，玩家会在背包里找不到它。",
+      });
+    }
   }
 
   for (const [tagId, rawTag] of Object.entries(tags)) {

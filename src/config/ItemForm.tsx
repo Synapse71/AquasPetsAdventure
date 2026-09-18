@@ -4,6 +4,7 @@ import {
   secondaryStatCap,
   SECONDARY_STAT_KEYS,
   SECONDARY_STAT_LABELS,
+  STAT_LABELS,
 } from "../domain/engine";
 import {
   ITEM_TAGS,
@@ -17,7 +18,7 @@ import {
   rarityRank,
 } from "../domain/rarity";
 import type { Rarity } from "../domain/rarity";
-import type { Catalog, SecondaryStatKey } from "../domain/types";
+import type { Catalog, SecondaryStatKey, StatKey } from "../domain/types";
 import { lootIconUrl } from "../ui/lootIcons";
 
 type Record_ = Record<string, unknown>;
@@ -34,9 +35,17 @@ interface FormState {
   tagGrantId: string;
   secondaryStat: SecondaryStatKey | "";
   secondaryAmount: string;
+  foodStat: StatKey | "";
+  foodAmount: string;
+  foodHealSteps: string;
 }
 
 const DESCRIPTION_RANK = rarityRank("legendary");
+// 食物只能加主属性。次要属性是硬门槛，食物能抬高门槛就等于食物是钥匙，
+// 那它会变回「为了过那扇门必须刷食物」的必需品（系统设计 9.3 不变量 1）。
+const MAIN_STAT_KEYS: StatKey[] = ["fitness", "perception", "technique"];
+// 伤势只有三档，所以最多回 2 档。
+const HEAL_STEP_OPTIONS = ["", "1", "2"] as const;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -72,6 +81,13 @@ function toForm(record: Record_): FormState {
     tagGrantId: text(record.tagGrantId),
     secondaryStat: grantStat,
     secondaryAmount: isRecord(grant) ? numberText(grant.amount) : "",
+    foodStat:
+      isRecord(record.foodBuff) &&
+      MAIN_STAT_KEYS.includes(record.foodBuff.stat as StatKey)
+        ? (record.foodBuff.stat as StatKey)
+        : "",
+    foodAmount: isRecord(record.foodBuff) ? numberText(record.foodBuff.amount) : "",
+    foodHealSteps: isRecord(record.foodHeal) ? numberText(record.foodHeal.steps) : "",
   };
 }
 
@@ -120,6 +136,24 @@ function toRecord(form: FormState, base: Record_): Record_ {
     };
   } else {
     delete next.secondaryGrant;
+  }
+
+  // 食物的两种效果互相独立，各自「没配就删字段」——同样为了让「漏配」和
+  // 「刻意没有这个效果」在数据上分得出来。
+  if (form.foodStat) {
+    next.foodBuff = {
+      stat: form.foodStat,
+      amount: Math.max(1, Math.floor(toNumber(form.foodAmount, 1))),
+    };
+  } else {
+    delete next.foodBuff;
+  }
+  if (form.foodHealSteps) {
+    next.foodHeal = {
+      steps: Math.min(2, Math.max(1, Math.floor(toNumber(form.foodHealSteps, 1)))),
+    };
+  } else {
+    delete next.foodHeal;
   }
 
   return next;
@@ -435,6 +469,92 @@ export function ItemForm({
               </small>
             </label>
           </div>
+        )}
+      </div>
+
+      <div className="config-growth-effect">
+        <div className="config-growth-title">
+          <div>
+            <strong>食物效果</strong>
+            <small>
+              两种效果互相独立，可以只配一种、也可以都配。配了就能被吃掉，
+              而<b>吃掉就卖不成钱</b>——卖还是吃由玩家自己权衡。
+            </small>
+          </div>
+          <span>
+            {form.foodStat || form.foodHealSteps
+              ? [
+                  form.foodStat && `${STAT_LABELS[form.foodStat]} +${toNumber(form.foodAmount, 1)}`,
+                  form.foodHealSteps && `治疗 ${form.foodHealSteps} 档`,
+                ].filter(Boolean).join(" · ")
+              : "不能吃"}
+          </span>
+        </div>
+
+        <div className="config-field-row">
+          <label className="config-field">
+            <span>主属性加成</span>
+            <select
+              value={form.foodStat}
+              onChange={(event) =>
+                update({
+                  foodStat: event.target.value as StatKey | "",
+                  foodAmount: event.target.value ? form.foodAmount || "1" : "",
+                })
+              }
+            >
+              <option value="">不加</option>
+              {MAIN_STAT_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {STAT_LABELS[key]}
+                </option>
+              ))}
+            </select>
+            <small>
+              只能加主属性。次要属性是硬门槛，食物能抬高门槛就等于食物是钥匙，
+              那它会变回必需品（系统设计 9.3）。
+            </small>
+          </label>
+
+          <label className="config-field">
+            <span>加成点数</span>
+            <input
+              type="number"
+              step="1"
+              min="1"
+              disabled={!form.foodStat}
+              value={form.foodAmount}
+              onChange={(event) => update({ foodAmount: event.target.value })}
+            />
+            <small>
+              显式配置，不由稀有度推导。同时会抬高负重和格子上限
+              （体能 ×1.2 负重，技巧 ×1 格），只加一次，不随队伍人数放大。
+            </small>
+          </label>
+        </div>
+
+        <label className="config-field">
+          <span>治疗伤势</span>
+          <select
+            value={form.foodHealSteps}
+            onChange={(event) => update({ foodHealSteps: event.target.value })}
+          >
+            {HEAL_STEP_OPTIONS.map((steps) => (
+              <option key={steps || "none"} value={steps}>
+                {steps ? `恢复 ${steps} 档` : "不治疗"}
+              </option>
+            ))}
+          </select>
+          <small>
+            按档恢复，和自然恢复同粒度（失能 → 受伤 → 正常），最多 2 档。
+            治疗立即结算，不占加成的位置。
+          </small>
+        </label>
+
+        {(form.foodStat || form.foodHealSteps) && !form.tags.includes("food") && (
+          <p className="config-form-note config-food-warning">
+            配了食物效果却没有「食物」标签。玩家在行前整备里是按标签筛选的，会找不到它。
+          </p>
         )}
       </div>
 

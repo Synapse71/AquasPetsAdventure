@@ -71,6 +71,17 @@ export interface ItemDefinition {
   // 加成数值是显式字段，不由稀有度推导（同 10.1 的字段独立原则）。
   // 内容约定是史诗 +1、传说 +3，但那只是内容安排，规则层不做这个耦合。
   secondaryGrant?: { stat: SecondaryStatKey; amount: number };
+  // 吃掉后为本次远征提供的主属性加成（设计文档 9.3）。两个 food* 字段互相独立，
+  // 一件物品可以只有其一、也可以都有；哪些食物配、配多少由配表决定，规则层不看稀有度。
+  //
+  // 刻意只允许一项主属性，而不是 Partial<Stats>：同时只存在一个食物 buff、后吃的顶掉
+  // 前面的，所以玩家必须一眼比较新旧两个 buff。多项加成会让「顶掉」变成一次盲赌。
+  //
+  // 也刻意不提供次要属性加成：次要属性是硬门槛，食物能抬高门槛就等于食物是钥匙，
+  // 那它立刻变回必需品（设计文档 9.3 不变量 1）。
+  foodBuff?: { stat: StatKey; amount: number };
+  // 吃掉后恢复的伤势档数。按档而不是一次治到底，和自然恢复同粒度。
+  foodHeal?: { steps: number };
 }
 
 // Tag 不影响任何主属性：既不加负重、格子，也不整体降低风险。
@@ -265,6 +276,9 @@ export interface StartExpeditionInput {
   petIds: Id[];
   // 从仓库带入本轮背包；出发时原子扣除。省略表示空背包出发。
   cargo?: Inventory;
+  // 行前整备选定的食物，出发时和 cargo 一起从仓库原子扣除，把加成快照写进新远征。
+  // 「选定」而不是「立刻吃掉」：玩家反悔或退回上一步，食物都还在仓库里。
+  foodItemId?: Id;
 }
 
 export type ExpeditionPhase =
@@ -307,6 +321,13 @@ export interface Expedition {
   initialCargo: Inventory;
   // 最近一次抵达生成的完整掉落快照；开箱演出只读，不重新抽取。
   arrivalLoot: Inventory;
+  // 当前生效的食物 buff，整趟有效，随远征一起销毁——所以不需要任何计时器。
+  // 同时只有一个，后吃的直接覆盖。
+  //
+  // 加成是**吃下那一刻的快照**，不回目录重算：配置台可以在远征途中改数值甚至删物品
+  // （已发布目录会整个替换 catalog），回查会让在途冒险的容量当场缩水，进而超格、
+  // 逼玩家丢弃已经捡到的战利品。itemId 只用于显示名字，不参与任何计算。
+  foodBuff?: { itemId: Id; stat: StatKey; amount: number };
   // 存在时必须先完成拾取；空对象表示已拾完、尚未点击继续。
   // 旧存档没有此字段，其 arrivalLoot 已入包，绝不能再次发放。
   pendingLoot?: Inventory;

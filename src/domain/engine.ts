@@ -308,6 +308,31 @@ export function petSlotCapacity(pet: Pet): number {
   return Math.floor(SLOTS_BASE + petStats(pet).technique * SLOTS_PER_TECHNIQUE);
 }
 
+/**
+ * 本次远征的食物 buff 对某项主属性的加成；没有 buff、或 buff 加的是别的属性时为 0。
+ * 加成读的是远征上的快照，不回目录重算（设计文档 9.3 不变量 2）。
+ */
+export function foodBuffAmount(
+  expedition: Expedition | undefined,
+  stat: StatKey,
+): number {
+  const buff = expedition?.foodBuff;
+  return buff && buff.stat === stat ? buff.amount : 0;
+}
+
+/**
+ * 这些宠物正在进行的远征；出发前还没有远征，返回 undefined。
+ * requirePetAvailable 保证一只宠物最多属于一支远征，所以这个映射是唯一的。
+ */
+function runningExpedition(
+  state: GameState,
+  petIds: Id[],
+): Expedition | undefined {
+  return state.expeditions.find((entry) =>
+    petIds.some((petId) => entry.petIds.includes(petId)),
+  );
+}
+
 export function teamStat(
   state: GameState,
   expedition: Expedition,
@@ -322,7 +347,9 @@ export function teamStat(
 
   if (!values.length) return 0;
   const assistance = values.slice(1).reduce((sum, value) => sum + Math.min(1, value), 0);
-  return values[0] + assistance;
+  // 食物 buff 加在队伍结算之后，不逐宠加：策划配 +2 就是 +2，不随队伍人数漂移，
+  // 也不用回答「buff 要不要乘伤势倍率」（设计文档 9.3 不变量 4）。
+  return values[0] + assistance + foodBuffAmount(expedition, stat);
 }
 
 export function teamStatForPets(
@@ -330,7 +357,12 @@ export function teamStatForPets(
   petIds: Id[],
   stat: StatKey,
 ): number {
-  return teamStat(state, { petIds } as Expedition, stat);
+  // 这些宠物如果正在某趟远征里，就用那趟真正的 expedition（带着食物 buff）；
+  // 出发前还没有远征，退回一个只有 petIds 的壳。
+  // 不反查的话，路线门槛的「可用性」（getRouteAvailability → teamStat，带 buff）
+  // 和「提示文字」（routeHint → 这里）会对不上：按钮能点，旁边却写着「体能不足」。
+  // mapInformationTier 也走这里，所以感知 buff 同时会抬高地图情报等级。
+  return teamStat(state, runningExpedition(state, petIds) ?? ({ petIds } as Expedition), stat);
 }
 
 export type MapInformationTier = 1 | 2 | 3;
@@ -442,7 +474,10 @@ export function teamCarryCapacity(
       (petId) => state.pets[petId]?.injury === "incapacitated",
     ).length * RESCUE_BURDEN;
 
-  return Math.max(0, roundWeight(petCapacity - rescueBurden));
+  // 体能 buff 同样只加一次，不逐宠加（设计文档 9.3 不变量 4/5）。
+  const buff = foodBuffAmount(expedition, "fitness") * CARRY_PER_FITNESS;
+
+  return Math.max(0, roundWeight(petCapacity - rescueBurden + buff));
 }
 
 export function cargoCapacity(
@@ -472,7 +507,11 @@ export function cargoSlotCapacity(
       petSlotCapacity(pet)
     );
   }, 0);
-  return Math.max(0, petSlots);
+  // 技巧 buff 同样只加一次。格子必须是整数，向下取整。
+  const buff = Math.floor(
+    foodBuffAmount(expedition, "technique") * SLOTS_PER_TECHNIQUE,
+  );
+  return Math.max(0, petSlots + buff);
 }
 
 export function cargoSlotsUsed(
@@ -759,6 +798,17 @@ export function startExpedition(
       throw new GameRuleError(`仓库物品不足：${catalog.items[itemId].name}`);
     }
   }
+  // 行前整备选定的食物：这里才真正消耗，所以玩家在整备界面反悔不会浪费东西。
+  const food = input.foodItemId
+    ? requireFood(catalog, input.foodItemId)
+    : undefined;
+  if (food && !food.foodBuff) {
+    throw new GameRuleError(`${food.name}没有出发前可用的效果，请在基地或途中食用。`);
+  }
+  if (input.foodItemId && (state.inventory[input.foodItemId] ?? 0) <= 0) {
+    throw new GameRuleError(`仓库物品不足：${food!.name}`);
+  }
+
   // 出门就停表：带伤上路不会在途中自愈，回来才重新开始恢复。
   input.petIds.forEach((petId) => {
     delete state.pets[petId].injuryRecoveredAt;
@@ -783,6 +833,16 @@ export function startExpedition(
     drawnEventIds: [],
     currentSeed: seed,
     completedNodeCount: 0,
+    // 快照，不存 itemId 引用：配置台改数值或删物品都不该影响在途的这一趟。
+    ...(food?.foodBuff
+      ? {
+          foodBuff: {
+            itemId: input.foodItemId!,
+            stat: food.foodBuff.stat,
+            amount: food.foodBuff.amount,
+          },
+        }
+      : {}),
   };
   const usedSlots = cargoSlotsUsed(expedition, catalog);
   const slotCapacity = cargoSlotCapacity(state, expedition, catalog);
@@ -792,6 +852,21 @@ export function startExpedition(
     );
   }
   state.inventory = removeInventory(state.inventory, initialCargo);
+  if (input.foodItemId) {
+    // 和携带物在同一次结算里扣掉：要么都成，要么都不成。
+    state.inventory = removeInventory(state.inventory, { [input.foodItemId]: 1 });
+    // 同时带治疗效果的食物不会被浪费：治伤得最重的那只，并列取 petIds 里靠前的。
+    const healed = food?.foodHeal && mostInjuredPet(state, input.petIds);
+    if (healed && food?.foodHeal) {
+      improveInjury(healed, food.foodHeal.steps);
+      delete healed.injuryRecoveredAt;
+    }
+    addLog(
+      state,
+      `出发前吃掉了${food!.name}${healed ? `，${healed.name}的伤势好转为${INJURY_LABELS[healed.injury]}` : ""}。`,
+      now,
+    );
+  }
   state.expeditions.push(expedition);
   const cargoCount = Object.values(initialCargo).reduce(
     (sum, quantity) => sum + quantity,
@@ -1211,6 +1286,12 @@ export function isChoiceAvailable(
 function worsenInjury(pet: Pet, steps = 1): void {
   const index = INJURY_ORDER.indexOf(pet.injury);
   pet.injury = INJURY_ORDER[Math.min(INJURY_ORDER.length - 1, index + steps)];
+}
+
+// 伤势回档，和自然恢复同粒度（一次一档）。到 healthy 就停，不会溢出。
+function improveInjury(pet: Pet, steps = 1): void {
+  const index = INJURY_ORDER.indexOf(pet.injury);
+  pet.injury = INJURY_ORDER[Math.max(0, index - Math.max(1, steps))];
 }
 
 // 回到基地后开始（或重新开始）计时。健康的宠物不需要计时器。
@@ -2232,8 +2313,122 @@ export function applyTagItem(
   return state;
 }
 
+/**
+ * 途中吃背包里的食物。只能在节点上吃——行进途中背包本来就只能查看。
+ * 必须先把战利品捡进背包才能吃：直接吃浮层里未拾取的东西等于绕开了负重和格子检查
+ * （设计文档 9.3）。吃掉同时腾出这件食物的重量和格子。
+ *
+ * buff 直接覆盖现有的那个：同时只存在一个，后吃的顶掉前面的。
+ * 治疗是立即结算的，不占 buff 槽位。
+ */
+export function eatCargoFood(
+  source: GameState,
+  expeditionId: string,
+  itemId: string,
+  petId?: string,
+  now = Date.now(),
+  catalog: Catalog = defaultCatalog,
+): GameState {
+  const state = clone(source);
+  const expedition = requireExpedition(state, expeditionId);
+  if (expedition.phase === "traveling") {
+    throw new GameRuleError("行进途中不能吃东西，抵达节点后才能整理背包。");
+  }
+  const item = requireFood(catalog, itemId);
+  if ((expedition.cargo[itemId] ?? 0) <= 0) {
+    throw new GameRuleError(`背包里没有${item.name}。`);
+  }
+  if (petId && !expedition.petIds.includes(petId)) {
+    throw new GameRuleError("这只宠物不在队伍里。");
+  }
+  const target = item.foodHeal
+    ? (petId ? state.pets[petId] : mostInjuredPet(state, expedition.petIds))
+    : undefined;
+  const heals = Boolean(item.foodHeal && target && target.injury !== "healthy");
+  // 只有治疗效果、队里却没人需要治疗时拦下来，避免纯浪费；
+  // 带 buff 的食物照常可以吃，治疗那部分用不上是玩家自己的选择。
+  if (item.foodHeal && !item.foodBuff && !heals) {
+    throw new GameRuleError("队伍里没有需要治疗的宠物。");
+  }
+
+  expedition.cargo = removeInventory(expedition.cargo, { [itemId]: 1 });
+  const notes: string[] = [];
+  if (item.foodBuff) {
+    // 快照，不存引用：配置台改数值或删物品都不该影响在途的这一趟。
+    expedition.foodBuff = {
+      itemId,
+      stat: item.foodBuff.stat,
+      amount: item.foodBuff.amount,
+    };
+    notes.push(`${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}`);
+  }
+  if (heals && target && item.foodHeal) {
+    improveInjury(target, item.foodHeal.steps);
+    // 途中的宠物没有恢复计时（出发时已清掉），所以这里只改档位。
+    notes.push(`${target.name}的伤势好转为${INJURY_LABELS[target.injury]}`);
+  }
+  addLog(state, `吃掉了${item.name}：${notes.join("；")}。`, now);
+  return state;
+}
+
+/**
+ * 在基地用食物治疗。和花钱治疗的区别只有付费方式：
+ * 花钱治疗仍然只能在基地（钱在基地才请得到医生），食物是随身的，
+ * 所以途中那条路走 eatCargoFood。
+ */
+export function healPetWithFood(
+  source: GameState,
+  petId: string,
+  itemId: string,
+  now = Date.now(),
+  catalog: Catalog = defaultCatalog,
+): GameState {
+  const state = clone(source);
+  const pet = state.pets[petId];
+  if (!pet) throw new GameRuleError("宠物不存在。");
+  const item = requireFood(catalog, itemId);
+  if (!item.foodHeal) throw new GameRuleError(`${item.name}没有治疗效果。`);
+  if (pet.injury === "healthy") throw new GameRuleError("这只宠物没有受伤。");
+  if (state.expeditions.some((entry) => entry.petIds.includes(petId))) {
+    throw new GameRuleError("宠物正在冒险途中，请在节点上用背包里的食物。");
+  }
+  if ((state.inventory[itemId] ?? 0) <= 0) {
+    throw new GameRuleError(`仓库中没有${item.name}。`);
+  }
+  state.inventory = removeInventory(state.inventory, { [itemId]: 1 });
+  improveInjury(pet, item.foodHeal.steps);
+  // 还没好透的话，下一档从现在开始重新计时。
+  beginRecovery(pet, now);
+  addLog(
+    state,
+    `${pet.name}吃掉了${item.name}，伤势好转为${INJURY_LABELS[pet.injury]}。`,
+    now,
+  );
+  return state;
+}
+
 export function secondaryStatCap(): number {
   return SECONDARY_STAT_CAP;
+}
+
+/** 取一件能吃的食物；不存在、或压根没配任何效果时报错。 */
+function requireFood(catalog: Catalog, itemId: string): ItemDefinition {
+  const item = catalog.items[itemId];
+  if (!item) throw new GameRuleError(`食物不存在：${itemId}`);
+  if (!item.foodBuff && !item.foodHeal) {
+    throw new GameRuleError(`${item.name}不能吃。`);
+  }
+  return item;
+}
+
+/** 队伍里伤得最重的一只；并列时取 petIds 里靠前的那只，保证可预测。 */
+function mostInjuredPet(state: GameState, petIds: string[]): Pet | undefined {
+  return petIds
+    .map((petId) => state.pets[petId])
+    .filter((pet): pet is Pet => Boolean(pet) && pet.injury !== "healthy")
+    .sort(
+      (a, b) => INJURY_ORDER.indexOf(b.injury) - INJURY_ORDER.indexOf(a.injury),
+    )[0];
 }
 
 export function applySecondaryGrantItem(

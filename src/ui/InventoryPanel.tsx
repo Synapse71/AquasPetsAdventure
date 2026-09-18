@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { catalog } from '../domain/catalog';
-import { applySecondaryGrantItem, applyTagItem, cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, discardCargo,
+import { applySecondaryGrantItem, applyTagItem, healPetWithFood, STAT_LABELS, cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, discardCargo,
   GameRuleError, inventoryWeight, itemStackSize, petSecondaryStat, secondaryStatCap, SECONDARY_STAT_LABELS,
   sellWarehouseItems, toggleItemLock, warehouseSlotsUsed } from '../domain/engine';
 import { itemTagLabel } from '../domain/itemTags';
@@ -9,8 +9,8 @@ import type { GameState, Inventory, Pet } from '../domain/types';
 import { lootIconUrl } from './lootIcons';
 import { menuIcon } from './PetDesktop';
 import { useUIState } from './uiState';
-import { cleanPicked, discardBasis, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView,
-  itemCount, saleBasis, saleValue, sellable, sortedInventory, useBasis, useBlockReason, validInventoryDialog,
+import { cleanPicked, discardBasis, foodHealPreview, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView,
+  itemCount, saleBasis, saleValue, sellable, sortedInventory, usableOnPet, useBasis, useBlockReason, validInventoryDialog,
   type InventoryDialog, type InventoryView, type SortKey } from './inventoryPanelModel';
 import './inventoryPanel.css';
 
@@ -26,6 +26,7 @@ function Lock() { return <span className="ip-lock" aria-label="已锁定"><svg v
 function usePreview(pet: Pet, itemId: string) {
   const item = catalog.items[itemId];
   if (item.tagGrantId) return `永久获得「${catalog.tags[item.tagGrantId]?.name ?? item.tagGrantId}」`;
+  if (item.foodHeal && !item.secondaryGrant) return `伤势 ${foodHealPreview(pet, item.foodHeal.steps)}`;
   if (!item.secondaryGrant) return '无法使用';
   const g = item.secondaryGrant, current = petSecondaryStat(pet, g.stat), next = Math.min(secondaryStatCap(), current + g.amount);
   return `${SECONDARY_STAT_LABELS[g.stat]} ${current} → ${next}${current + g.amount > secondaryStatCap() ? `（超出 ${current + g.amount - secondaryStatCap()} 点将浪费）` : ''}`;
@@ -85,9 +86,12 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
       if (dialog.type === 'discard') return discardCargo(state, dialog.expeditionId, dialog.itemId, dialog.quantity);
       const pet = state.pets[dialog.petId];
       if (!pet) throw new GameRuleError('请先选择伙伴。');
-      const reason = useBlockReason(pet, dialog.itemId);
+      const reason = useBlockReason(pet, dialog.itemId, state);
       if (reason) throw new GameRuleError(reason);
-      return catalog.items[dialog.itemId].tagGrantId ? applyTagItem(state, pet.id, dialog.itemId) : applySecondaryGrantItem(state, pet.id, dialog.itemId);
+      const used = catalog.items[dialog.itemId];
+      if (used.tagGrantId) return applyTagItem(state, pet.id, dialog.itemId);
+      if (used.secondaryGrant) return applySecondaryGrantItem(state, pet.id, dialog.itemId);
+      return healPetWithFood(state, pet.id, dialog.itemId);
     });
     if (succeeded) {
       setMessage(dialog.type === 'sale' ? `已售出 ${itemCount(dialog.quantities)} 件，获得 ${num(saleValue(dialog.quantities))} 通用货币` : dialog.type === 'discard' ? '已丢弃所选物品' : '道具已使用，效果已永久生效');
@@ -171,6 +175,10 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           </dl>
           <div className="ip-tags">{item.tags?.map(tag => <span key={tag}>{itemTagLabel(tag)}</span>)}</div>
           {(item.secondaryGrant || item.tagGrantId) && <p className="ip-effect">{item.tagGrantId ? `赋予特质：${catalog.tags[item.tagGrantId]?.name ?? item.tagGrantId}` : `${SECONDARY_STAT_LABELS[item.secondaryGrant!.stat]} +${item.secondaryGrant!.amount}`} · 使用后永久生效</p>}
+          {(item.foodBuff || item.foodHeal) && <p className="ip-effect">{[
+            item.foodBuff && `出发前吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，整趟冒险有效`,
+            item.foodHeal && `吃下恢复 ${item.foodHeal.steps} 档伤势`,
+          ].filter(Boolean).join(' · ')}</p>}
         </> : <p className="ip-empty">选择物品查看详情</p>}
       </aside>
     </div>
@@ -183,7 +191,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
     </footer>
     </div>}
     {menu && (game.inventory[menu.id] ?? 0) > 0 && !view.bulk && <div className="ip-menu" role="menu" aria-label="物品操作" style={{ left: menu.x, top: menu.y }} onClick={e => e.stopPropagation()}>
-      {(catalog.items[menu.id]?.secondaryGrant || catalog.items[menu.id]?.tagGrantId) && <button role="menuitem" onClick={() => { setDialog({ type: 'use', itemId: menu.id, petId: '', basis: useBasis(game, menu.id) }); setMenu(null); }}>使用</button>}
+      {usableOnPet(menu.id) && <button role="menuitem" onClick={() => { setDialog({ type: 'use', itemId: menu.id, petId: '', basis: useBasis(game, menu.id) }); setMenu(null); }}>使用</button>}
       <button role="menuitem" disabled={!sellable(game, menu.id)} onClick={() => openSale({ [menu.id]: 1 }, menu.id)}>{game.lockedItemIds.includes(menu.id) ? '售卖（已锁定）' : catalog.items[menu.id]?.sellable ? '售卖' : '不可出售'}</button>
       <button role="menuitem" onClick={() => { const id = menu.id; if (run(state => toggleItemLock(state, id))) { setMenu(null); setMessage(game.lockedItemIds.includes(id) ? '已解除售卖锁定' : '已锁定，无法出售'); } }}>{game.lockedItemIds.includes(menu.id) ? '解锁' : '锁定'}</button>
     </div>}
@@ -205,9 +213,11 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           {Object.keys(dialog.quantities).some(id => rarityRank(catalog.items[id].rarity) >= rarityRank('epic')) && <p className="ip-warning">包含史诗或更高稀有度物品，请确认取舍。出售后无法撤销。</p>}
         </>}
         {dialog.type === 'use' && <>
-          <p className="ip-hint">选择伙伴，确认后消耗 1 件道具，效果永久绑定。{catalog.items[dialog.itemId].secondaryGrant && `次要属性上限 ${secondaryStatCap()}。`}</p>
+          <p className="ip-hint">{catalog.items[dialog.itemId].foodHeal && !catalog.items[dialog.itemId].secondaryGrant && !catalog.items[dialog.itemId].tagGrantId
+            ? '选择伙伴，确认后消耗 1 份食物。出门在外的伙伴请在节点上吃背包里的食物。'
+            : '选择伙伴，确认后消耗 1 件道具，效果永久绑定。'}{catalog.items[dialog.itemId].secondaryGrant && `次要属性上限 ${secondaryStatCap()}。`}</p>
           <div className="ip-pet-list">{Object.values(game.pets).map(pet => {
-            const reason = useBlockReason(pet, dialog.itemId);
+            const reason = useBlockReason(pet, dialog.itemId, game);
             return <button key={pet.id} className="ip-pet-choice" data-pet-id={pet.id} aria-pressed={dialog.petId === pet.id} disabled={!!reason} onClick={() => setDialog({ ...dialog, petId: pet.id })}><strong>{pet.name}</strong><span>{usePreview(pet, dialog.itemId)}{reason && ` · ${reason}`}</span></button>;
           })}</div>
         </>}
@@ -216,7 +226,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           <div className="ip-quantity"><label>数量 <input aria-label="丢弃数量" type="number" min={1} max={game.expeditions.find(e => e.id === dialog.expeditionId)?.cargo[dialog.itemId] ?? 1} value={dialog.quantity} onChange={e => setDialog({ ...dialog, quantity: Math.max(1, Math.min(game.expeditions.find(exp => exp.id === dialog.expeditionId)?.cargo[dialog.itemId] ?? 1, Math.trunc(Number(e.target.value)) || 1)) })} /></label><button onClick={() => setDialog({ ...dialog, quantity: game.expeditions.find(e => e.id === dialog.expeditionId)?.cargo[dialog.itemId] ?? 1 })}>全部</button></div>
         </>}
         {dialog.type === 'reports' && <div className="ip-reports-body">{game.settlements.length ? reports : <p className="ip-empty">还没有冒险战报。</p>}</div>}
-        <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>{dialog.type === 'reports' ? '关闭战报' : '取消'}</button>{dialog.type !== 'reports' && <button className="ip-primary ip-confirm" disabled={dialog.type === 'use' && (!dialog.petId || !!useBlockReason(game.pets[dialog.petId], dialog.itemId))} onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' ? '确认使用' : '确认丢弃'}</button>}</div>
+        <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>{dialog.type === 'reports' ? '关闭战报' : '取消'}</button>{dialog.type !== 'reports' && <button className="ip-primary ip-confirm" disabled={dialog.type === 'use' && (!dialog.petId || !!useBlockReason(game.pets[dialog.petId], dialog.itemId, game))} onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' ? '确认使用' : '确认丢弃'}</button>}</div>
       </div>
     </div>}
   </div>;

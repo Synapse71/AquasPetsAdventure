@@ -1,7 +1,7 @@
 import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useEffect, useRef, useState } from 'react';
 import { catalog } from '../domain/catalog';
-import { cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, chooseRoute, discardCargo, eventCheckRisk, finishNodeLoot, GameRuleError, getRiskPreview, getRouteAvailability, getVisibleRoutes, hasEventRollAdvantage, inventorySlots, inventoryWeight, isChoiceAvailable, itemStackSize, lockedNodeEvents, mapInformationTier, overloadPenalty, pickupAllNodeLoot, pickupNodeLoot, primaryOutcomeForRoll, requestExtraction, resolveEvent, SECONDARY_STAT_LABELS, teamSecondaryStat } from '../domain/engine';
+import { cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, chooseRoute, discardCargo, eatCargoFood, STAT_LABELS as MAIN_STAT_LABELS, eventCheckRisk, finishNodeLoot, GameRuleError, getRiskPreview, getRouteAvailability, getVisibleRoutes, hasEventRollAdvantage, inventorySlots, inventoryWeight, isChoiceAvailable, itemStackSize, lockedNodeEvents, mapInformationTier, overloadPenalty, pickupAllNodeLoot, pickupNodeLoot, primaryOutcomeForRoll, requestExtraction, resolveEvent, SECONDARY_STAT_LABELS, teamSecondaryStat } from '../domain/engine';
 import type { EventChoiceDefinition, EventResolution, Expedition, GameState, Settlement } from '../domain/types';
 import { AdventureItems } from './AdventureItems';
 import { AdventureMap } from './AdventureMap';
@@ -11,6 +11,7 @@ import { EventOptionInfo } from './EventOptionInfo';
 import { useUIState } from './uiState';
 import { lootIconUrl } from './lootIcons';
 import { RARITY_CHEST_MS, rarityChestFx, topLootRarity } from './chestRarity';
+import { foodEatLabel, foodInCargo } from './foodModel';
 import chestClosed from '../../assets/ui-prototype/chest/closed-frame.png';
 import chestOpen from '../../assets/ui-prototype/chest/open-frame.png';
 import chestAnimation from '../../assets/ui-prototype/chest/open-anim.webp';
@@ -93,8 +94,8 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const [tip,setTip]=useState<{id:string;x:number;y:number}>();
   const [taking,setTaking]=useState<string>();
   const busy=useRef(false),chestTimer=useRef<number|undefined>(undefined),takeTimer=useRef<number|undefined>(undefined);
-  useEffect(()=>()=>{clearTimeout(chestTimer.current);clearTimeout(takeTimer.current);},[]);
   const chestVideo=useRef<HTMLVideoElement|null>(null);
+  useEffect(()=>()=>{clearTimeout(chestTimer.current);clearTimeout(takeTimer.current);},[]);
   useEffect(()=>{if(drop&&(drop.basis!==JSON.stringify(expedition.cargo)||expedition.phase==='traveling'))setDrop(null);},[drop,expedition.cargo,expedition.phase,setDrop]);
   const map=catalog.maps[expedition.mapId],node=map.nodes[expedition.currentNodeId??''];
   const tier=mapInformationTier(game,map.id,expedition.petIds),result=expedition.lastResolution;
@@ -117,7 +118,6 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   // 有这一档素材时，闭合 / 播放 / 播完三态全部用它：闭合图就是视频首帧、末帧图就是视频末帧，
   // 所以点下去宝箱不会当场换成另一只，也不会跳尺寸。没有素材的档（目前是 common）走原来的木箱动画。
   const chestShowsFx=!!rarityFx;
-  const finishChest=()=>{clearTimeout(chestTimer.current);setOpened(arrivalKey);setChestPlaying(false);};
   // 视频一直挂着，所以这里只负责从头播。autoPlay 做不到这件事——它只在 mount 时生效。
   useEffect(()=>{
     const video=chestVideo.current;
@@ -125,6 +125,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     video.currentTime=0;
     void video.play().catch(()=>{/* 被策略挡住时由 chestTimer 兜底收尾 */});
   },[chestPlaying,playFx]);
+  const finishChest=()=>{clearTimeout(chestTimer.current);setOpened(arrivalKey);setChestPlaying(false);};
   const openChest=()=>{
     if(chestPlaying)return;
     setChestPlaying(true);
@@ -175,7 +176,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const eventCard=event && <div className="ap-event-card"><div><strong>{event.title}</strong>{!event.choices.some(c=>resolutionOf(c).type==='leave') && <span className="ap-required-event">无法离开</span>}</div><p>{event.description}</p></div>;
   if(expedition.phase==='extraction' && !showResult && !arrival)return <ExtractionView key={expedition.id} game={game} expedition={expedition} run={run} onFinished={onFinished}/>;
   return <>
-    <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button></div>
+    <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button>{expedition.foodBuff&&<span className="ap-food-buff" title={`来自${catalog.items[expedition.foodBuff.itemId]?.name??expedition.foodBuff.itemId}，整趟有效`}>{MAIN_STAT_LABELS[expedition.foodBuff.stat]} +{expedition.foodBuff.amount}</span>}</div>
     <div className={`ap-body${expedition.phase==='traveling' && !showResult?' ap-center':''}`} onScroll={()=>setTip(undefined)}>
       {arrival ? <div className="ap-transfer ap-arrival-layout">
         <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage">{chestShowsFx&&<div className="ap-chest-fx" data-rarity={lootRarity} aria-hidden="true">
@@ -218,7 +219,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     </footer>
     {tip&&event&&!choice&&!showResult&&<div className="ap-event-tip" role="tooltip" style={{left:tip.x,top:tip.y}}><EventOptionInfo preview={getRiskPreview(game,expedition.id,tip.id)} secondary={event.choices.find(c=>c.id===tip.id)?.resolution?.type==='secondary'}/></div>}
     {showMap&&<div className="ap-mask"><section className="ap-map-dialog"><button className="ap-dialog-x" aria-label="关闭地图" onClick={()=>setShowMap(false)}>×</button><AdventureMap game={game} mapId={map.id} petIds={expedition.petIds} currentNodeId={expedition.currentNodeId}/></section></div>}
-    {showBag&&<div className="ap-mask"><section className="ap-dialog ap-bag-dialog" role="dialog" aria-label="整理背包"><h2>整理背包<button className="ap-dialog-x" aria-label="关闭背包" onClick={()=>setShowBag(false)}>×</button></h2><div className="ap-bag-gauges">{gauges}<span>格子 {used} / {slots}</span></div><AdventureItems inventory={expedition.cargo} onPick={id=>setSelectedCargo(id)}/>{expedition.phase==='traveling'?<p>行进途中只能查看，抵达后才能整理</p>:selectedCargo&&(expedition.cargo[selectedCargo]??0)>0?<div className="ap-bag-actions"><span>丢弃 <b>{catalog.items[selectedCargo].name}</b></span>{[...new Set([1,Math.min(expedition.cargo[selectedCargo],itemStackSize(selectedCargo))])].map(q=><button key={q} disabled={rolling} onClick={()=>setDrop({id:selectedCargo,q,basis:JSON.stringify(expedition.cargo)})}>丢 {q} 件</button>)}</div>:<p>点一件东西来丢掉 · 丢掉的不会再回来</p>}</section></div>}
+    {showBag&&<div className="ap-mask"><section className="ap-dialog ap-bag-dialog" role="dialog" aria-label="整理背包"><h2>整理背包<button className="ap-dialog-x" aria-label="关闭背包" onClick={()=>setShowBag(false)}>×</button></h2><div className="ap-bag-gauges">{gauges}<span>格子 {used} / {slots}</span></div><AdventureItems inventory={expedition.cargo} onPick={id=>setSelectedCargo(id)}/>{expedition.phase==='traveling'?<p>行进途中只能查看，抵达后才能整理</p>:selectedCargo&&(expedition.cargo[selectedCargo]??0)>0?<div className="ap-bag-actions">{foodInCargo(selectedCargo)&&<button className="ap-eat" disabled={!!taking} onClick={()=>{if(run(s=>eatCargoFood(s,expedition.id,selectedCargo)))setSelectedCargo(undefined);}}>吃掉 · {foodEatLabel(game,expedition,selectedCargo)}</button>}<span>丢弃 <b>{catalog.items[selectedCargo].name}</b></span>{[...new Set([1,Math.min(expedition.cargo[selectedCargo],itemStackSize(selectedCargo))])].map(q=><button key={q} disabled={rolling} onClick={()=>setDrop({id:selectedCargo,q,basis:JSON.stringify(expedition.cargo)})}>丢 {q} 件</button>)}</div>:<p>点一件东西来丢掉 · 丢掉的不会再回来</p>}</section></div>}
     {askLeave&&<div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="放弃未拾取战利品"><h2>还有 {remainder} 件战利品没有拾取</h2><p>离开后，没有放进背包的战利品会被永久丢弃。</p><div className="ap-dialog-actions"><button onClick={()=>setAskLeave(false)}>回去拾取</button><button className="ap-danger" onClick={()=>lootNext(true)}>确认丢弃并继续</button></div></section></div>}
     {drop&&<div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="确认丢弃"><h2>丢弃 {catalog.items[drop.id].name} ×{drop.q}？</h2><p>丢弃后无法找回。</p><div className="ap-dialog-actions"><button onClick={()=>setDrop(null)}>取消</button><button className="ap-danger" onClick={()=>{if(run(s=>{const e=s.expeditions.find(e=>e.id===expedition.id);if(JSON.stringify(e?.cargo)!==drop.basis)throw new GameRuleError('背包已变化，请重新选择。');return discardCargo(s,expedition.id,drop.id,drop.q);})){setDrop(null);setSelectedCargo(undefined);}}}>确认丢弃</button></div></section></div>}
   </>;

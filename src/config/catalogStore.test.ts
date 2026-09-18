@@ -604,3 +604,52 @@ describe("catalog change summary", () => {
     });
   });
 });
+
+describe("食物效果的目录校验", () => {
+  function withFood(patch: Record<string, unknown>): Catalog {
+    const next = structuredClone(bundledCatalog);
+    Object.assign(next.items.chocolate, patch);
+    return next;
+  }
+  const errors = (c: Catalog) => validateCatalog(c).filter(i => i.level === "error").map(i => i.path);
+  const warnings = (c: Catalog) => validateCatalog(c).filter(i => i.level === "warning").map(i => i.path);
+
+  it("正常配置不报错", () => {
+    const ok = withFood({ foodBuff: { stat: "fitness", amount: 2 }, foodHeal: { steps: 1 } });
+    expect(errors(ok)).toEqual([]);
+  });
+
+  it("食物不能加次要属性——这是把「食物变成钥匙」堵死在配表层", () => {
+    expect(errors(withFood({ foodBuff: { stat: "lore", amount: 1 } })))
+      .toContain("items.chocolate.foodBuff.stat");
+    expect(errors(withFood({ foodBuff: { stat: "eloquence", amount: 1 } })))
+      .toContain("items.chocolate.foodBuff.stat");
+  });
+
+  it("加成必须是不小于 1 的整数", () => {
+    for (const amount of [0, -1, 1.5, "2"]) {
+      expect(errors(withFood({ foodBuff: { stat: "fitness", amount } })))
+        .toContain("items.chocolate.foodBuff.amount");
+    }
+  });
+
+  it("治疗档数只能是 1 或 2——伤势一共就三档", () => {
+    for (const steps of [0, 3, 1.5]) {
+      expect(errors(withFood({ foodHeal: { steps } })))
+        .toContain("items.chocolate.foodHeal.steps");
+    }
+    expect(errors(withFood({ foodHeal: { steps: 2 } }))).toEqual([]);
+  });
+
+  it("不是对象的写法直接报错", () => {
+    expect(errors(withFood({ foodBuff: 2 }))).toContain("items.chocolate.foodBuff");
+    expect(errors(withFood({ foodHeal: "1" }))).toContain("items.chocolate.foodHeal");
+  });
+
+  it("配了效果却没打 food 标签是提醒，不是错误——能跑，但策划八成漏了", () => {
+    const next = structuredClone(bundledCatalog);
+    next.items.paper.foodBuff = { stat: "fitness", amount: 1 };
+    expect(errors(next)).toEqual([]);
+    expect(warnings(next)).toContain("items.paper.tags");
+  });
+});

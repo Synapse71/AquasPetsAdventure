@@ -15,11 +15,11 @@ import './adventurePanel.css';
 import './adventurePrototype.css';
 
 type Run = (action: (state: GameState) => GameState) => boolean;
-interface View { tab: 'explore' | 'tasks'; screen: 'overview' | 'prepare' | 'expedition' | 'report'; step: number; mapId: string; petIds: string[]; cargo: Inventory; expeditionId: string; reportId: string }
+interface View { tab: 'explore' | 'tasks'; screen: 'overview' | 'prepare' | 'expedition' | 'report'; step: number; mapId: string; petIds: string[]; cargo: Inventory; foodItemId: string; expeditionId: string; reportId: string }
 const isView = (v: unknown): v is View => {
   if (!v || typeof v !== 'object') return false;
   const s = v as View;
-  return ['explore', 'tasks'].includes(s.tab) && ['overview', 'prepare', 'expedition', 'report'].includes(s.screen) && Number.isInteger(s.step) && s.step >= 0 && s.step <= 3 && typeof s.mapId === 'string' && Array.isArray(s.petIds) && s.petIds.length <= MAX_TEAM_PETS && s.petIds.every(id => typeof id === 'string') && new Set(s.petIds).size === s.petIds.length && isInventory(s.cargo) && typeof s.expeditionId === 'string' && typeof s.reportId === 'string';
+  return ['explore', 'tasks'].includes(s.tab) && ['overview', 'prepare', 'expedition', 'report'].includes(s.screen) && Number.isInteger(s.step) && s.step >= 0 && s.step <= 3 && typeof s.mapId === 'string' && Array.isArray(s.petIds) && s.petIds.length <= MAX_TEAM_PETS && s.petIds.every(id => typeof id === 'string') && new Set(s.petIds).size === s.petIds.length && isInventory(s.cargo) && typeof s.foodItemId === 'string' && typeof s.expeditionId === 'string' && typeof s.reportId === 'string';
 };
 const steps = ['选择伙伴', '选择地图', '确认入口', '携带物品'];
 const phaseNames = { traveling: '行进中', 'awaiting-event': '处理事件', 'awaiting-route': '选择路线', extraction: '撤离整理' };
@@ -33,7 +33,7 @@ function TaskView({ game, run }: { game: GameState; run: Run }) {
 
 export function AdventurePanel({ game, now, run, onClose, intent }: { game: GameState; now: number; run: Run; onClose: () => void; intent?: { tab: 'active' | 'tasks'; key: number; expeditionId?: string } }) {
   const newestMapId = latestUnlockedMapId(game.unlockedMapIds);
-  const [view, setView] = useUIState<View>('action-view', { tab: 'explore', screen: game.expeditions.length ? 'overview' : 'prepare', step: 0, mapId: newestMapId, petIds: [], cargo: {}, expeditionId: '', reportId: '' }, isView);
+  const [view, setView] = useUIState<View>('action-view', { tab: 'explore', screen: game.expeditions.length ? 'overview' : 'prepare', step: 0, mapId: newestMapId, petIds: [], cargo: {}, foodItemId: '', expeditionId: '', reportId: '' }, isView);
   const [eventSnapshot, setEventSnapshot] = useState<Expedition>();
   const [entryMap, setEntryMap] = useUIState('action-entry-map', '', (v): v is string => typeof v === 'string');
   const [search, setSearch] = useState('');
@@ -46,12 +46,15 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
   const pets = view.petIds.filter(id => game.pets[id] && !busy.has(id) && game.pets[id].injury !== 'incapacitated');
   const mapId = catalog.maps[view.mapId] ? view.mapId : newestMapId;
   const cargo = Object.fromEntries(Object.entries(view.cargo).filter(([id, q]) => !!catalog.items[id] && q > 0 && (game.inventory[id] ?? 0) >= q));
-  const selectionStale = pets.length !== view.petIds.length || JSON.stringify(cargo) !== JSON.stringify(view.cargo);
-  useEffect(() => { if (selectionStale) { setView(v => ({ ...v, petIds: pets, cargo })); setMessage('部分伙伴或携带物品已不可用，已从出发草稿移除。'); } }, [selectionStale, JSON.stringify(pets), JSON.stringify(cargo), setView]);
+  // 出发前只能选有 foodBuff 的食物：治疗类在基地用背包面板，途中用探险背包。
+  const foodChoices = Object.entries(game.inventory).filter(([id, q]) => q > 0 && catalog.items[id]?.foodBuff).map(([id]) => id);
+  const foodItemId = foodChoices.includes(view.foodItemId) ? view.foodItemId : '';
+  const selectionStale = pets.length !== view.petIds.length || JSON.stringify(cargo) !== JSON.stringify(view.cargo) || foodItemId !== view.foodItemId;
+  useEffect(() => { if (selectionStale) { setView(v => ({ ...v, petIds: pets, cargo, foodItemId })); setMessage('部分伙伴、携带物品或食物已不可用，已从出发草稿移除。'); } }, [selectionStale, JSON.stringify(pets), JSON.stringify(cargo), foodItemId, setView]);
   const preview = useMemo(() => {
-    try { const state = startExpedition(game, { mapId, petIds: pets, cargo }, 0); return { expedition: state.expeditions.at(-1)!, error: '' }; }
+    try { const state = startExpedition(game, { mapId, petIds: pets, cargo, foodItemId: foodItemId || undefined }, 0); return { expedition: state.expeditions.at(-1)!, error: '' }; }
     catch (e) { return { error: e instanceof Error ? e.message : '无法出发' }; }
-  }, [game, mapId, JSON.stringify(pets), JSON.stringify(cargo)]);
+  }, [game, mapId, JSON.stringify(pets), JSON.stringify(cargo), foodItemId]);
   // 仅供容量展示，不模拟奖励或随机事件。
   const previewExpedition = preview.expedition ?? { petIds: pets, cargo } as Expedition;
   const ended = game.settlements.find(s => s.expeditionId === view.expeditionId);
@@ -70,8 +73,8 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
   };
   const start = () => {
     let id = '';
-    if (run(state => { const next = startExpedition(state, { mapId, petIds: pets, cargo }); id = next.expeditions.at(-1)!.id; return next; })) {
-      update({ screen: 'expedition', expeditionId: id, petIds: [], cargo: {}, step: 0 }); setMessage('');
+    if (run(state => { const next = startExpedition(state, { mapId, petIds: pets, cargo, foodItemId: foodItemId || undefined }); id = next.expeditions.at(-1)!.id; return next; })) {
+      update({ screen: 'expedition', expeditionId: id, petIds: [], cargo: {}, foodItemId: '', step: 0 }); setMessage('');
     }
   };
   const allMaps = Object.values(catalog.maps), firstLockedMap = allMaps.find(m => !game.unlockedMapIds.includes(m.id));
@@ -101,7 +104,21 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
           <button className="ap-carousel-arrow" aria-label="下一张地图" disabled={mapIndex === availableMaps.length-1} onClick={() => {update({mapId:availableMaps[mapIndex+1].id});setEntryMap('');}}><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
         </div> : view.step === 2 ? <div className="ap-carousel ap-entry-carousel"><span className="ap-carousel-spacer"/><AdventureMap key={mapId} game={game} mapId={mapId} petIds={pets} picking picked={entryMap === mapId} onPick={() => setEntryMap(mapId)}/><span className="ap-carousel-spacer"/></div> : <div className="ap-transfer ap-loadout">
           <section><h3>库存 <span>{inventorySlots(inv)} / {game.warehouseSlots} 格</span></h3><div className="ap-loadout-tools"><input type="search" aria-label="搜索物品名称" placeholder="搜索物品名称" value={search} onChange={e => setSearch(e.target.value)}/><button onClick={() => setSorted(true)}>整理</button></div><div className="ap-loadout-filter">{['all',...tags].map(tag => <button key={tag} aria-pressed={filter === tag} onClick={() => setFilter(tag)}>{tag === 'all' ? '全部' : itemTagLabel(tag)}</button>)}</div><AdventureItems inventory={filteredInventory} slots={game.warehouseSlots} onPick={(id,q) => moveCargo(id,q,true)} room={cargoRoom}/></section>
-          <section className="ap-bag-col"><h3>探险背包 <span>{inventorySlots(cargo)} / {cargoSlotCapacity(game,previewExpedition)} 格</span></h3><div className="ap-loadout-tools"><div className={`ap-weight${inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? ' over' : ''}`}><span>负重</span><i><b style={{width:`${Math.min(100,inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition))*100)}%`}}/></i><span>{inventoryWeight(cargo)} / {cargoCapacity(game,previewExpedition)}</span></div><button onClick={() => update({cargo:Object.fromEntries(Object.entries(cargo).sort(([a],[b]) => (catalog.items[b].sellValue??0)-(catalog.items[a].sellValue??0)))})}>整理</button></div><AdventureItems inventory={cargo} slots={cargoSlotCapacity(game,previewExpedition)} onPick={(id,q) => moveCargo(id,q,false)}/></section>
+          <section className="ap-bag-col"><h3>探险背包 <span>{inventorySlots(cargo)} / {cargoSlotCapacity(game,previewExpedition)} 格</span></h3><div className="ap-loadout-tools"><div className={`ap-weight${inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? ' over' : ''}`}><span>负重</span><i><b style={{width:`${Math.min(100,inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition))*100)}%`}}/></i><span>{inventoryWeight(cargo)} / {cargoCapacity(game,previewExpedition)}</span></div><button onClick={() => update({cargo:Object.fromEntries(Object.entries(cargo).sort(([a],[b]) => (catalog.items[b].sellValue??0)-(catalog.items[a].sellValue??0)))})}>整理</button></div><AdventureItems inventory={cargo} slots={cargoSlotCapacity(game,previewExpedition)} onPick={(id,q) => moveCargo(id,q,false)}/>
+            <div className="ap-food-pick">
+              <label htmlFor="ap-food-select">出发前吃</label>
+              <select id="ap-food-select" value={foodItemId} onChange={e => update({ foodItemId: e.target.value })}>
+                <option value="">不吃</option>
+                {foodChoices.map(id => {
+                  const buff = catalog.items[id].foodBuff!;
+                  return <option key={id} value={id}>{catalog.items[id].name} · {STAT_LABELS[buff.stat]} +{buff.amount}</option>;
+                })}
+              </select>
+              {/* 吃掉的真实代价是放弃售价，直接写出来，不用玩家自己去背包查。 */}
+              <em>{foodItemId
+                ? `整趟有效 · 放弃售价 ${catalog.items[foodItemId].sellValue ?? 0}`
+                : foodChoices.length ? '整趟冒险有效，同时只能有一个' : '仓库里没有能吃的食物'}</em>
+            </div></section>
         </div>}
         {message && <p className="ap-warning" role="status">{message}</p>}{view.step === 3 && preview.error && <p className="ap-warning">{preview.error}</p>}
       </div><footer className="ap-footer"><span>{message || (view.step === 0 ? pets.length ? `已选择 ${pets.length} / ${MAX_TEAM_PETS} 只宠物` : '请选择至少一只宠物' : view.step === 3 ? preview.error || (inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? `超载，事件风险 +${overloadPenalty(inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition)))}` : '左键移动单个物品　右键移动整格堆叠物品') : '')}</span>{view.step > 0 && <button onClick={() => update({ step: view.step - 1 })}>上一步</button>}<button className="ap-primary" disabled={!pets.length || (view.step >= 1 && !game.unlockedMapIds.includes(mapId)) || (view.step === 2 && entryMap !== mapId) || (view.step === 3 && !!preview.error)} onClick={() => view.step < 3 ? nextPreparationStep() : start()}>{['选择探险地图','选择起始点','行前整备','开始探索'][view.step]}</button></footer>

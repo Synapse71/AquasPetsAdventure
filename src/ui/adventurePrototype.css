@@ -254,3 +254,12 @@
 @keyframes ap-loot-in { from{opacity:0;transform:translateY(46px) scale(.6)} to{opacity:1;transform:translateY(0) scale(1)} }
 @keyframes ap-die-land { 0%{transform:scale(1)} 34%{transform:scale(1.13)} 100%{transform:scale(1)} }
 @media(prefers-reduced-motion:reduce) { .ap-map-anchor.pickable::before,.ap-chest>span,.ap-loot-card,.ap-die.land { animation:none!important; } .adventure-panel * { transition-duration:1ms!important; } }
+
+/* 食物：出发前选定的那一份，和途中生效的 buff 标签。 */
+.ap-food-pick { display:flex; align-items:center; gap:7px; margin-top:8px; font-size:11.5px; color:var(--ap-secondary); flex-wrap:wrap; }
+.ap-food-pick label { flex:none; font-weight:650; color:var(--ap-muted); letter-spacing:.06em; }
+.adventure-panel .ap-food-pick select { flex:1 1 130px; min-width:0; border:1px solid var(--ap-line); background:var(--ap-panel); color:var(--ap-ink); border-radius:7px; font-size:11.5px; padding:3px 7px; }
+.ap-food-pick em { flex:1 1 100%; font-style:normal; font-size:11px; color:var(--ap-muted); }
+.ap-food-buff { flex:none; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:650; white-space:nowrap; color:var(--ap-accent); background:color-mix(in srgb,var(--ap-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--ap-accent) 32%,transparent); }
+/* 吃掉是正向操作，用强调色和「丢弃」区分开——这两个按钮挨着，点错不可逆。 */
+.adventure-panel .ap-bag-actions .ap-eat { flex:none; border-color:var(--ap-accent); color:var(--ap-accent); font-weight:650; white-space:nowrap; }

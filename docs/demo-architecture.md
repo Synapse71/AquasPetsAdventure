@@ -92,10 +92,39 @@ nextState = action(previousState, input)
 `startExpedition` 的输入契约为 `StartExpeditionInput`：
 
 ```ts
-{ mapId: Id; petIds: Id[]; cargo?: Inventory }
+{ mapId: Id; petIds: Id[]; cargo?: Inventory; foodItemId?: Id }
 ```
 
 `cargo` 是玩家从仓库选择的初始携带物。引擎会校验物品存在、数量为正整数、仓库库存充足和背包格子不超限，然后在同一次状态变更中从 `GameState.inventory` 扣除并写入 `Expedition.cargo`。`Expedition.initialCargo` 只用于区分旧物品与本轮新战利品，避免重复获得战利品经验，不提供资产保护：携带物可以被事件损失、主动丢弃或撤离时出售，溃败时与其他 cargo 一起丢失。省略 `cargo` 与传入空对象等价，因此旧调用方无需修改。
+
+#### 食物效果
+
+设计共识见 [系统设计 §9.3](game-system-design.md)。代码这边只有四个读取点和三个入口：
+
+| 读取点 | 改了什么 | 自动覆盖 |
+| --- | --- | --- |
+| `teamStat` | 队伍结算结果 + buff | 事件检定风险、路线主属性门槛 |
+| `teamStatForPets` | 从 `state.expeditions` 反查真远征再调 `teamStat` | 地图情报等级、UI 的 `routeHint` |
+| `teamCarryCapacity` | 体能 buff × `CARRY_PER_FITNESS`，只加一次 | 负重上限、超载惩罚 |
+| `cargoSlotCapacity` | 技巧 buff × `SLOTS_PER_TECHNIQUE`，只加一次 | 格子上限 |
+
+**`teamStatForPets` 那处反查不是可选的**：路线按钮的**可用性**走 `getRouteAvailability → teamStat`（拿得到 expedition，带 buff），**提示文字**走 `routeHint → teamStatForPets`。不反查就会出现按钮能点、旁边却写着「体能不足」。
+
+三个入口和它们在界面上的位置：
+
+| 引擎入口 | 界面 | 说明 |
+| --- | --- | --- |
+| `startExpedition(input.foodItemId)` | 行前整备的探险背包栏下方 | 「出发前吃」下拉；只列有 `foodBuff` 的食物，并写出放弃的售价 |
+| `eatCargoFood` | 探险中「整理背包」弹窗 | 选中食物时出现「吃掉」按钮，和「丢弃」并排 |
+| `healPetWithFood` | 库存面板的「使用」流程 | 复用赋予特质 / 次要属性成长那套选宠物确认框 |
+
+行前整备是**选定**不是吃掉：草稿存在 `View.foodItemId`，食物被卖掉或配置改了会和 `cargo` 一样自动从草稿里撤掉。
+`eatCargoFood` 的按钮文案会写明**会顶掉哪个现有 buff**——同时只存在一个 buff，没有这句话玩家会误吃掉更好的那个，`foodModel.test.ts` 专门盯着它。
+治疗目标不让玩家选，固定治伤得最重的那只（并列取 `petIds` 靠前的），UI 与引擎用同一条规则。
+
+`Expedition.foodBuff` 存的是**吃下那一刻的快照**而不是 `itemId` 引用。配置台的已发布目录会整个替换 `catalog`，远征又跨重启存活；回目录重算的话，策划改数值或删物品会让在途冒险的容量当场缩水，玩家超格被卡在节点上、被迫丢弃已经捡到的战利品。`arrivalLoot` 出于同样的理由也是快照。
+
+引擎唯一被推翻的旧规则：`healPet` 的「宠物正在冒险途中，无法接受治疗」**只对食物开口**，花钱治疗仍然只能在基地。
 
 ### `src/config/`
 

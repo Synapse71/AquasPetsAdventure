@@ -1,5 +1,5 @@
 import { catalog } from '../domain/catalog';
-import { itemStackSize, petTags, petSecondaryStat, secondaryStatCap } from '../domain/engine';
+import { INJURY_LABELS, itemStackSize, petTags, petSecondaryStat, secondaryStatCap } from '../domain/engine';
 import { rarityRank } from '../domain/rarity';
 import type { GameState, Inventory, Pet } from '../domain/types';
 
@@ -36,12 +36,20 @@ export const itemCount = (quantities: Inventory) => Object.values(quantities).re
 export function saleBasis(game: GameState, quantities: Inventory): string {
   return JSON.stringify(Object.keys(quantities).sort().map(id => [id, game.inventory[id] ?? 0, game.lockedItemIds.includes(id), catalog.items[id]?.sellable, catalog.items[id]?.sellValue]));
 }
+/** 仓库里能对宠物使用的物品：赋予特质、次要属性成长，以及带治疗效果的食物。
+ *  只加主属性的食物在基地用不上——buff 要挂在远征上，所以它的入口在行前整备。 */
+export const usableOnPet = (itemId: string) => {
+  const item = catalog.items[itemId];
+  return Boolean(item?.tagGrantId || item?.secondaryGrant || item?.foodHeal);
+};
 export function useBasis(game: GameState, itemId: string): string {
   const item = catalog.items[itemId];
-  return JSON.stringify([game.inventory[itemId] ?? 0, item?.tagGrantId, item?.secondaryGrant,
-    Object.values(game.pets).map(pet => [pet.id, pet.secondaryStats, pet.innateTagId, pet.growthTagIds, pet.growthTagSlots])]);
+  return JSON.stringify([game.inventory[itemId] ?? 0, item?.tagGrantId, item?.secondaryGrant, item?.foodHeal,
+    // 伤势和出勤状态会决定食物治疗能不能用，变了就要让确认框失效。
+    game.expeditions.flatMap(e => e.petIds),
+    Object.values(game.pets).map(pet => [pet.id, pet.secondaryStats, pet.innateTagId, pet.growthTagIds, pet.growthTagSlots, pet.injury])]);
 }
-export function useBlockReason(pet: Pet, itemId: string): string | undefined {
+export function useBlockReason(pet: Pet, itemId: string, game?: GameState): string | undefined {
   const item = catalog.items[itemId];
   if (item?.tagGrantId) {
     if (petTags(pet).includes(item.tagGrantId)) return '已拥有该特质';
@@ -52,7 +60,19 @@ export function useBlockReason(pet: Pet, itemId: string): string | undefined {
     if (petSecondaryStat(pet, item.secondaryGrant.stat) >= secondaryStatCap()) return '已达上限';
     return;
   }
+  if (item?.foodHeal) {
+    if (pet.injury === 'healthy') return '没有受伤';
+    // 出门在外的只能在节点上吃背包里的食物，和花钱治疗一样，基地这条路走不通。
+    if (game?.expeditions.some(e => e.petIds.includes(pet.id))) return '正在冒险途中';
+    return;
+  }
   return '该物品无法使用';
+}
+/** 吃下这份食物后伤势会好转到哪一档。 */
+export function foodHealPreview(pet: Pet, steps: number): string {
+  const order = ['healthy', 'injured', 'incapacitated'] as const;
+  const next = order[Math.max(0, order.indexOf(pet.injury) - Math.max(1, steps))];
+  return `${INJURY_LABELS[pet.injury]} → ${INJURY_LABELS[next]}`;
 }
 export type InventoryDialog =
   | { type: 'sale'; quantities: Inventory; basis: string; singleId?: string }

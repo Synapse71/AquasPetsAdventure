@@ -346,7 +346,10 @@
       "sellValue": 12,
       "tags": [
         "food"
-      ]
+      ],
+      "foodHeal": {
+        "steps": 1
+      }
     },
     "canned-food": {
       "id": "canned-food",
@@ -358,7 +361,11 @@
       "sellValue": 29,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "fitness",
+        "amount": 1
+      }
     },
     "coffee-beans": {
       "id": "coffee-beans",
@@ -371,7 +378,11 @@
       "tags": [
         "material",
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "technique",
+        "amount": 1
+      }
     },
     "honey": {
       "id": "honey",
@@ -383,7 +394,10 @@
       "sellValue": 36,
       "tags": [
         "food"
-      ]
+      ],
+      "foodHeal": {
+        "steps": 1
+      }
     },
     "red-wine": {
       "id": "red-wine",
@@ -395,7 +409,11 @@
       "sellValue": 150,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "perception",
+        "amount": 1
+      }
     },
     "thermos": {
       "id": "thermos",
@@ -606,7 +624,11 @@
       "sellValue": 118,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "technique",
+        "amount": 1
+      }
     },
     "caviar": {
       "id": "caviar",
@@ -618,7 +640,10 @@
       "sellValue": 155,
       "tags": [
         "food"
-      ]
+      ],
+      "foodHeal": {
+        "steps": 1
+      }
     },
     "red-velvet-cake": {
       "id": "red-velvet-cake",
@@ -630,7 +655,10 @@
       "sellValue": 198,
       "tags": [
         "food"
-      ]
+      ],
+      "foodHeal": {
+        "steps": 1
+      }
     },
     "whisky": {
       "id": "whisky",
@@ -642,7 +670,11 @@
       "sellValue": 630,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "perception",
+        "amount": 1
+      }
     },
     "bluefin-tuna": {
       "id": "bluefin-tuna",
@@ -654,7 +686,11 @@
       "sellValue": 399,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "fitness",
+        "amount": 1
+      }
     },
     "titanium-ring": {
       "id": "titanium-ring",
@@ -759,7 +795,11 @@
       "sellValue": 3932,
       "tags": [
         "food"
-      ]
+      ],
+      "foodBuff": {
+        "stat": "perception",
+        "amount": 2
+      }
     },
     "graphics-card": {
       "id": "graphics-card",
