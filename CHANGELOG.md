@@ -28,6 +28,7 @@
 - 探险面板去掉深色模式，六个面板统一白底
 - 派遣界面的宠物卡片去掉了头像上下的灰色空缺，卡片高度改为由内容决定
 - 探险中的工具栏会显示当前生效的食物加成；风险说明会注明食物的贡献，但只在加成正好作用于本次检定的属性时才提
+- 设置面板的版本号改为构建期从 `package.json` 注入，不再写死在界面里
 - 固定面板书签、桌宠面板尺寸统一、抵达动画与出征准备默认值修整（0.1.0 之后的既有工作）
 - 宠物头像接入，统一用于状态、派遣与图鉴
 
@@ -52,8 +53,8 @@
 ### 安装包
 
 ```
-f05247a0af0c3ebd8292a99a10575d597dde54ba6051240f07a38f06c4871bc9  AquasPetsAdventure-0.1.1-mac-universal.dmg
-5e99143fdf991c22a73d8921558d88bcb6d13ae8e1ddbb400206405025abff20  AquasPetsAdventure-0.1.1-win-x64.exe
+188e1b55591802837cd1bf3995386e324ffb4e28138d7ec6e95531374b0335e8  AquasPetsAdventure-0.1.1-mac-universal.dmg
+c0120bdedfcc05514ecbdc512ab8405ef6aeb3c17dc8a5fdebfb93928637ecb7  AquasPetsAdventure-0.1.1-win-x64.exe
 ```
 
 macOS 通用包 298.5 MB、Windows 便携版 165.3 MB，均为本地构建、未签名、不自动发布。
