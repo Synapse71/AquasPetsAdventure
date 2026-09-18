@@ -1,7 +1,7 @@
 {
   "name": "idle-pet-adventure",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "咕嘎搜撤没有打 — 桌宠探险 Demo",
   "author": "Aquamarine Studio",
   "main": "desktop/main.cjs",
