@@ -9,12 +9,12 @@ assert(archives.length, 'Pass one or more app.asar paths');
 for (const archive of archives) {
   const files = asar.listPackage(archive).map(file => file.replace(/^\//, '')).filter(file => !asar.statFile(archive, file).files);
   const allowed = file => file.startsWith('dist/') || [
-    'desktop/main.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs', 'package.json',
+    'desktop/main.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs', 'desktop/login-item.cjs', 'package.json',
     'public/icons/aquamarine-1024.png', 'public/pet-sprites/standing.png',
   ].includes(file);
   assert.deepEqual(files.filter(file => !allowed(file)), [], 'Unexpected files in packaged game');
   assert(!files.some(file => /(^|\/)(\.env|\.claude|\.codex|\.agents|\.git|node_modules|raw-videos|frames)(\/|$)|\.map$/.test(file)), 'Development/private artifacts must not be packaged');
-  for (const file of ['package.json', 'desktop/main.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs', 'dist/index.html', 'dist/pet-sprites/standing.png', 'dist/pet-sprites/manifest.json', 'public/icons/aquamarine-1024.png']) {
+  for (const file of ['package.json', 'desktop/main.cjs', 'desktop/preload.cjs', 'desktop/geometry.mjs', 'desktop/login-item.cjs', 'dist/index.html', 'dist/pet-sprites/standing.png', 'dist/pet-sprites/manifest.json', 'public/icons/aquamarine-1024.png']) {
     assert(files.includes(file), `Missing runtime file: ${file}`);
   }
   const manifest = JSON.parse(asar.extractFile(archive, 'dist/pet-sprites/manifest.json').toString());

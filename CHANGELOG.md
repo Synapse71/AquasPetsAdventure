@@ -49,6 +49,17 @@
 - 非堆叠物品不再显示多余的数量角标
 - 抵达动画的白边残留清理
 
+### 安装包
+
+```
+f05247a0af0c3ebd8292a99a10575d597dde54ba6051240f07a38f06c4871bc9  AquasPetsAdventure-0.1.1-mac-universal.dmg
+5e99143fdf991c22a73d8921558d88bcb6d13ae8e1ddbb400206405025abff20  AquasPetsAdventure-0.1.1-win-x64.exe
+```
+
+macOS 通用包 298.5 MB、Windows 便携版 165.3 MB，均为本地构建、未签名、不自动发布。
+两个归档都通过 `tools/verify-package.mjs`：各 178 个文件，无多余文件、无凭据痕迹，
+开发模式专用的配置台和 GM 后台都不在包内。
+
 ### 验证
 
 `npm run build`、299 条单元测试、开箱真机冒烟 30 条断言、库存面板冒烟 11 条断言全部通过。
