@@ -44,10 +44,20 @@ function closePanels() {
   win.webContents.send('pet:close-panels');
   place();
 }
-function showPet() { closePanels(); win.showInactive(); win.moveTop(); refreshTrayMenu(); }
+function showPet() { closePanels(); raisePet(); }
 // 不置顶时窗口会沉到别的窗口后面，而它是透明、无边框、skipTaskbar 且默认鼠标穿透的，
 // 既看不见也点不到——托盘这一项是唯一的找回路径。
-function raisePet() { win.showInactive(); win.moveTop(); refreshTrayMenu(); }
+//
+// 这里必须真的**激活应用**，只排序是不够的：app.dock.hide() 让它成了无程序坞图标的
+// accessory 应用，而 macOS 永远把当前活跃应用的窗口压在非活跃应用的普通层窗口之上。
+// 光 moveTop() 的话窗口只会在本应用内部排到最前，肉眼看是闪一下就又被盖回去。
+// 抢焦点在这里是对的——这是用户从托盘明确点出来的命令，不是自作主张跳到前台。
+function raisePet() {
+  win.show();
+  win.moveTop();
+  app.focus({ steal: true });
+  refreshTrayMenu();
+}
 function hidePet() { endDrag(); closePanels(); win.hide(); refreshTrayMenu(); }
 function refreshTrayMenu() {
   if (!tray || tray.isDestroyed()) return;

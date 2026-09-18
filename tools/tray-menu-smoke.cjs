@@ -53,10 +53,16 @@ globalThis.__runTraySmoke = async (win, tray, preferences, refreshTrayMenu) => {
     preferences.alwaysOnTop = false;
     refreshTrayMenu();
     assert.deepEqual(labels(), ['呼到最前', '隐藏宠物', '退出游戏'], '可见但不置顶时必须给出找回入口');
+    // 这里**不能**用 isVisible() 验：被别的窗口盖住时它照样是 true，
+    // 那正是最初让托盘菜单判断失效的假信号，拿它验等于什么都没验。
+    // isFocused() 才能区分——窗口沉在后面、应用未激活时它是 false。
+    win.blur();
+    await pause();
+    assert.equal(win.isFocused(), false, '先制造「没在最前」的状态');
     menus.get(tray).items[0].click();
     await pause();
-    assert.equal(win.isVisible(), true, '呼到最前不会把宠物弄丢');
-    console.log('✓ 关掉置顶后托盘仍有「呼到最前」可以找回宠物');
+    assert.equal(win.isFocused(), true, '呼到最前必须真的激活应用，只排序不算');
+    console.log('✓ 关掉置顶后「呼到最前」真的把宠物激活到最前（验的是焦点，不是可见性）');
 
     // 已经隐藏时不需要这一项——「显示宠物」本身就会提到最前。
     menus.get(tray).items[1].click();
