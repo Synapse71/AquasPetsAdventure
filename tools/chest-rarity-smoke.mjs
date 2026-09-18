@@ -198,7 +198,7 @@ try {
   await shot('06-closed-hint');
 
   assert(errors.length === 0, `渲染过程没有未捕获异常（${errors.length}）`);
-  writeFileSync(join(out, 'result.json'), JSON.stringify({ passed, media, light, dark }, null, 2));
+  writeFileSync(join(out, 'result.json'), JSON.stringify({ passed, media, light, gold, seam, hint }, null, 2));
   console.log(`\n全部断言通过（${passed} 条）`);
 } catch (e) { console.error(e); console.error(logs.slice(-3000)); process.exitCode = 1; }
 finally { ws?.close(); child.kill(); }
