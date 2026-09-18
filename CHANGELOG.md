@@ -46,6 +46,7 @@
 
 ### 修复
 
+- **关掉「始终置顶」后桌宠再也找不回来**：窗口透明、无边框、不进任务栏、默认鼠标穿透，沉到其他窗口后面就既看不见也点不到；托盘也救不了，因为窗口只是被挡住时 `isVisible()` 仍然为真，菜单里只有「隐藏宠物」。现在可见且未置顶时托盘会多出「呼到最前」，关闭开关的瞬间也会先把窗口提到最前，设置项本身会说明去哪找回
 - 开箱动画偶发闪白：原来点击才创建视频元素、播完才创建定格图，每次切换都有一帧画不出东西。现在三层全程挂载，播放改为命令式
 - 非堆叠物品不再显示多余的数量角标
 - 抵达动画的白边残留清理
@@ -53,8 +54,8 @@
 ### 安装包
 
 ```
-188e1b55591802837cd1bf3995386e324ffb4e28138d7ec6e95531374b0335e8  AquasPetsAdventure-0.1.1-mac-universal.dmg
-c0120bdedfcc05514ecbdc512ab8405ef6aeb3c17dc8a5fdebfb93928637ecb7  AquasPetsAdventure-0.1.1-win-x64.exe
+e5b42c1b24837844eaf15af37f791152e9c8c69eefa60df760b0f14e73a38246  AquasPetsAdventure-0.1.1-mac-universal.dmg
+1a3ad59d87d3af555d32275f655505a0f71948d8d5c40fc53c9222f3fdb60fc7  AquasPetsAdventure-0.1.1-win-x64.exe
 ```
 
 macOS 通用包 298.5 MB、Windows 便携版 165.3 MB，均为本地构建、未签名、不自动发布。
