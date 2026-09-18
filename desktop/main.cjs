@@ -44,12 +44,21 @@ function closePanels() {
   win.webContents.send('pet:close-panels');
   place();
 }
-function showPet() { closePanels(); win.showInactive(); refreshTrayMenu(); }
+function showPet() { closePanels(); win.showInactive(); win.moveTop(); refreshTrayMenu(); }
+// 不置顶时窗口会沉到别的窗口后面，而它是透明、无边框、skipTaskbar 且默认鼠标穿透的，
+// 既看不见也点不到——托盘这一项是唯一的找回路径。
+function raisePet() { win.showInactive(); win.moveTop(); refreshTrayMenu(); }
 function hidePet() { endDrag(); closePanels(); win.hide(); refreshTrayMenu(); }
 function refreshTrayMenu() {
   if (!tray || tray.isDestroyed()) return;
   const visible = win.isVisible();
+  // 窗口沉在别的窗口后面时 isVisible() 仍然是 true，所以只靠「显示/隐藏」这一项救不回来。
+  // 只在真正需要的时候（可见但不置顶）多给一项，置顶开着时菜单和以前一样。
+  const raise = visible && !preferences.alwaysOnTop
+    ? [{ label: '呼到最前', click: raisePet }]
+    : [];
   tray.setContextMenu(Menu.buildFromTemplate([
+    ...raise,
     { label: visible ? '隐藏宠物' : '显示宠物', click: visible ? hidePet : showPet },
     { type: 'separator' }, { label: '退出游戏', click: () => app.quit() },
   ]));
@@ -91,6 +100,9 @@ function setupIPC() {
     if (typeof value.alwaysOnTop === 'boolean') {
       preferences.alwaysOnTop = value.alwaysOnTop;
       win.setAlwaysOnTop(preferences.alwaysOnTop, 'floating');
+      // 关掉置顶的那一刻先提到最前，别让它当场消失在别的窗口后面。
+      if (!preferences.alwaysOnTop) win.moveTop();
+      refreshTrayMenu();
     }
     place(); persist(); return state();
   });
