@@ -94,6 +94,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const [taking,setTaking]=useState<string>();
   const busy=useRef(false),chestTimer=useRef<number|undefined>(undefined),takeTimer=useRef<number|undefined>(undefined);
   useEffect(()=>()=>{clearTimeout(chestTimer.current);clearTimeout(takeTimer.current);},[]);
+  const chestVideo=useRef<HTMLVideoElement|null>(null);
   useEffect(()=>{if(drop&&(drop.basis!==JSON.stringify(expedition.cargo)||expedition.phase==='traveling'))setDrop(null);},[drop,expedition.cargo,expedition.phase,setDrop]);
   const map=catalog.maps[expedition.mapId],node=map.nodes[expedition.currentNodeId??''];
   const tier=mapInformationTier(game,map.id,expedition.petIds),result=expedition.lastResolution;
@@ -117,6 +118,13 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   // 所以点下去宝箱不会当场换成另一只，也不会跳尺寸。没有素材的档（目前是 common）走原来的木箱动画。
   const chestShowsFx=!!rarityFx;
   const finishChest=()=>{clearTimeout(chestTimer.current);setOpened(arrivalKey);setChestPlaying(false);};
+  // 视频一直挂着，所以这里只负责从头播。autoPlay 做不到这件事——它只在 mount 时生效。
+  useEffect(()=>{
+    const video=chestVideo.current;
+    if(!video||!chestPlaying||!playFx)return;
+    video.currentTime=0;
+    void video.play().catch(()=>{/* 被策略挡住时由 chestTimer 兜底收尾 */});
+  },[chestPlaying,playFx]);
   const openChest=()=>{
     if(chestPlaying)return;
     setChestPlaying(true);
@@ -170,7 +178,15 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     <div className="ap-expedition-tools"><button className="ap-bag-button" onClick={()=>setShowBag(true)} aria-label="查看探险背包"><img src={bagIcon} alt=""/>{weight} / {capacity}{over>0 && <b>+{over}</b>}</button><button onClick={()=>setShowMap(true)} aria-label="查看地图">地图</button></div>
     <div className={`ap-body${expedition.phase==='traveling' && !showResult?' ap-center':''}`} onScroll={()=>setTip(undefined)}>
       {arrival ? <div className="ap-transfer ap-arrival-layout">
-        <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage">{chestShowsFx&&<div className="ap-chest-fx" data-rarity={lootRarity} aria-hidden="true">{playFx&&chestPlaying?<video key={rarityFx!.clip} src={rarityFx!.clip} autoPlay muted playsInline preload="auto" onEnded={finishChest}/>:<img src={opened===arrivalKey?rarityFx!.still:rarityFx!.closed} alt=""/>}</div>}<div className="ap-loot-float">{opened===arrivalKey && !chestPlaying && (remainder ? Object.entries(expedition.arrivalLoot).map(([id])=>{
+        <section><div className="ap-sec-h">{node?.name}</div><div className="ap-chest-stage">{chestShowsFx&&<div className="ap-chest-fx" data-rarity={lootRarity} aria-hidden="true">
+          {/* 三层都从一开始就挂着，全程不 mount/unmount——点下去才创建 <video> 的话，
+              解码器要现开，中间有几帧什么都画不出来，那一下就是闪白。
+              末帧图垫在最底下：它一直在渲染树里，播完只是把上层藏掉，不用现解码。
+              视频的 poster 用闭合首帧，加载完成前后画面完全一致，看不出切换。 */}
+          <img src={rarityFx!.still} alt=""/>
+          <video ref={chestVideo} key={rarityFx!.clip} src={rarityFx!.clip} poster={rarityFx!.closed}
+            muted playsInline preload="auto" onEnded={finishChest} hidden={opened===arrivalKey}/>
+        </div>}<div className="ap-loot-float">{opened===arrivalKey && !chestPlaying && (remainder ? Object.entries(expedition.arrivalLoot).map(([id])=>{
           const q=expedition.pendingLoot?.[id]??0,item=catalog.items[id];
           return q ? <button key={id} className={`ap-loot-card${taking===id?' taking':''}`} disabled={!room(id)} aria-label={`拾取 ${item.name} ×${q}`} title={item.name} style={{'--item-color':colors[item.rarity]} as React.CSSProperties} onClick={()=>take(id)} onContextMenu={e=>{e.preventDefault();take(id,true);}}><span/><img src={lootIconUrl(id)} alt=""/>{q>1&&<b>{q}</b>}</button> : <span key={id} className="ap-loot-slot"/>;
         }) : <p className="ap-muted">战利品已全部收入背包</p>)}</div><button className={`ap-chest ${opened===arrivalKey?'open':'closed'}${chestShowsFx?' fx':''}`} disabled={opened===arrivalKey || chestPlaying} aria-label="开启宝箱" onClick={openChest}>{!chestShowsFx&&<img src={chestPlaying?chestAnimation:opened===arrivalKey?chestOpen:chestClosed} alt="宝箱"/>}{opened!==arrivalKey&&!chestPlaying&&<span>点击开启</span>}</button></div></section>

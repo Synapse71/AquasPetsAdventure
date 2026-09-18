@@ -105,10 +105,10 @@ try {
   commonState.expeditions[0].arrivalLoot = { paper: 2 };
   commonState.expeditions[0].pendingLoot = { paper: 2 };
   await seedArrival(commonState);
-  assert(await evaluate(`(()=>{const fx=document.querySelector('.ap-chest-fx img');return !!fx&&/closed-still/.test(fx.src)})()`),
-    '只有普通物品时，闭合图也是 common 那一档的首帧');
+  assert(await evaluate(`(()=>{const v=document.querySelector('.ap-chest-fx video');return !!v&&/closed-still/.test(v.poster)&&v.paused&&!v.hidden})()`),
+    '只有普通物品时，闭合画面也是 common 那一档的首帧');
   await click('.ap-chest');
-  await waitFor(`!!document.querySelector('.ap-chest-fx video')`);
+  await waitFor(`!document.querySelector('.ap-chest-fx video').paused`);
   assert(await evaluate(`document.querySelector('.ap-chest-fx').dataset.rarity==='common'`), '战利品只有普通物品 → 播 common 那一档');
   assert(await evaluate(`!document.querySelector('.ap-chest img')`), '不再回退到老的通用木箱动画');
 
@@ -118,8 +118,13 @@ try {
     s.expeditions[0].arrivalLoot = { paper: 1, [item]: 1 };
     s.expeditions[0].pendingLoot = { paper: 1, [item]: 1 };
     await seedArrival(s);
-    assert(await evaluate(`(()=>{const fx=document.querySelector('.ap-chest-fx img');return !!fx&&/closed-still/.test(fx.src)&&!document.querySelector('.ap-chest img')})()`),
+    assert(await evaluate(`(()=>{const v=document.querySelector('.ap-chest-fx video');return !!v&&/closed-still/.test(v.poster)&&v.paused&&!v.hidden&&!document.querySelector('.ap-chest img')})()`),
       `${rarity}：没点之前显示的就是这一档宝箱的首帧，不是通用木箱`);
+    // 闪烁的根因是「点下去才 mount <video>」，中间几帧画不出东西。视频必须在点之前就挂着。
+    // HAVE_METADATA(1) 就说明元素已经在预载了；不要求 HAVE_CURRENT_DATA(2)，
+    // 那取决于机器快慢，会让这条变成看运气的测试。
+    assert(await evaluate(`(()=>{const v=document.querySelector('.ap-chest-fx video');return !!v&&v.readyState>=1})()`),
+      `${rarity}：没点之前视频就已经挂着并预载，点击时不用现开解码器`);
     // 画在哪儿就得点哪儿：闭合状态下整块开箱区都是热区，不是原来那个 168px 槽位。
     assert(await evaluate(`(()=>{const b=document.querySelector('.ap-chest').getBoundingClientRect(),s=document.querySelector('.ap-chest-stage').getBoundingClientRect();
       return Math.abs(b.x-s.x)<1&&Math.abs(b.y-s.y)<1&&Math.abs(b.width-s.width)<1&&Math.abs(b.height-s.height)<1})()`),
@@ -127,7 +132,7 @@ try {
     await shot(`01-${rarity}-closed`);
     if (!andOpen) return;
     await click('.ap-chest');
-    await waitFor(`!!document.querySelector('.ap-chest-fx video')`);
+    await waitFor(`!document.querySelector('.ap-chest-fx video').paused`);
   };
   await seedRarity('snow-beer', 'mythic');
   assert(await evaluate(`document.querySelector('.ap-chest-fx').dataset.rarity==='mythic'`), '战利品里最高是神话 → 播 mythic 那一档');
@@ -158,9 +163,9 @@ try {
   assert(await evaluate(`document.querySelector('.ap-chest').disabled&&document.querySelector('.ap-chest').getAttribute('aria-label')==='开启宝箱'`),
     '播放中宝箱按钮是禁用的，没有跳过入口');
   assert(await evaluate(`!document.querySelector('.ap-chest>span')`), '播放中不显示任何提示文字');
-  await waitFor(`!document.querySelector('.ap-chest-fx video')`, 60);
-  assert(await evaluate(`!!document.querySelector('.ap-chest-fx img')&&/open-still/.test(document.querySelector('.ap-chest-fx img').src)`),
-    '播完自动换成末帧静帧');
+  await waitFor(`document.querySelector('.ap-chest-fx video').hidden`, 60);
+  assert(await evaluate(`(()=>{const im=document.querySelector('.ap-chest-fx img');return !!im&&/open-still/.test(im.src)&&im.complete&&im.naturalWidth>0})()`),
+    '播完露出末帧静帧，而且它早就解码好了——不是这时候才现加载');
   assert(await evaluate(`[...document.querySelectorAll('.ap-loot-card')].length>0`), '播完战利品照常出现，没有卡住开箱流程');
   // 视频的白和面板的白要是差一点，开箱区就会露出一个方框。末帧角落是干净白底，拿它量那道缝。
   const seam = await samplePixels(await shot('03-mythic-opened'), [
