@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import spriteManifest from '../../public/pet-sprites/manifest.json';
 import { PetAnimator, chooseIdle, chooseArrival, chooseTravel, isArrival, ARRIVAL_CLIPS, IDLE_CLIPS, TRAVEL_CLIPS, TRAVEL_BREAK_EVERY, SLEEP_AFTER, clipDuration } from './petAnimation';
+
+const WALK_LAST_FRAME = spriteManifest.walk.frames - 1;
+const WALK_FRAME_MS = 1000 / spriteManifest.walk.fps;
+/** 排队的 travel 彩蛋落在「当前 walk 循环走完」的那一刻，和实现里 walkStopAt 同一套算法。 */
+const travelBoundary = (since: number, at: number) =>
+  since + (Math.floor((at - since) / clipDuration('walk')) + 1) * clipDuration('walk');
 
 function finishArrival(animator: PetAnimator, at: number) {
   animator.update(at, false, false);
@@ -33,15 +40,22 @@ describe('pet animation scheduler', () => {
     expect(animator.update(SLEEP_AFTER + 61_000, false, true)).toBe('sleep-end');
     expect(animator.update(SLEEP_AFTER + 66_000, false, true)).toBe('standing');
   });
-  it('travel loops in place, drops in a road beat, and ends without choosing a route', () => {
+  it('travel loops in place, parks the loop before a road beat, and ends without choosing a route', () => {
     // Inject a deterministic roll: chooseTravel picks inside TRAVEL_CLIPS.
     const animator = new PetAnimator(0, () => 0);
     expect(animator.update(1, true, false)).toBe('walk');
     expect(animator.update(TRAVEL_BREAK_EVERY, true, false)).toBe('walk');
-    expect(animator.update(TRAVEL_BREAK_EVERY + 1, true, false)).toBe(TRAVEL_CLIPS[0]);
-    const clipEnd = TRAVEL_BREAK_EVERY + 1 + clipDuration(TRAVEL_CLIPS[0]);
+    // 到点不立刻切段：先走完当前循环、停在回归点再换，两侧接缝才对得上 walk 帧 0 的锚点。
+    const boundary = travelBoundary(1, TRAVEL_BREAK_EVERY + 1);
+    expect(animator.update(TRAVEL_BREAK_EVERY + 1, true, false)).toBe('walk');
+    expect(animator.update(boundary - WALK_FRAME_MS * 2, true, false)).toBe('walk');
+    expect(animator.update(boundary - WALK_FRAME_MS / 2, true, false)).toBe('walk');
+    expect(animator.frame(boundary - WALK_FRAME_MS / 2)).toBe(WALK_LAST_FRAME);
+    expect(animator.update(boundary + WALK_FRAME_MS, true, false)).toBe(TRAVEL_CLIPS[0]);
+    const clipEnd = boundary + WALK_FRAME_MS + clipDuration(TRAVEL_CLIPS[0]);
     expect(animator.update(clipEnd - 1, true, false)).toBe(TRAVEL_CLIPS[0]);
     expect(animator.update(clipEnd, true, false)).toBe('walk');
+    expect(animator.frame(clipEnd)).toBe(0);
     const arrival = clipEnd + 1000;
     finishArrival(animator, arrival);
     expect(animator.update(arrival + SLEEP_AFTER - 1, false, true)).not.toMatch(/^sleep/);
@@ -53,8 +67,21 @@ describe('pet animation scheduler', () => {
     animator.update(1, true, false);
     for (let time = 1000; time <= TRAVEL_BREAK_EVERY; time += 1000) animator.update(time, true, false);
     expect(draws).toBe(0);
-    expect(animator.update(TRAVEL_BREAK_EVERY + 1, true, false)).toBe('travel-map');
+    const boundary = travelBoundary(1, TRAVEL_BREAK_EVERY + 1);
+    expect(animator.update(boundary - WALK_FRAME_MS / 2, true, false)).toBe('walk');
     expect(draws).toBe(1);
+    expect(animator.update(boundary + WALK_FRAME_MS, true, false)).toBe('travel-map');
+  });
+  it('clears a parked walk frame when the trip ends before the queued beat plays', () => {
+    const animator = new PetAnimator(0, () => 0);
+    animator.update(1, true, false);
+    animator.update(TRAVEL_BREAK_EVERY + 1, true, false);
+    const parked = travelBoundary(1, TRAVEL_BREAK_EVERY + 1) - WALK_FRAME_MS / 2;
+    expect(animator.update(parked, true, false)).toBe('walk');
+    expect(animator.frame(parked)).toBe(WALK_LAST_FRAME);
+    const settled = finishArrival(animator, parked + 1000);
+    expect(animator.update(settled + 1, true, false)).toBe('walk');
+    expect(animator.frame(settled + 1)).toBe(0);
   });
   it('picks a travel clip inside the pool for any roll', () => {
     for (const previous of [...TRAVEL_CLIPS, 'standing', 'walk'] as const)

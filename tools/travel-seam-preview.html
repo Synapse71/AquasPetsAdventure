@@ -1,0 +1,131 @@
+<!doctype html>
+<!-- 行进彩蛋衔接预览：从仓库根起静态服务后打开 /tools/travel-seam-preview.html
+     （例：python3 -m http.server 8123，需能读到 /public/pet-sprites） -->
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'">
+<title>行进彩蛋 · 衔接预览</title>
+<style>
+body{margin:0;background:#111318;color:#e6e8ee;font:15px system-ui}header{position:sticky;top:0;z-index:2;background:#171c24;padding:16px 24px;border-bottom:1px solid #515966}
+h1{font-size:21px;margin:0 0 8px}p{color:#b5becb;margin:8px 0}code{color:#d6e4ff}button,select{font:inherit;color:inherit;background:#303641;border:1px solid #657080;border-radius:5px;padding:6px;cursor:pointer}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}main{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px;padding:24px}
+.card{border:1px solid #505b6b;border-radius:9px;overflow:hidden;width:420px;max-width:100%}.name{padding:12px;background:#202630}.name small{display:block;color:#aebacc;margin-top:4px}
+.stage{background:#283544;line-height:0}canvas{display:block;width:100%;height:auto}
+.tools{padding:12px;display:grid;gap:10px}.status{color:#bdc9da;min-height:22px}.status b{color:#8fd0ff}.status i{color:#ff9a9a;font-style:normal}
+input[type=range]{width:100%;box-sizing:border-box}.ruler{display:flex;justify-content:space-between;color:#8794a6;font-size:12px}
+</style>
+<header><h1>行进彩蛋 · 衔接预览</h1>
+<p>真实成品帧（<code>public/pet-sprites</code>），顺序就是游戏里的顺序：<b>行走尾部 → 彩蛋整段 → 接回行走</b>。
+红线是 walk 帧 1 的躯干锚点，绿点/数字是逐帧实测的躯干中心——跨接缝时数字不该跳。</p>
+<div class="controls">
+<button id="all-play">全部播放</button><button id="all-pause">全部暂停</button>
+<label>速度 <select id="speed"><option value="1">1×</option><option value="0.5" selected>0.5×</option><option value="0.25">0.25×</option><option value="0.1">0.1×（盯接缝）</option><option value="0">逐帧</option></select></label>
+<label>锚线 <select id="guide"><option value="1">显示</option><option value="0">隐藏</option></select></label>
+<label>背景 <select id="bg"><option value="#283544">深蓝灰</option><option value="#000000">纯黑</option><option value="#ffffff">纯白</option><option value="#bd26bd">紫色</option></select></label>
+</div></header>
+<main id="clips"></main>
+<script>
+(async () => {
+const SHEETS='../public/pet-sprites/';
+const TOLERANCE=2;             // 与锚点的允许偏差（母版像素，同 tools/anchors_qa.py）
+const SEG_SRC={walk:'行走', 'travel-map':'彩蛋', 'travel-rest':'彩蛋', 'travel-alert':'彩蛋'};
+
+const manifest=await (await fetch(SHEETS+'manifest.json')).json();
+const sheets=new Map(), scratch=document.createElement('canvas');
+const sctx=scratch.getContext('2d',{willReadFrequently:true});
+
+async function load(id){
+  if(sheets.has(id))return sheets.get(id);
+  const m=manifest[id],image=new Image();
+  image.src=SHEETS+m.file;await image.decode();
+  const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;
+  canvas.getContext('2d').drawImage(image,0,0);
+  const box=i=>[i%m.columns*m.width,Math.floor(i/m.columns)*m.height];
+  const sheet={meta:m,canvas,box};sheets.set(id,sheet);return sheet;
+}
+// 躯干中心：与 tools/anchors_qa.py 同口径（alpha>60，取 55%~85% 高度的横带），单帧尺寸下量
+function centreOf(sheet,index,ctx){
+  const m=sheet.meta;
+  if(scratch.width!==m.width||scratch.height!==m.height){scratch.width=m.width;scratch.height=m.height;}
+  ctx.clearRect(0,0,m.width,m.height);
+  ctx.drawImage(sheet.canvas,sheet.box(index)[0],sheet.box(index)[1],m.width,m.height,0,0,m.width,m.height);
+  const top=Math.round(m.height*0.55),rows=Math.round(m.height*0.3);
+  const d=ctx.getImageData(0,top,m.width,rows).data;
+  let lo=m.width,hi=-1;
+  for(let y=0;y<rows;y++)for(let x=0;x<m.width;x++)if(d[(y*m.width+x)*4+3]>60){if(x<lo)lo=x;if(x>hi)hi=x;}
+  return hi<0?null:(lo+hi)/2;
+}
+
+const walk=await load('walk');
+const anchor=centreOf(walk,0,sctx);
+const names={'travel-map':'行进 · 看图','travel-rest':'行进 · 歇脚','travel-alert':'行进 · 警觉'};
+const cards=[];
+
+for(const id of Object.keys(names)){
+  const clip=await load(id);
+  const tail=walk.meta.frames-14, head=26;
+  const seq=[...Array(14)].map((_,i)=>({sheet:walk,index:tail+i,seg:'行走尾部'}))
+    .concat([...Array(clip.meta.frames)].map((_,i)=>({sheet:clip,index:i,seg:names[id]})))
+    .concat([...Array(head)].map((_,i)=>({sheet:walk,index:i,seg:'接回行走'})));
+  seq.forEach(s=>{s.centre=centreOf(s.sheet,s.index,sctx);});
+  const seams=[13,14,seq.length-head-1,seq.length-head];
+  // 接缝判据：跨过去那一帧的躯干中心跳变（中段数字会动是姿态变化，不是接缝问题）
+  const jump=(a,b)=>seq[a].centre===null||seq[b].centre===null?null:Math.abs(seq[b].centre-seq[a].centre);
+  const jumpIn=jump(13,14), jumpOut=jump(seq.length-head-1,seq.length-head);
+  const mid=seq.slice(14,14+clip.meta.frames).map(s=>s.centre).filter(v=>v!==null);
+  const span=mid.length?`${Math.min(...mid).toFixed(0)}~${Math.max(...mid).toFixed(0)}`:'—';
+
+  const card=document.createElement('section');card.className='card';
+  card.innerHTML='<div class="name"></div><div class="stage"><canvas></canvas></div><div class="tools">'
+    +'<div class="status">加载中…</div>'
+    +'<div class="ruler"><span>行走尾部 14 帧</span><span>'+names[id]+' '+clip.meta.frames+' 帧</span><span>接回行走 26 帧</span></div>'
+    +'<input class="seek" type="range" min="1" max="'+seq.length+'" step="1" value="1">'
+    +'<div class="controls"><button class="play">播放</button><button class="prev">上一帧</button><button class="next">下一帧</button><button class="seam">跳到接缝</button></div></div>';
+  card.querySelector('.name').textContent=names[id];
+  const verdict=v=>v===null?'取不到':v.toFixed(1)+'px'+(v<=TOLERANCE?' ✓':' ✗');
+  const sub=document.createElement('small');
+  sub.textContent=id+' · 接缝跳变 进入 '+verdict(jumpIn)+' / 退出 '+verdict(jumpOut)
+    +'（判据 ≤'+TOLERANCE+'）· 彩蛋内躯干 '+span+'（姿态变化，非接缝）';
+  card.querySelector('.name').append(sub);
+  document.querySelector('#clips').append(card);
+
+  const canvas=card.querySelector('canvas'),ctx=canvas.getContext('2d');
+  canvas.width=walk.meta.width;canvas.height=walk.meta.height;
+  const status=card.querySelector('.status'),seek=card.querySelector('.seek'),play=card.querySelector('.play');
+  const state={i:0,running:true,base:0};
+  function draw(){
+    const s=seq[state.i];
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(s.sheet.canvas,s.sheet.box(s.index)[0],s.sheet.box(s.index)[1],canvas.width,canvas.height,0,0,canvas.width,canvas.height);
+    if(document.querySelector('#guide').value==='1'&&anchor!==null){
+      ctx.fillStyle='rgba(220,40,40,.85)';ctx.fillRect(anchor,0,1,canvas.height);
+      if(s.centre!==null){ctx.fillStyle='#33d17a';ctx.beginPath();ctx.arc(s.centre,canvas.height*0.68,3,0,7);ctx.fill();}
+    }
+    const delta=s.centre===null?null:s.centre-anchor;
+    status.innerHTML=(seams.includes(state.i)?'<i>◆ 接缝</i> ':'')+'<b>'+s.seg+'</b> 第 '+(s.index+1)+'/'+s.sheet.meta.frames+' 帧'
+      +(delta===null?'':' · 躯干中心 '+s.centre.toFixed(1)+'（相对锚点 '+(delta>=0?'+':'')+delta.toFixed(1)+'px'+(Math.abs(delta)>TOLERANCE?' ✗':' ✓')+'）');
+    seek.value=state.i+1;
+  }
+  function set(i){state.i=Math.max(0,Math.min(seq.length-1,i));draw();}
+  function run(on){state.running=on;state.base=performance.now()-state.i*1000/24;play.textContent=on?'暂停':'播放';}
+  play.onclick=()=>run(!state.running);
+  card.querySelector('.prev').onclick=()=>{run(false);set(state.i-1);};
+  card.querySelector('.next').onclick=()=>{run(false);set(state.i+1);};
+  card.querySelector('.seam').onclick=()=>{run(false);set(13);};
+  seek.oninput=()=>{run(false);set(Number(seek.value)-1);};
+  draw();
+  cards.push({state,draw,run,
+    tick(now){const v=Number(document.querySelector('#speed').value);if(v===0||!state.running)return;
+      if(!state.base)state.base=now;
+      const i=Math.floor((now-state.base)/1000*24*v)%seq.length;
+      if(i!==state.i){state.i=i;draw();}}
+  });
+}
+function tick(now){cards.forEach(c=>c.tick(now));requestAnimationFrame(tick);}
+document.querySelector('#all-play').onclick=()=>cards.forEach(c=>{c.state.base=0;c.run(true);});
+document.querySelector('#all-pause').onclick=()=>cards.forEach(c=>c.run(false));
+document.querySelector('#speed').onchange=()=>cards.forEach(c=>c.state.base=0);
+document.querySelector('#bg').onchange=e=>document.querySelectorAll('.stage').forEach(s=>s.style.background=e.target.value);
+document.querySelector('#guide').onchange=()=>cards.forEach(c=>c.draw());
+requestAnimationFrame(tick);
+})();
+</script></html>

@@ -7,7 +7,7 @@ import hashlib
 import shutil
 from pathlib import Path
 from PIL import Image
-from pet_clip import align_dx
+from pet_clip import align_dx, right_room
 from pet_matte import clean_edges
 from pet_arrival_matte import clean_arrival_pockets
 from pet_standing import export_standing
@@ -18,6 +18,13 @@ CLIPS = ['idle-magnifier', 'idle-digging', 'idle-selfie', 'blink-plain', 'blink-
          'blink-tilt', 'walk', 'travel-map', 'travel-rest', 'travel-alert',
          'sleep-start', 'sleep-loop', 'sleep-end',
          'win-chest', 'lose-bag', 'bulb-hint', 'start-explore', 'arrive-a', 'arrive-b']
+# 三段行进彩蛋的首尾帧是按 walk 母版落点（400）钉的，而运行时 walk 被原地对齐到 476——
+# 它们必须跟着同一个位移走，否则回到 walk 循环时会横向跳 26 个绘制像素。
+TRAVEL_FOLLOWS_WALK = ('travel-map', 'travel-rest', 'travel-alert')
+
+
+def frames_of(clip):
+    return sorted((ROOT / 'assets' / 'gugugaga' / clip / 'frames').glob('frame_*.png'))
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -33,17 +40,22 @@ def main():
         raise ValueError('Runtime output must not overwrite source assets')
     dest.mkdir(parents=True, exist_ok=True)
     export_standing(dest / 'standing.png', clean=args.clean_edges)
+    # walk 的原地对齐是全局口径：行进彩蛋要跟着它走，所以先把它算出来。
+    walk_dx, _ = align_dx('walk', [str(f) for f in frames_of('walk')])
     manifest = {}
     provenance = []
     width, height, columns = 300, 282, 10
     for clip in args.clips:
-        files = sorted((ROOT / 'assets' / 'gugugaga' / clip / 'frames').glob('frame_*.png'))
+        files = frames_of(clip)
         if not files:
             raise RuntimeError(f'Missing frames: {clip}')
-        # Only the in-place walk is aligned; preserve the source poses of other clips.
-        dx = align_dx(clip, [str(f) for f in files])[0] if clip == 'walk' else 0
+        # Only the in-place walk is aligned; travel beats ride the same shift because
+        # they hand off to that aligned loop. Everything else keeps its source pose.
+        follows_walk = clip in TRAVEL_FOLLOWS_WALK and walk_dx > 0
+        dx = walk_dx if (clip == 'walk' or follows_walk) else 0
         rows = math.ceil(len(files) / columns)
         sheet = Image.new('RGBA', (width * columns, height * rows))
+        shifts = []
         for i, file in enumerate(files):
             with Image.open(file) as source:
                 frame = source.convert('RGBA')
@@ -66,9 +78,12 @@ def main():
                         source_sha256=hashlib.sha256(file.read_bytes()).hexdigest(),
                         output_sha256=hashlib.sha256(target_frame.read_bytes()).hexdigest(),
                         pixels_unchanged=unchanged))
-                if dx:
+                # 行进彩蛋逐帧 clamp：任何一帧都不许把内容推出画布右侧。
+                shift = min(walk_dx, right_room(frame)) if follows_walk else dx
+                if shift:
+                    shifts.append(shift)
                     shifted = Image.new('RGBA', frame.size)
-                    shifted.paste(frame, (dx, 0))
+                    shifted.paste(frame, (shift, 0))
                     frame = shifted
                 frame = frame.resize((width, height), Image.Resampling.LANCZOS)
                 sheet.paste(frame, ((i % columns) * width, (i // columns) * height))
@@ -79,7 +94,14 @@ def main():
         manifest[clip] = dict(file=target.name, frames=len(files), width=width,
                               height=height, columns=columns, fps=24,
                               loop=clip in ['walk', 'sleep-loop'])
-        print(f'{clip}: {len(files)} frames, {target.stat().st_size // 1024} KiB', flush=True)
+        note = ''
+        if follows_walk and shifts:
+            note = f'  跟随 walk 对齐 +{walk_dx}px（逐帧 clamp 到 {min(shifts)}~{max(shifts)}px）'
+        elif follows_walk:
+            note = f'  跟随 walk 对齐 +{walk_dx}px，但每帧右侧余量都为 0，未平移'
+        elif dx:
+            note = f'  原地对齐 {dx:+d}px'
+        print(f'{clip}: {len(files)} frames, {target.stat().st_size // 1024} KiB{note}', flush=True)
     (dest / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     if args.review_package:
         (dest / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')

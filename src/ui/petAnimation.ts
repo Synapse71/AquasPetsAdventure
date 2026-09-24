@@ -17,8 +17,10 @@ export const SLEEP_AFTER = 180_000;
 export const IDLE_PAUSE = 6_000;
 // One travel leg runs 25–90 minutes while the walk loop is only 4.8s, so a
 // one-off "on the road" beat is dropped in every so often to break up the
-// repetition. Every travel clip starts AND ends on the same walk frame, so the
-// loop resumes without a jump. The interval is fixed so nothing is drawn until
+// repetition. The break waits for the walk loop to reach its regression point
+// before switching (same trick the arrival uses), because the travel clips are
+// pinned to the walk frame the loop parks on: entering and leaving mid-stride
+// would snap the body sideways. The interval is fixed so nothing is drawn until
 // a break actually happens; only which clip plays is random.
 export const TRAVEL_BREAK_EVERY = 60_000;
 export function chooseTravel(previous: Pose, random = Math.random): TravelClip {
@@ -52,6 +54,8 @@ export class PetAnimator {
   private walkTailSince?: number;
   private queuedDeparture = false;
   private travelBreakAt?: number;
+  private pendingTravel?: TravelClip;
+  private travelStopAt?: number;
   private previousTravel: Pose = 'standing';
   constructor(now: number, private random = Math.random) { this.since = now; this.lastInteraction = now; this.restingSince = now; }
   set(pose: Pose, now: number) { this.pose = pose; this.since = now; }
@@ -75,12 +79,24 @@ export class PetAnimator {
       if (!this.pendingArrival && !isArrival(this.pose)) this.pendingArrival = chooseArrival(this.random);
     }
     this.wasTraveling = traveling;
+    // 排队中的彩蛋不能在旅程结束后留下一个「停在回归点」的 walk：抵达、待机都会接着用它。
+    if (!traveling && this.pendingTravel) {
+      this.pendingTravel = undefined;
+      this.travelStopAt = undefined;
+      this.walkTailSince = undefined;
+    }
     // The first observation may be a restored trip. Only a newly started segment
     // observed while this animator is alive starts a one-shot departure.
     if (this.observed && traveling && departureId && departureId !== this.lastDepartureId) {
       // A quickly chosen next route waits for the current arrival to finish.
       if (this.pendingArrival || isArrival(this.pose)) this.queuedDeparture = true;
-      else this.set('start-explore', now);
+      else {
+        this.set('start-explore', now);
+        // A new leg invalidates a beat that was waiting to park the old loop.
+        this.pendingTravel = undefined;
+        this.travelStopAt = undefined;
+        this.walkTailSince = undefined;
+      }
       this.lastInteraction = now;
     }
     this.observed = true;
@@ -112,8 +128,10 @@ export class PetAnimator {
       return this.pose;
     }
     // Travel: mostly the walk loop, with a one-off "on the road" beat dropped
-    // in every TRAVEL_BREAK_EVERY. Those clips start and end on the very walk
-    // frame the loop is parked on, so resuming the loop is seamless.
+    // in every TRAVEL_BREAK_EVERY. The beat waits for the loop to come back to
+    // its regression point and holds that frame before switching, so it starts
+    // on the very frame its first frame was pinned to and the loop resumes on
+    // the same anchor — no sideways snap at either seam.
     if (traveling) {
       if (isTravelClip(this.pose)) {
         if (now < this.since + clipDuration(this.pose)) return this.pose;
@@ -126,10 +144,22 @@ export class PetAnimator {
         this.travelBreakAt = now + TRAVEL_BREAK_EVERY;
       }
       if (now >= this.travelBreakAt) {
-        const next = chooseTravel(this.previousTravel, this.random);
-        this.previousTravel = next;
+        this.pendingTravel = chooseTravel(this.previousTravel, this.random);
+        this.previousTravel = this.pendingTravel;
         this.travelBreakAt = undefined;
-        this.set(next, now);
+      }
+      if (this.pendingTravel) {
+        const duration = clipDuration('walk'), frameTime = 1000 / spriteManifest.walk.fps;
+        this.travelStopAt ??= this.since + (Math.floor(Math.max(0, now - this.since) / duration) + 1) * duration;
+        if (now >= this.travelStopAt - frameTime) {
+          this.walkTailSince ??= now;
+          if (now - this.walkTailSince >= frameTime) {
+            this.set(this.pendingTravel, now);
+            this.pendingTravel = undefined;
+            this.travelStopAt = undefined;
+            this.walkTailSince = undefined;
+          }
+        }
       }
       return this.pose;
     }

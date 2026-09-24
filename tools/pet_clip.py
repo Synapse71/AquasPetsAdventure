@@ -63,6 +63,13 @@ def content_bounds(files):
     return lo, hi
 
 
+def right_room(image, thr=20):
+    """这一帧内容右侧还剩多少画布余量。逐帧平移前用它 clamp，别把内容推出画布。"""
+    a = np.asarray(image.convert("RGBA"))[..., 3]
+    c = np.where((a > thr).any(0))[0]
+    return CANVAS_W - 1 - int(c[-1]) if len(c) else CANVAS_W
+
+
 def align_dx(clip, files):
     cx = float(np.median([torso_center(p) for p in files[::5]]))
     dx = ANCHOR_CX - cx

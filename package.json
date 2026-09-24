@@ -22,6 +22,7 @@
     "test:chest-rarity": "npm run build && node tools/chest-rarity-smoke.mjs",
     "test:config-map": "node tools/config-map-smoke.mjs",
     "assets:pet": "\"${IDLE_ART_PYTHON:-$HOME/.venvs/idle-art/bin/python}\" tools/build-pet-sprites.py --clean-edges --output public/pet-sprites",
+    "test:anchors": "\"${IDLE_ART_PYTHON:-$HOME/.venvs/idle-art/bin/python}\" tools/anchors_qa.py",
     "assets:chest": "\"${IDLE_ART_PYTHON:-$HOME/.venvs/idle-art/bin/python}\" tools/build-chest-rarity.py",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
