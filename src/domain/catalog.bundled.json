@@ -1473,7 +1473,7 @@
               "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 5400000
+              "durationMs": 4500000
             }
           ],
           "terminal": false
@@ -1523,7 +1523,7 @@
               "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 5400000
+              "durationMs": 4500000
             }
           ],
           "terminal": false
@@ -1559,7 +1559,7 @@
               "label": "前往北山驿站",
               "description": "",
               "toNodeId": "m2-goal-1",
-              "durationMs": 5400000
+              "durationMs": 4500000
             }
           ],
           "terminal": false

@@ -1,15 +1,31 @@
 import spriteManifest from '../../public/pet-sprites/manifest.json';
 
-export const IDLE_CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath', 'blink-tilt'] as const;
+export const IDLE_CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath', 'blink-tilt', 'idle-selfie'] as const;
+export const TRAVEL_CLIPS = ['travel-map', 'travel-rest', 'travel-alert'] as const;
 export const ARRIVAL_CLIPS = ['arrive-a', 'arrive-b'] as const;
+export type TravelClip = typeof TRAVEL_CLIPS[number];
 export type ArrivalClip = typeof ARRIVAL_CLIPS[number];
-export type Clip = typeof IDLE_CLIPS[number] | ArrivalClip | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
+export type Clip = typeof IDLE_CLIPS[number] | TravelClip | ArrivalClip | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
 export type Pose = Clip | 'standing';
 export const isArrival = (pose: Pose): pose is ArrivalClip => pose === 'arrive-a' || pose === 'arrive-b';
+export const isTravelClip = (pose: Pose): pose is TravelClip => (TRAVEL_CLIPS as readonly string[]).includes(pose);
 export const chooseArrival = (random = Math.random): ArrivalClip => random() < .5 ? 'arrive-a' : 'arrive-b';
-const WEIGHTS = [2, 2, 5, 5, 2];
+// Parallel to IDLE_CLIPS. idle-selfie is the longest (10s) and rarest — a special
+// one-off bit, so it carries the lowest weight.
+const WEIGHTS = [2, 2, 5, 5, 2, 1];
 export const SLEEP_AFTER = 180_000;
 export const IDLE_PAUSE = 6_000;
+// One travel leg runs 25–90 minutes while the walk loop is only 4.8s, so a
+// one-off "on the road" beat is dropped in every so often to break up the
+// repetition. Every travel clip starts AND ends on the same walk frame, so the
+// loop resumes without a jump. The interval is fixed so nothing is drawn until
+// a break actually happens; only which clip plays is random.
+export const TRAVEL_BREAK_EVERY = 60_000;
+export function chooseTravel(previous: Pose, random = Math.random): TravelClip {
+  const pool = TRAVEL_CLIPS.filter(clip => clip !== previous);
+  const usable = pool.length ? pool : TRAVEL_CLIPS;
+  return usable[Math.min(usable.length - 1, Math.floor(random() * usable.length))];
+}
 export function chooseIdle(previous: Pose, random = Math.random): Clip {
   const choices = IDLE_CLIPS.map((clip, index) => ({ clip, weight: clip === previous ? 0 : WEIGHTS[index] }));
   let roll = random() * choices.reduce((sum, entry) => sum + entry.weight, 0);
@@ -35,6 +51,8 @@ export class PetAnimator {
   private walkStopAt?: number;
   private walkTailSince?: number;
   private queuedDeparture = false;
+  private travelBreakAt?: number;
+  private previousTravel: Pose = 'standing';
   constructor(now: number, private random = Math.random) { this.since = now; this.lastInteraction = now; this.restingSince = now; }
   set(pose: Pose, now: number) { this.pose = pose; this.since = now; }
   interact(now: number) {
@@ -93,7 +111,29 @@ export class PetAnimator {
       this.queuedDeparture = false;
       return this.pose;
     }
-    if (traveling) { if (this.pose !== 'walk') this.set('walk', now); return this.pose; }
+    // Travel: mostly the walk loop, with a one-off "on the road" beat dropped
+    // in every TRAVEL_BREAK_EVERY. Those clips start and end on the very walk
+    // frame the loop is parked on, so resuming the loop is seamless.
+    if (traveling) {
+      if (isTravelClip(this.pose)) {
+        if (now < this.since + clipDuration(this.pose)) return this.pose;
+        this.set('walk', now);
+        this.travelBreakAt = now + TRAVEL_BREAK_EVERY;
+        return this.pose;
+      }
+      if (this.pose !== 'walk' || this.travelBreakAt === undefined) {
+        if (this.pose !== 'walk') this.set('walk', now);
+        this.travelBreakAt = now + TRAVEL_BREAK_EVERY;
+      }
+      if (now >= this.travelBreakAt) {
+        const next = chooseTravel(this.previousTravel, this.random);
+        this.previousTravel = next;
+        this.travelBreakAt = undefined;
+        this.set(next, now);
+      }
+      return this.pose;
+    }
+    this.travelBreakAt = undefined;
     if (this.pose === 'walk') this.set('standing', now);
     if (this.pose === 'sleep-end') {
       if (now - this.since >= clipDuration(this.pose)) this.set('standing', now);

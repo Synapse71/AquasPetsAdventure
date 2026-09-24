@@ -17,6 +17,15 @@
     "fps": 24,
     "loop": false
   },
+  "idle-selfie": {
+    "file": "idle-selfie.webp",
+    "frames": 241,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
   "blink-plain": {
     "file": "blink-plain.webp",
     "frames": 122,
@@ -52,6 +61,33 @@
     "columns": 10,
     "fps": 24,
     "loop": true
+  },
+  "travel-map": {
+    "file": "travel-map.webp",
+    "frames": 145,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "travel-rest": {
+    "file": "travel-rest.webp",
+    "frames": 145,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "travel-alert": {
+    "file": "travel-alert.webp",
+    "frames": 145,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
   },
   "sleep-start": {
     "file": "sleep-start.webp",

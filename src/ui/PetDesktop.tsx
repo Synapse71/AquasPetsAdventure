@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { BOOKMARK_WIDTH, computeLayout, petMetrics, type Layout } from '../../desktop/geometry.mjs';
 import './desktopBridge';
-import { ARRIVAL_CLIPS, isArrival, PetAnimator, type Pose } from './petAnimation';
+import { ARRIVAL_CLIPS, TRAVEL_CLIPS, isArrival, isTravelClip, PetAnimator, type Pose } from './petAnimation';
 import { petFrameOffsetX } from './petFrameAlignment';
 import { useUIState } from './uiState';
 import spriteManifest from '../../public/pet-sprites/manifest.json';
@@ -92,6 +92,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     load(`${import.meta.env.BASE_URL}pet-sprites/${manifest['start-explore'].file}`);
     load(`${import.meta.env.BASE_URL}pet-sprites/${manifest.walk.file}`);
     for (const clip of ARRIVAL_CLIPS) load(`${import.meta.env.BASE_URL}pet-sprites/${manifest[clip].file}`);
+    for (const clip of TRAVEL_CLIPS) load(`${import.meta.env.BASE_URL}pet-sprites/${manifest[clip].file}`);
     function render() {
       if (stopped || !context) return;
       const now = Date.now();
@@ -100,7 +101,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
       const source = sheet ? `${import.meta.env.BASE_URL}pet-sprites/${sheet.file}` : standing;
       const image = load(source);
       // A cold image load must not consume the beginning of either transition.
-      if ((pose === 'start-explore' || isArrival(pose)) && !image.complete) animator.current.since = now;
+      if ((pose === 'start-explore' || isArrival(pose) || isTravelClip(pose)) && !image.complete) animator.current.since = now;
       const frame = animator.current.frame(now);
       const key = `${pose}:${frame}:${image.complete}`;
       if (image.complete && image.naturalWidth && key !== lastKey) {

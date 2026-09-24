@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PetAnimator, chooseIdle, chooseArrival, isArrival, ARRIVAL_CLIPS, IDLE_CLIPS, SLEEP_AFTER, clipDuration } from './petAnimation';
+import { PetAnimator, chooseIdle, chooseArrival, chooseTravel, isArrival, ARRIVAL_CLIPS, IDLE_CLIPS, TRAVEL_CLIPS, TRAVEL_BREAK_EVERY, SLEEP_AFTER, clipDuration } from './petAnimation';
 
 function finishArrival(animator: PetAnimator, at: number) {
   animator.update(at, false, false);
@@ -33,13 +33,35 @@ describe('pet animation scheduler', () => {
     expect(animator.update(SLEEP_AFTER + 61_000, false, true)).toBe('sleep-end');
     expect(animator.update(SLEEP_AFTER + 66_000, false, true)).toBe('standing');
   });
-  it('travel loops in place and ends without choosing a route', () => {
-    const animator = new PetAnimator(0);
+  it('travel loops in place, drops in a road beat, and ends without choosing a route', () => {
+    // Inject a deterministic roll: chooseTravel picks inside TRAVEL_CLIPS.
+    const animator = new PetAnimator(0, () => 0);
     expect(animator.update(1, true, false)).toBe('walk');
-    expect(animator.update(500_000, true, false)).toBe('walk');
-    finishArrival(animator, 500_001);
-    expect(animator.update(500_001 + SLEEP_AFTER - 1, false, true)).not.toMatch(/^sleep/);
-    expect(animator.update(500_001 + SLEEP_AFTER, false, true)).toBe('sleep-start');
+    expect(animator.update(TRAVEL_BREAK_EVERY, true, false)).toBe('walk');
+    expect(animator.update(TRAVEL_BREAK_EVERY + 1, true, false)).toBe(TRAVEL_CLIPS[0]);
+    const clipEnd = TRAVEL_BREAK_EVERY + 1 + clipDuration(TRAVEL_CLIPS[0]);
+    expect(animator.update(clipEnd - 1, true, false)).toBe(TRAVEL_CLIPS[0]);
+    expect(animator.update(clipEnd, true, false)).toBe('walk');
+    const arrival = clipEnd + 1000;
+    finishArrival(animator, arrival);
+    expect(animator.update(arrival + SLEEP_AFTER - 1, false, true)).not.toMatch(/^sleep/);
+    expect(animator.update(arrival + SLEEP_AFTER, false, true)).toBe('sleep-start');
+  });
+  it('does not draw for the travel break until it actually fires', () => {
+    let draws = 0;
+    const animator = new PetAnimator(0, () => { draws++; return 0; });
+    animator.update(1, true, false);
+    for (let time = 1000; time <= TRAVEL_BREAK_EVERY; time += 1000) animator.update(time, true, false);
+    expect(draws).toBe(0);
+    expect(animator.update(TRAVEL_BREAK_EVERY + 1, true, false)).toBe('travel-map');
+    expect(draws).toBe(1);
+  });
+  it('picks a travel clip inside the pool for any roll', () => {
+    for (const previous of [...TRAVEL_CLIPS, 'standing', 'walk'] as const)
+      for (const roll of [0, .5, .99999]) expect(TRAVEL_CLIPS).toContain(chooseTravel(previous, () => roll));
+  });
+  it('never repeats the previous travel clip', () => {
+    for (const previous of TRAVEL_CLIPS) expect(chooseTravel(previous, () => 0)).not.toBe(previous);
   });
   it('plays the whole departure clip before travel can take over', () => {
     const animator = new PetAnimator(0);

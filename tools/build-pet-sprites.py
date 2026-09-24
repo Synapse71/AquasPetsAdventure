@@ -14,8 +14,9 @@ from pet_standing import export_standing
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / 'public' / 'pet-sprites'
-CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath',
-         'blink-tilt', 'walk', 'sleep-start', 'sleep-loop', 'sleep-end',
+CLIPS = ['idle-magnifier', 'idle-digging', 'idle-selfie', 'blink-plain', 'blink-breath',
+         'blink-tilt', 'walk', 'travel-map', 'travel-rest', 'travel-alert',
+         'sleep-start', 'sleep-loop', 'sleep-end',
          'win-chest', 'lose-bag', 'bulb-hint', 'start-explore', 'arrive-a', 'arrive-b']
 
 def main():
