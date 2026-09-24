@@ -30,6 +30,7 @@
 .ip-row-art { position:relative; width:28px; height:28px; flex:none; }
 .ip-row-art img { width:100%; height:100%; object-fit:contain; }
 .ip-row-name { flex:1; }
+.ip-row-slot { margin-left:6px; color:var(--ip-muted); font-size:11px; }
 .ip-cargo-row > span:not(.ip-row-name) { width:70px; text-align:right; font-variant-numeric:tabular-nums; }
 .inventory-panel .ip-drop { color:var(--ip-warn); }
 .inventory-panel .ip-overload { padding:9px 16px; color:var(--ip-warn); background:color-mix(in srgb,var(--ip-warn) 7%,transparent); font-size:12px; }

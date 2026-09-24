@@ -77,18 +77,21 @@ try {
   const seed=async()=>{await evaluate(`localStorage.setItem('idle-pet-adventure.demo.v1',${JSON.stringify(JSON.stringify(fixture))});Object.keys(localStorage).filter(k=>k.startsWith('idle-pet.ui.v1.')).forEach(k=>localStorage.removeItem(k));`);await send('Page.reload');await loaded();await open();await click('.ap-team-list button');};
   await seed();
   const measure=()=>evaluate(`Array.from(document.querySelectorAll('.ap-extraction .ap-transfer .ap-items')).map(g=>({height:g.clientHeight,scroll:g.scrollHeight,rowSize:getComputedStyle(g).gridTemplateRows,cells:Array.from(g.querySelectorAll('.ap-item')).map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}})}))`);
-  const check=async label=>{
+  const check=async(label,expectScroll)=>{
     const grids=await measure();writeFileSync(join(out,label+'.json'),JSON.stringify(grids,null,2));
     const bad=grids.flatMap(g=>g.cells.filter((c,i)=>Math.abs(c.w-c.h)>1||(i>=6&&c.y<g.cells[i-6].y+g.cells[i-6].h+4)));
     assert(bad.length===0,label+': square cells with non-overlapping rows: '+JSON.stringify(bad.slice(0,4)));
-    assert(grids[1].scroll>grids[1].height,label+': warehouse overflows by scrolling instead of squeezing cells');
+    // 格子永远是正方形：装得下就整片铺开，装不下才滚动。40 格在当前面板高度里铺得开，
+    // 120 格才必然溢出，所以两种容量期望不同，不能都用「必须有滚动条」来判定。
+    assert(expectScroll?grids[1].scroll>grids[1].height:grids[1].scroll<=grids[1].height+1,
+      label+(expectScroll?': warehouse overflows by scrolling instead of squeezing cells':': every warehouse slot fits without scrolling'));
   };
-  await shot('01-before-transfer');await check('40-slots');
+  await shot('01-before-transfer');await check('40-slots',false);
   await evaluate("Array.from(document.querySelectorAll('.ap-inline-actions button')).find(b=>b.textContent==='全部入库').click()");await sleep(200);
-  await shot('02-after-transfer');await check('40-slots-transferred');
+  await shot('02-after-transfer');await check('40-slots-transferred',false);
   await evaluate("document.querySelector('.ap-transfer section:last-child .ap-items').scrollTop=10000");await sleep(200);
   assert(await evaluate("(()=>{const g=document.querySelector('.ap-transfer section:last-child .ap-items'),last=Array.from(g.querySelectorAll('.ap-item')).at(-1).getBoundingClientRect(),r=g.getBoundingClientRect();return last.bottom<=r.bottom+1&&last.top>=r.top})()"),'last warehouse row remains accessible');
-  fixture.warehouseSlots=120;await seed();await check('120-slots');
+  fixture.warehouseSlots=120;await seed();await check('120-slots',true);
   // Deliberately exceed both weight and bag slots, but fit the 120-slot warehouse.
   e.cargo={paper:1000,'cloth-strip':2};await seed();
   await evaluate("Array.from(document.querySelectorAll('.ap-inline-actions button')).find(b=>b.textContent==='全部入库').click()");await sleep(200);

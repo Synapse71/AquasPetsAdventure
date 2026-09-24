@@ -60,6 +60,12 @@ try {
     const capture = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     writeFileSync(join(out, name + '.png'), Buffer.from(capture.data, 'base64'));
   };
+  // React 用 mouseover/mouseout 合成 enter/leave，直接派发 mouseenter 不会触发。
+  const hover = async selector => {
+    await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)}); el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true})); el.dispatchEvent(new MouseEvent('mousemove',{bubbles:true}));})()`);
+    await sleep(200);
+  };
+  const tipText = () => evaluate(`document.querySelector('.item-tip')?.textContent ?? ''`);
 
 
   await send('Runtime.enable'); await send('Page.enable');
@@ -98,6 +104,17 @@ try {
   assert(await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"]').length === 3 && document.querySelectorAll('.ip-cell.empty').length === 33`), 'warehouse renders actual stacks and remaining empty slots');
   assert(await evaluate(`document.querySelector('.ip-footer').textContent.includes('7 / 40')`), 'warehouse capacity shows real state');
   await shot('01-inventory');
+  // 悬浮提示：格子内容不动，重量 / 售价 / 标签 / 效果 / 描述都在 tooltip 里。
+  await hover(cell('cloth-strip'));
+  const commonTip = await tipText();
+  assert(commonTip.includes('布条') && commonTip.includes('重量') && commonTip.includes('2（单重 0.1）') && commonTip.includes('售价') && commonTip.includes('材料'), 'hover tooltip carries weight, price and item tags');
+  await hover(cell('card-stoat'));
+  const legendaryTip = await tipText();
+  assert(legendaryTip.includes('传说') && legendaryTip.includes('白鼬'), 'legendary item tooltip carries rarity and description');
+  await hover(cell('bubugao-dianduji'));
+  const growthTip = await tipText();
+  assert(growthTip.includes('学识 +2') && growthTip.includes('永久生效'), 'growth item tooltip carries its permanent effect');
+  await shot('01b-item-tooltip');
   const closePosition = () => evaluate(`(()=>{const r=document.querySelector('.ip-close').getBoundingClientRect(),h=document.querySelector('.window-inventory').getBoundingClientRect();return {x:r.x-h.x,y:r.y-h.y}})()`);
   const topClose = await closePosition(), beforeTabs = await stored();
   assert(topClose.y < 30, 'close button is in the overall top header');
@@ -172,6 +189,9 @@ try {
   assert(await evaluate(`Array.from(document.querySelectorAll('.ip-drop')).every(b => b.disabled)`), 'traveling cargo cannot be discarded');
   assert(await evaluate(`document.querySelectorAll('.ip-slot[data-item-id="card-stoat"]').length===11&&!document.querySelector('.ip-slot[data-item-id="card-stoat"] .ip-qty')`), 'multiple non-stackable cargo items remain separate cells without badges');
   assert(await evaluate(`!!document.querySelector('.ip-slot[data-item-id="hemp-rope"] .ip-qty')`), 'stackable cargo retains its quantity badge');
+  await hover('.ip-slot[data-item-id="hemp-rope"]');
+  const cargoTip = await tipText();
+  assert(cargoTip.includes('麻绳') && cargoTip.includes('3.6（单重 0.3）') && cargoTip.includes('本格 72'), 'cargo slot tooltip reports this slot weight and value');
   assert(await evaluate(`document.querySelector('[data-testid="cargo-weight"]').classList.contains('over') && document.querySelector('[data-testid="cargo-slots"]').classList.contains('over')`), 'weight and slot overflow are distinct indicators');
   const arrived = await stored(); arrived.expeditions[0].phase = 'awaiting-route';
   await seed(arrived);
@@ -184,10 +204,51 @@ try {
   saved = await stored();
   assert(saved.expeditions[0].cargo['hemp-rope'] === 23 && saved.expeditions[0].initialCargo['hemp-rope'] === 23, 'cargo discard preserves the engine initial-cargo accounting');
   assert(saved.currency === arrived.currency, 'cargo discard does not grant sale money');
+  // 背包明细按格排列：麻绳 23 件是 12 / 11 两格，点第二格丢光只动第二格。
+  assert(await evaluate(`document.querySelectorAll('.ip-cargo-row').length === 13 && document.querySelectorAll('.ip-cargo-row')[1].textContent.includes('第 2/2 格')`), 'cargo details list one row per slot');
+  await evaluate(`document.querySelectorAll('.ip-drop')[1].click()`);
+  await sleep(150);
+  assert(await evaluate(`document.querySelector('input[aria-label="丢弃数量"]').max === '11'`), 'cargo discard caps at the clicked slot, not the item total');
+  await evaluate(`(()=>{const n=document.querySelector('input[aria-label="丢弃数量"]'); const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set; setter.call(n,'11'); n.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await click('.ip-confirm');
+  saved = await stored();
+  assert(saved.expeditions[0].cargo['hemp-rope'] === 12 && saved.expeditions[0].cargo['card-stoat'] === 11, 'discarding one slot leaves the same item\'s other slot untouched');
   assert(JSON.stringify(await dimensions()) === JSON.stringify(baseline), 'cargo tab and confirmations never resize the frame');
   await click('.ip-reports');
   assert(await evaluate(`document.querySelector('.ip-dialog').textContent.includes('还没有冒险战报')`), 'reports remain accessible without a third inventory container');
   await click('.ip-dialog-actions button'); await click('.ip-close');
+  // 售卖以格为单位：46 件布条是 20 / 20 / 6 三格，点哪一格就只动哪一格。
+  const perCell = await stored();
+  perCell.inventory = {'cloth-strip': 46, 'canned-food': 1};
+  perCell.itemAcquisitionCounts = {'cloth-strip': 46};
+  perCell.discoveredItemIds = ['cloth-strip'];
+  perCell.lockedItemIds = [];
+  perCell.expeditions = [];
+  await seed(perCell);
+  await click('.ip-tabs button:first-child');
+  await click('.ip-bulk-toggle');
+  await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"]')[1].click()`);
+  await sleep(200);
+  assert(await evaluate(`document.querySelector('.ip-footer').textContent.includes('已选 1 格 · 20 件')`), 'bulk picking one slot counts only that slot');
+  await hover('.ip-cell[data-item-id="canned-food"]');
+  assert((await tipText()).includes('出发前吃下：体能 +1'), 'food tooltip carries its expedition buff');
+  assert(await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"][aria-pressed="true"]').length === 1`), 'picking one slot does not select the same item in other slots');
+  await click('.ip-bulk-sell');
+  assert(await evaluate(`document.querySelector('.ip-sale-lines').textContent.includes('×20')`), 'batch quote shows the selected slot quantity only');
+  await click('.ip-confirm');
+  saved = await stored();
+  assert(saved.inventory['cloth-strip'] === 26 && saved.currency === perCell.currency + 100, 'selling one slot deducts only that slot');
+  await click('.ip-bulk-toggle');
+  await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"]')[0].click()`);
+  await sleep(200);
+  await menuAction('售卖');
+  assert(await evaluate(`document.querySelector('input[aria-label="售卖数量"]').max === '20' && document.querySelector('.ip-hint').textContent.includes('本格')`), 'single-slot sale caps the quantity at that slot');
+  await click('.ip-quantity button:last-child');
+  assert(await evaluate(`document.querySelector('input[aria-label="售卖数量"]').value === '20'`), '本格全部 fills exactly one slot worth');
+  await click('.ip-confirm');
+  saved = await stored();
+  assert(saved.inventory['cloth-strip'] === 6 && saved.currency === perCell.currency + 200, 'selling a whole slot leaves the other slots of the same item alone');
+  await reload();
   const empty = await stored(); empty.expeditions=[]; empty.inventory={}; empty.lockedItemIds=[];
   await seed(empty); await click('.ip-tabs button:first-child');
   assert(await evaluate(`document.querySelectorAll('.ip-cell.empty').length === 40 && !document.querySelector('.ip-menu')`), 'empty inventory remains usable with all empty slots visible');

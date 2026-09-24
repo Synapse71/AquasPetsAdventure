@@ -12,6 +12,7 @@ import { useUIState } from './uiState';
 import { lootIconUrl } from './lootIcons';
 import { RARITY_CHEST_MS, rarityChestFx, topLootRarity } from './chestRarity';
 import { foodBuffNote, foodEatLabel, foodInCargo } from './foodModel';
+import { cellQuantity } from './inventoryPanelModel';
 import chestClosed from '../../assets/ui-prototype/chest/closed-frame.png';
 import chestOpen from '../../assets/ui-prototype/chest/open-frame.png';
 import chestAnimation from '../../assets/ui-prototype/chest/open-anim.webp';
@@ -89,8 +90,8 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const [showBag,setShowBag]=useUIState(`expedition-bag-${expedition.id}`,false,(v):v is boolean=>typeof v==='boolean');
   const [showMap,setShowMap]=useState(false);
   const [rolling,setRolling]=useState(false),[chestPlaying,setChestPlaying]=useState(false);
-  const [askLeave,setAskLeave]=useState(false),[selectedCargo,setSelectedCargo]=useState<string>();
-  const [drop,setDrop]=useUIState<{id:string;q:number;basis:string}|null>(`action-drop-${expedition.id}`,null,(v):v is {id:string;q:number;basis:string}|null=>v===null||!!v&&typeof v==='object'&&'id' in v&&typeof v.id==='string'&&!!catalog.items[v.id]&&'q' in v&&Number.isSafeInteger(v.q)&&Number(v.q)>0&&'basis' in v&&typeof v.basis==='string');
+  const [askLeave,setAskLeave]=useState(false),[selectedCargo,setSelectedCargo]=useState<{id:string;index:number}>();
+  const [drop,setDrop]=useUIState<{id:string;q:number;index:number;basis:string}|null>(`action-drop-${expedition.id}`,null,(v):v is {id:string;q:number;index:number;basis:string}|null=>v===null||!!v&&typeof v==='object'&&'id' in v&&typeof v.id==='string'&&!!catalog.items[v.id]&&'q' in v&&Number.isSafeInteger(v.q)&&Number(v.q)>0&&'index' in v&&Number.isSafeInteger(v.index)&&Number(v.index)>=0&&'basis' in v&&typeof v.basis==='string');
   const [tip,setTip]=useState<{id:string;x:number;y:number}>();
   const [taking,setTaking]=useState<string>();
   const busy=useRef(false),chestTimer=useRef<number|undefined>(undefined),takeTimer=useRef<number|undefined>(undefined);
@@ -134,6 +135,9 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     chestTimer.current=window.setTimeout(finishChest,playFx?RARITY_CHEST_MS:rarityFx?0:1286);
   };
   const room=(id:string)=>{const stack=itemStackSize(id),held=expedition.cargo[id]??0;return (held%stack?stack-held%stack:0)+Math.max(0,slots-used)*stack;};
+  // 整理背包按格操作：点哪一格就只动那一格，同名的其它格子不受影响。
+  const selectedCellQty=selectedCargo?cellQuantity(expedition.cargo[selectedCargo.id]??0,itemStackSize(selectedCargo.id),selectedCargo.index):0;
+  const selectedCellCount=selectedCargo?Math.ceil((expedition.cargo[selectedCargo.id]??0)/itemStackSize(selectedCargo.id)):0;
   const duration=map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.durationMs??START_TRAVEL_DURATION_MS;
   const progress=Math.max(0,Math.min(100,100*(1-(expedition.arriveAt-now)/Math.max(1,duration))));
   const time=Math.max(0,Math.ceil((expedition.arriveAt-now)/1000));
@@ -219,8 +223,8 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
     </footer>
     {tip&&event&&!choice&&!showResult&&<div className="ap-event-tip" role="tooltip" style={{left:tip.x,top:tip.y}}><EventOptionInfo preview={getRiskPreview(game,expedition.id,tip.id)} secondary={event.choices.find(c=>c.id===tip.id)?.resolution?.type==='secondary'}/></div>}
     {showMap&&<div className="ap-mask"><section className="ap-map-dialog"><button className="ap-dialog-x" aria-label="关闭地图" onClick={()=>setShowMap(false)}>×</button><AdventureMap game={game} mapId={map.id} petIds={expedition.petIds} currentNodeId={expedition.currentNodeId}/></section></div>}
-    {showBag&&<div className="ap-mask"><section className="ap-dialog ap-bag-dialog" role="dialog" aria-label="整理背包"><h2>整理背包<button className="ap-dialog-x" aria-label="关闭背包" onClick={()=>setShowBag(false)}>×</button></h2><div className="ap-bag-gauges">{gauges}<span>格子 {used} / {slots}</span></div><AdventureItems inventory={expedition.cargo} onPick={id=>setSelectedCargo(id)}/>{expedition.phase==='traveling'?<p>行进途中只能查看，抵达后才能整理</p>:selectedCargo&&(expedition.cargo[selectedCargo]??0)>0?<div className="ap-bag-actions">{foodInCargo(selectedCargo)&&<button className="ap-eat" disabled={!!taking} onClick={()=>{if(run(s=>eatCargoFood(s,expedition.id,selectedCargo)))setSelectedCargo(undefined);}}>吃掉 · {foodEatLabel(game,expedition,selectedCargo)}</button>}<span>丢弃 <b>{catalog.items[selectedCargo].name}</b></span>{[...new Set([1,Math.min(expedition.cargo[selectedCargo],itemStackSize(selectedCargo))])].map(q=><button key={q} disabled={rolling} onClick={()=>setDrop({id:selectedCargo,q,basis:JSON.stringify(expedition.cargo)})}>丢 {q} 件</button>)}</div>:<p>点一件东西来丢掉 · 丢掉的不会再回来</p>}</section></div>}
+    {showBag&&<div className="ap-mask"><section className="ap-dialog ap-bag-dialog" role="dialog" aria-label="整理背包"><h2>整理背包<button className="ap-dialog-x" aria-label="关闭背包" onClick={()=>setShowBag(false)}>×</button></h2><div className="ap-bag-gauges">{gauges}<span>格子 {used} / {slots}</span></div><AdventureItems inventory={expedition.cargo} onPick={(id,_q,index)=>setSelectedCargo({id,index})}/>{expedition.phase==='traveling'?<p>行进途中只能查看，抵达后才能整理</p>:selectedCargo&&selectedCellQty>0?<div className="ap-bag-actions">{foodInCargo(selectedCargo.id)&&<button className="ap-eat" disabled={!!taking} onClick={()=>{if(run(s=>eatCargoFood(s,expedition.id,selectedCargo.id)))setSelectedCargo(undefined);}}>吃掉 · {foodEatLabel(game,expedition,selectedCargo.id)}</button>}<span>丢弃 <b>{catalog.items[selectedCargo.id].name}</b><small className="ap-cell-note">第 {selectedCargo.index+1}/{selectedCellCount} 格 · 本格 {selectedCellQty} 件</small></span>{[1,selectedCellQty].filter((q,i,all)=>q>0&&all.indexOf(q)===i).map(q=><button key={q} disabled={rolling} onClick={()=>setDrop({id:selectedCargo.id,q,index:selectedCargo.index,basis:JSON.stringify(expedition.cargo)})}>{q===1?'丢 1 件':`丢本格 ${q} 件`}</button>)}</div>:<p>点一件东西来丢掉 · 丢掉的不会再回来</p>}</section></div>}
     {askLeave&&<div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="放弃未拾取战利品"><h2>还有 {remainder} 件战利品没有拾取</h2><p>离开后，没有放进背包的战利品会被永久丢弃。</p><div className="ap-dialog-actions"><button onClick={()=>setAskLeave(false)}>回去拾取</button><button className="ap-danger" onClick={()=>lootNext(true)}>确认丢弃并继续</button></div></section></div>}
-    {drop&&<div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="确认丢弃"><h2>丢弃 {catalog.items[drop.id].name} ×{drop.q}？</h2><p>丢弃后无法找回。</p><div className="ap-dialog-actions"><button onClick={()=>setDrop(null)}>取消</button><button className="ap-danger" onClick={()=>{if(run(s=>{const e=s.expeditions.find(e=>e.id===expedition.id);if(JSON.stringify(e?.cargo)!==drop.basis)throw new GameRuleError('背包已变化，请重新选择。');return discardCargo(s,expedition.id,drop.id,drop.q);})){setDrop(null);setSelectedCargo(undefined);}}}>确认丢弃</button></div></section></div>}
+    {drop&&<div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="确认丢弃"><h2>丢弃 {catalog.items[drop.id].name} ×{drop.q}？</h2><p>只丢第 {drop.index+1} 格里的 {drop.q} 件，同名的其它格子保留。丢弃后无法找回。</p><div className="ap-dialog-actions"><button onClick={()=>setDrop(null)}>取消</button><button className="ap-danger" onClick={()=>{if(run(s=>{const e=s.expeditions.find(e=>e.id===expedition.id);if(JSON.stringify(e?.cargo)!==drop.basis)throw new GameRuleError('背包已变化，请重新选择。');if(drop.q>cellQuantity(e?.cargo[drop.id]??0,itemStackSize(drop.id),drop.index))throw new GameRuleError('这一格的数量已变化，请重新选择。');return discardCargo(s,expedition.id,drop.id,drop.q);})){setDrop(null);setSelectedCargo(undefined);}}}>确认丢弃</button></div></section></div>}
   </>;
 }

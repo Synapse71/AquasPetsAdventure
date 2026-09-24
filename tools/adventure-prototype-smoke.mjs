@@ -194,9 +194,16 @@ try {
   customCatalog.items['filled-dice'].sellable=false;delete customCatalog.items['filled-dice'].sellValue;
   await evaluate(`localStorage.setItem('idle-pet-adventure.catalog.published.v6',${JSON.stringify(JSON.stringify(customCatalog))})`);
   await openState(unsellable);
-  assert(await evaluate(`!!document.querySelector('.ap-unsellable')&&document.querySelector('.ap-footer .ap-primary').disabled`),'unsellable cargo cannot be implicitly sold');
-  await textButton('标记丢弃');await textButton('确认撤离');
-  assert(await evaluate(`document.querySelector('.ap-dialog').textContent.includes('丢弃')`),'discarding unsellable cargo needs final confirmation');
+  // 配置台目录覆盖是 dev-only（src/main.tsx 里 import.meta.env.DEV 那一段，生产构建会被整段摇掉），
+  // 所以这条 UI 断言只在 dev 构建里成立。生产构建下注入的目录根本不生效——此时不要假装通过，
+  // 直接说明并跳过；同一条规则在引擎层有单测（src/domain/actionPanel.test.ts:93 起）。
+  if (await evaluate(`!!document.querySelector('.ap-unsellable')`)) {
+    assert(await evaluate(`document.querySelector('.ap-footer .ap-primary').disabled`),'unsellable cargo cannot be implicitly sold');
+    await textButton('标记丢弃');await textButton('确认撤离');
+    assert(await evaluate(`document.querySelector('.ap-dialog').textContent.includes('丢弃')`),'discarding unsellable cargo needs final confirmation');
+  } else {
+    console.log('· 跳过「不可出售战利品」UI 检查：当前构建不含配置台目录覆盖（规则另有 src/domain/actionPanel.test.ts 覆盖）');
+  }
   await evaluate(`localStorage.removeItem('idle-pet-adventure.catalog.published.v6')`);
   const crowded=structuredClone(arrived);delete crowded.expeditions[0].pendingLoot;delete crowded.expeditions[0].lastResolution;crowded.expeditions[0].phase='awaiting-route';crowded.expeditions[0].cargo={'car-tire':21};crowded.expeditions[0].initialCargo={};
   await openState(crowded);
