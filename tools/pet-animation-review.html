@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全部动画 · 逐帧抠图检查</title>
+<style>
+body{margin:0;background:#111318;color:#e6e8ee;font:15px system-ui}header{position:sticky;top:0;z-index:2;background:#171c24;padding:16px 24px;border-bottom:1px solid #515966}h1{font-size:21px;margin:0 0 8px}p{color:#b5becb;margin:8px 0}button,select,input{font:inherit;color:inherit;background:#303641;border:1px solid #657080;border-radius:5px;padding:6px}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}input[type=number]{width:65px}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}main{display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px;padding:24px}.card{border:1px solid #505b6b;border-radius:9px;overflow:hidden;width:450px;max-width:100%}.name{padding:12px;background:#202630}.name small{display:block;color:#aebacc;margin-top:4px}.stage{background:var(--bg,#283544);line-height:0;overflow:auto}canvas{display:block;width:100%;height:auto}.tools{padding:12px;display:grid;gap:10px}input[type=range]{width:100%;box-sizing:border-box}.status{color:#bdc9da;min-height:22px}a{color:#abd1ff}
+</style>
+<header><h1>全部动画 · 逐帧抠图检查</h1><p id="summary"></p><p>读取当前游戏资源，不重新抠图。每张卡片独立播放、暂停和定位；帧号从 1 开始。非循环动作在末帧停留一秒，再回到首帧仅供检查。</p>
+<div class="controls"><button id="all-play">全部播放</button><button id="all-pause">全部暂停</button><label>背景 <select id="bg"><option value="#283544">深蓝灰</option><option value="#000000">纯黑</option><option value="#555555">中灰</option><option value="#ffffff">纯白</option><option value="#bd26bd">紫色</option></select></label><label>大小 <select id="size"><option value="450">150%</option><option value="300">100%（游戏尺寸）</option><option value="600">200%</option></select></label><label>定位动画 <select id="jump"><option value="">请选择</option></select></label></div></header>
+<main id="clips"></main>
+<script>
+const manifest=/*MANIFEST*/;
+const names={'idle-magnifier':'待机 · 放大镜','idle-digging':'待机 · 挖掘','blink-plain':'眨眼','blink-breath':'眨眼 · 呼吸','blink-tilt':'眨眼 · 歪头',walk:'探险行进','sleep-start':'入睡','sleep-loop':'睡眠循环','sleep-end':'醒来','win-chest':'成功 · 宝箱','lose-bag':'溃败','bulb-hint':'灯泡提示','start-explore':'开始探险','arrive-a':'到达 A · 轻快收步','arrive-b':'到达 B · 小碎步刹车',standing:'待机静止帧'};
+const entries=[...Object.entries(manifest),['standing',{file:'standing.png',frames:1,width:300,height:282,columns:1,fps:24,loop:true}]];
+document.querySelector('#summary').textContent=`${Object.keys(manifest).length} 段动画，共 ${Object.values(manifest).reduce((n,m)=>n+m.frames,0)} 帧；另附待机静止帧。`;
+const cards=entries.map(([id,m])=>{
+ const card=document.createElement('section');card.className='card';card.id=id;
+ card.innerHTML='<div class="name"></div><div class="stage"><canvas></canvas></div><div class="tools"><div class="status">加载中…</div><div class="controls"><button class="play">播放</button><button class="prev">上一帧</button><button class="next">下一帧</button><label>第 <input class="number" type="number" min="1" step="1"> 帧</label></div><input class="seek" type="range" min="1" step="1"></div>';
+ card.querySelector('.name').textContent=names[id]||id;const code=document.createElement('small');code.textContent=id;card.querySelector('.name').append(code);
+ document.querySelector('#clips').append(card);const option=new Option(names[id]||id,id);document.querySelector('#jump').add(option);
+ const canvas=card.querySelector('canvas');canvas.width=m.width;canvas.height=m.height;const ctx=canvas.getContext('2d'),image=new Image();
+ const state={index:0,running:false,ready:false,base:0};const status=card.querySelector('.status'),play=card.querySelector('.play'),seek=card.querySelector('.seek'),number=card.querySelector('.number');
+ seek.max=number.max=m.frames;seek.value=number.value=1;seek.setAttribute('aria-label',id+' 帧滑块');number.setAttribute('aria-label',id+' 帧号');
+ function draw(){if(!state.ready)return;ctx.clearRect(0,0,m.width,m.height);ctx.drawImage(image,state.index%m.columns*m.width,Math.floor(state.index/m.columns)*m.height,m.width,m.height,0,0,m.width,m.height);seek.value=number.value=state.index+1;status.textContent=`${id} · 第 ${state.index+1} / ${m.frames} 帧`;}
+ function run(value){state.running=value&&state.ready&&m.frames>1;state.base=performance.now()-state.index*1000/m.fps;play.textContent=state.running?'暂停':'播放';}
+ function go(value){if(!Number.isFinite(value))return;run(false);state.index=Math.max(0,Math.min(m.frames-1,Math.round(value)-1));draw();}
+ play.onclick=()=>run(!state.running);card.querySelector('.prev').onclick=()=>go(state.index);card.querySelector('.next').onclick=()=>go(state.index+2);seek.oninput=()=>go(Number(seek.value));number.onchange=()=>go(Number(number.value));
+ image.src='../../public/pet-sprites/'+m.file;
+ const ready=image.decode().then(()=>{if(image.width<m.width*m.columns||image.height<Math.ceil(m.frames/m.columns)*m.height)throw Error('尺寸不匹配');state.ready=true;draw();}).catch(()=>{status.textContent='加载失败：'+m.file;card.querySelectorAll('button,input').forEach(el=>el.disabled=true);});
+ return {id,card,state,run,ready,tick(now){if(!state.running)return;const count=m.frames+(m.loop?0:m.fps);const index=Math.min(m.frames-1,Math.floor((now-state.base)*m.fps/1000)%count);if(index!==state.index){state.index=index;draw();}}};
+});
+document.querySelector('#all-play').onclick=()=>cards.forEach(c=>c.run(true));document.querySelector('#all-pause').onclick=()=>cards.forEach(c=>c.run(false));
+document.querySelector('#bg').onchange=e=>document.body.style.setProperty('--bg',e.target.value);
+document.querySelector('#size').onchange=e=>cards.forEach(c=>c.card.style.width=e.target.value+'px');
+document.querySelector('#jump').onchange=e=>{const card=document.getElementById(e.target.value);if(card){card.style.scrollMarginTop=document.querySelector('header').offsetHeight+12+'px';card.scrollIntoView({behavior:'smooth',block:'start'});}};
+Promise.all(cards.map(c=>c.ready)).then(()=>{cards.forEach(c=>c.run(true));requestAnimationFrame(tick);});
+function tick(now){cards.forEach(c=>c.tick(now));requestAnimationFrame(tick);}
+</script></html>
