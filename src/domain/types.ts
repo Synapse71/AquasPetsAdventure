@@ -187,6 +187,8 @@ export interface MapDefinition {
   // 每完成一个非起始节点获得的基础经验。省略时兼容旧目录，按 10 计算。
   nodeXp?: number;
   nodes: Record<Id, MapNodeDefinition>;
+  /** 地图美术上的节点锚点，使用 0~100 的相对坐标，避免受窗口尺寸影响。 */
+  nodePositions?: Record<Id, { x: number; y: number }>;
 }
 
 export type EventChoiceResolution =
@@ -276,9 +278,6 @@ export interface StartExpeditionInput {
   petIds: Id[];
   // 从仓库带入本轮背包；出发时原子扣除。省略表示空背包出发。
   cargo?: Inventory;
-  // 行前整备选定的食物，出发时和 cargo 一起从仓库原子扣除，把加成快照写进新远征。
-  // 「选定」而不是「立刻吃掉」：玩家反悔或退回上一步，食物都还在仓库里。
-  foodItemId?: Id;
 }
 
 export type ExpeditionPhase =
@@ -394,6 +393,10 @@ export interface GameState {
   discoveredNodeIds: Id[];
   // `${mapId}:${fromNodeId}:${edgeId}`；隐藏路线抵达目标节点后永久登记。
   discoveredRouteKeys: string[];
+  // 基地吃下、还没被任何一趟远征领走的食物加成（同时只有一个，后吃的顶掉前面的）。
+  // 出发时 `startExpedition` 把它搬到新远征的 `foodBuff` 上并从存档清掉，所以一份食物只顶一趟。
+  // 和 `Expedition.foodBuff` 一样是快照：存完数值就不再跟配表走。
+  foodBuff?: { itemId: Id; stat: StatKey; amount: number };
   expeditions: Expedition[];
   settlements: Settlement[];
   log: GameLogEntry[];

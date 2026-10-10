@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { bundledCatalog, catalog, setCatalog } from '../domain/catalog';
 import { createInitialState, sellWarehouseItems } from '../domain/engine';
 import type { GameState } from '../domain/types';
-import { cellQuantity, cellRefs, cleanPicked, discardBasis, foodHealPreview, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView, pickedQuantities, saleBasis,
+import { cellQuantity, cellRefs, cleanPicked, discardBasis, foodHealPreview, foodUseBasis, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView, pickedQuantities, saleBasis,
   sortedInventory, usableOnPet, useBasis, useBlockReason, validInventoryDialog } from './inventoryPanelModel';
 
 afterEach(() => setCatalog(bundledCatalog));
@@ -120,12 +120,28 @@ describe('仓库里用食物治疗', () => {
     return next;
   }
 
-  it('带治疗效果的食物出现在「使用」入口，只加主属性的不出现', () => {
+  it('usableOnPet 只认能对宠物用的：纯 buff 食物走「吃掉」，不弹选伙伴', () => {
     fed();
-    // 只有 buff 的食物在基地用不上——buff 要挂在远征上，入口在行前整备
+    // 只有 buff 的食物不走选伙伴那条路——它在菜单里是「吃掉」，加成挂到下一次出发
     expect(usableOnPet('canned-food')).toBe(true);
     expect(usableOnPet('chocolate')).toBe(false);
     expect(usableOnPet('paper')).toBe(false);
+  });
+
+  it('覆盖确认的基准只看件数和存档上那份加成，两者变了就失效', () => {
+    fed();
+    const game = createInitialState();
+    game.inventory = { chocolate: 2 };
+    const before = foodUseBasis(game, 'chocolate');
+    expect(foodUseBasis({ ...game, inventory: { chocolate: 1 } }, 'chocolate')).not.toBe(before);
+    expect(foodUseBasis({ ...game, foodBuff: { itemId: 'chocolate', stat: 'fitness', amount: 2 } }, 'chocolate')).not.toBe(before);
+    expect(foodUseBasis({ ...game, inventory: { chocolate: 2 } }, 'chocolate')).toBe(before);
+
+    const dialog = { type: 'food' as const, itemId: 'chocolate', basis: before };
+    expect(validInventoryDialog(game, dialog)).toBe(true);
+    expect(validInventoryDialog({ ...game, inventory: { chocolate: 1 } }, dialog)).toBe(false);
+    expect(isInventoryDialog({ type: 'food', itemId: 'chocolate', basis: '' })).toBe(true);
+    expect(isInventoryDialog({ type: 'food', itemId: 'chocolate', basis: '', cellIndex: 0 })).toBe(false);
   });
 
   it('没受伤、或正在冒险途中都拦下来', () => {

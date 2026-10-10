@@ -34,8 +34,8 @@ export function itemTooltipInfo(itemId: string, quantity = 0): ItemTooltipInfo |
   if (item.secondaryGrant) {
     effects.push(`使用后 ${SECONDARY_STAT_LABELS[item.secondaryGrant.stat]} +${item.secondaryGrant.amount}（永久生效，上限 ${secondaryStatCap()}）`);
   }
-  // 食物 buff 只对整趟冒险有效，和永久生效的成长道具分开写，避免读成同一件事。
-  if (item.foodBuff) effects.push(`出发前吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，整趟冒险有效（同时只能有一个）`);
+  // 食物 buff 只对接下来那一趟探险有效，和永久生效的成长道具分开写，避免读成同一件事。
+  if (item.foodBuff) effects.push(`吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，只对接下来那一趟探险有效`);
   if (item.foodHeal) effects.push(`吃下恢复 ${item.foodHeal.steps} 档伤势`);
   return {
     name: item.name,

@@ -34,31 +34,47 @@
 .adventure-panel .ap-map.illustrated { filter:none; }
 .ap-map.picking::after { content:""; position:absolute; inset:0; border-radius:11px; background:rgba(20,16,10,.42); pointer-events:none; z-index:1; }
 .adventure-panel .ap-map-edges { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
-.ap-edge { stroke:#7d6a55; fill:none; stroke-linecap:round; stroke-linejoin:round; }
-.ap-edge .line { stroke-width:1.15; stroke-dasharray:3.2 2.6; }
-.ap-edge .head { stroke-width:1.45; }
-.ap-edge.gated { stroke:#b8785a; }
-.ap-edge.gated .line { stroke-dasharray:1.8 2.4; }
-.ap-edge.hot { stroke:var(--ap-accent); }
+.ap-edge { stroke:#fff; fill:none; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 1px rgba(38,48,42,.75)); }
+.ap-edge .line { stroke-width:.72; }
+.ap-edge .head { stroke-width:.5; }
+.ap-edge.gated .line { stroke-dasharray:2 2.1; }
+.ap-edge.blocked { stroke:#d5d9d5; opacity:.85; }
+.ap-edge.hot { stroke:#fff; filter:drop-shadow(0 0 2px rgba(255,255,255,.95)); }
 .ap-edge .hit { stroke:transparent; stroke-width:5.5; pointer-events:stroke; }
 .ap-map-anchor,.ap-map-edge-tip { position:absolute; transform:translate(-50%,-50%); width:26px; height:26px; color:#5a4632; }
-.adventure-panel .ap-map-node { position:static; transform:none; min-width:0; width:26px; height:26px; padding:0; border:0; background:transparent; display:block; color:inherit; }
-.adventure-panel .ap-map-node svg { position:static; display:block; width:26px; height:26px; color:inherit; transition:transform .15s,color .15s; }
-.adventure-panel .ap-map-node:hover svg { color:var(--ap-accent); transform:scale(1.14); }
+.ap-map-anchor { border-radius:50%; }
+/* 选入口阶段：非起点节点要和路线一样只做悬停高亮/提示，所以保留 hover 命中，
+   但不允许 :hover / :focus-within 把它抬到灰色蒙版之上。
+   锚点自带 transform，本身已是层叠上下文，Tooltip 被关在里面，不会漏到蒙版外面。 */
+.ap-map.picking .ap-map-anchor.under-veil,
+.ap-map.picking .ap-map-anchor.under-veil:hover,
+.ap-map.picking .ap-map-anchor.under-veil:focus-within { z-index:auto; }
+.adventure-panel .ap-map-node { position:static; transform:none; min-width:0; width:26px; height:26px; padding:0; border:0; border-radius:50%; background:transparent; display:block; color:inherit; overflow:visible; }
+.adventure-panel .ap-map-node-icon { position:absolute; left:50%; top:50%; display:block; width:22px; height:28px; transform:translate(-50%,-50%); color:#fff; filter:brightness(0) invert(1) drop-shadow(0 0 1.5px rgba(31,43,35,.95)); transition:transform .15s,filter .15s; }
+.adventure-panel .ap-map-node-icon.flag { filter:brightness(0) invert(1) drop-shadow(0 0 1.5px rgba(31,43,35,.95)); }
+.adventure-panel .ap-map-node:hover .ap-map-node-icon { transform:translate(-50%,-50%) scale(1.14); filter:brightness(0) invert(1) drop-shadow(0 0 2px rgba(255,255,255,.95)); }
 .ap-map-anchor:hover,.ap-map-anchor:focus-within,.ap-map-edge-tip:focus-within { z-index:30; }
 .ap-map-anchor.pickable { z-index:5; color:#f0c65a; }
 .ap-map-anchor.pickable::before { content:""; position:absolute; left:13px; top:13px; width:34px; height:34px; transform:translate(-50%,-50%); border-radius:50%; border:2px solid #f0c65a; pointer-events:none; animation:ap-entry-pulse 1.7s ease-out infinite; }
 .ap-map-anchor.picked::before { animation:none; width:38px; height:38px; border-width:2.5px; }
 .ap-map-anchor.current { color:var(--ap-accent); }
 .ap-map-edge-tip { pointer-events:none; }
-.adventure-panel .ap-map-edge-tip>button { pointer-events:auto; opacity:0; width:26px; height:26px; padding:0; }
+.adventure-panel .ap-map-edge-tip>button { pointer-events:auto; opacity:0; width:26px; height:26px; padding:0; border-radius:50%; }
 .ap-map-tip { position:absolute; z-index:40; left:50%; bottom:calc(100% + 9px); transform:translateX(-50%); min-width:150px; max-width:230px; border:1px solid #aeb2ba; border-radius:9px; padding:8px 11px; background:var(--ap-panel); color:var(--ap-secondary); pointer-events:none; text-align:left; font-size:12px; }
 .tip-down .ap-map-tip { bottom:auto; top:calc(100% + 9px); }
 .tip-left .ap-map-tip { left:0; transform:none; }
 .tip-right .ap-map-tip { left:auto; right:0; transform:none; }
 .ap-map-tip strong { display:block; font-size:13.5px; color:var(--ap-ink); margin:1px 0 4px; }
-.ap-map-tip code { font-size:10px; color:var(--ap-muted); }
 .ap-map-tip p { white-space:nowrap; }
+.ap-map-tip .rarity-common { color:#6f766c; }
+.ap-map-tip .rarity-uncommon { color:#4a7c4e; }
+.ap-map-tip .rarity-rare { color:#38699c; }
+.ap-map-tip .rarity-epic { color:#7a4f9e; }
+.ap-map-tip .rarity-legendary { color:#a8761a; }
+.ap-map-tip .rarity-mythic { color:#b0432f; }
+.ap-map-event { color:#d97727; }
+.ap-route-requirement { display:flex; align-items:center; gap:4px; }
+.ap-route-requirement img { width:16px; height:16px; object-fit:contain; }
 .ap-map-tip .ap-map-flag { color:var(--ap-ok); }
 .ap-map-first { border-top:1px solid var(--ap-line); padding-top:6px; margin-top:6px; }
 .ap-map-first>b { color:var(--ap-accent); font-size:10.5px; }
@@ -67,10 +83,12 @@
 .ap-map-dots { display:flex; justify-content:center; gap:6px; margin-top:8px; }
 .ap-map-dots i { width:7px; height:7px; border-radius:50%; background:var(--ap-line); }
 .ap-map-dots i.on { background:var(--ap-accent); }
-.adventure-panel .ap-map-legend { position:static; display:flex; gap:14px; justify-content:center; align-items:center; margin-top:7px; font-size:11px; color:var(--ap-muted); }
+.adventure-panel .ap-map-legend { position:static; display:flex; gap:14px; justify-content:center; align-items:center; margin-top:7px; font-size:11px; color:#fff; text-shadow:0 1px 2px rgba(31,43,35,.8); }
 .ap-map-legend span { display:flex; align-items:center; gap:4px; }
-.ap-map-legend svg { position:static; width:14px; height:14px; color:#5a4632; }
-.ap-map-legend .ap-intel { color:var(--ap-accent); font-weight:650; margin:0; }
+.ap-map-legend .ap-intel { margin:0; font-size:16px; font-weight:700; letter-spacing:.04em; text-shadow:none; color:var(--ap-accent); }
+.ap-map-legend .ap-intel.t1 { color:var(--ap-bad); }
+.ap-map-legend .ap-intel.t2 { color:var(--ap-fail); }
+.ap-map-legend .ap-intel.t3 { color:var(--ap-success); }
 
 /* Six-column inventory grids occupy the entire fixed content region. */
 .adventure-panel .ap-transfer { height:100%; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:29px; position:relative; }
@@ -253,11 +271,23 @@
 @keyframes ap-die-land { 0%{transform:scale(1)} 34%{transform:scale(1.13)} 100%{transform:scale(1)} }
 @media(prefers-reduced-motion:reduce) { .ap-map-anchor.pickable::before,.ap-chest>span,.ap-loot-card,.ap-die.land { animation:none!important; } .adventure-panel * { transition-duration:1ms!important; } }
 
-/* 食物：出发前选定的那一份，和途中生效的 buff 标签。 */
-.ap-food-pick { display:flex; align-items:center; gap:7px; margin-top:8px; font-size:11.5px; color:var(--ap-secondary); flex-wrap:wrap; }
-.ap-food-pick label { flex:none; font-weight:650; color:var(--ap-muted); letter-spacing:.06em; }
-.adventure-panel .ap-food-pick select { flex:1 1 130px; min-width:0; border:1px solid var(--ap-line); background:var(--ap-panel); color:var(--ap-ink); border-radius:7px; font-size:11.5px; padding:3px 7px; }
-.ap-food-pick em { flex:1 1 100%; font-style:normal; font-size:11px; color:var(--ap-muted); }
+/* 整备阶段在格子上操作，菜单须越过两列的 overflow 裁切。 */
+.ap-loadout-menu { position:fixed; z-index:1000; min-width:150px; padding:4px; border:1px solid #aeb2ba; border-radius:9px; background:#fff; box-shadow:0 8px 24px #14181e33; display:flex; flex-direction:column; }
+.ap-loadout-menu button { text-align:left; border:0; background:transparent; padding:7px 12px; cursor:pointer; }
+.ap-loadout-menu button:hover:not(:disabled) { background:#f1f2f4; }
+.ap-loadout-menu button:disabled { opacity:.45; cursor:default; }
+.ap-food-pick { margin:8px 0 0; font-size:11.5px; color:var(--ap-secondary); }
+.ap-loadout-mask { position:absolute; inset:0; z-index:100; display:grid; place-items:center; background:#14181e66; }
+.ap-loadout-dialog { width:min(390px,90%); max-height:90%; overflow:auto; padding:18px; border-radius:12px; background:#fff; color:#191c22; box-shadow:0 8px 24px #14181e33; }
+.ap-loadout-dialog h3 { margin:0 0 10px; }
+.ap-loadout-dialog p { font-size:13px; }
+.ap-loadout-dialog > div:last-child { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.ap-loadout-dialog .ip-pet-list { display:flex; flex-direction:column; gap:8px; }
+.ap-loadout-dialog .ip-pet-choice { text-align:left; display:flex; flex-direction:column; gap:4px; padding:10px; }
+.ap-loadout-dialog .ip-pet-choice[aria-pressed=true] { border-color:var(--ap-accent); background:var(--ap-field); }
+.ap-loadout-dialog .ip-pet-choice span { color:var(--ap-secondary); font-size:12px; }
+.ap-loadout-dialog .ip-dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.ap-loadout-dialog .ip-primary { color:#fff; border-color:var(--ap-accent); background:var(--ap-accent); }
 .ap-food-buff { flex:none; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:650; white-space:nowrap; color:var(--ap-accent); background:color-mix(in srgb,var(--ap-accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--ap-accent) 32%,transparent); }
 /* 吃掉是正向操作，用强调色和「丢弃」区分开——这两个按钮挨着，点错不可逆。 */
 .adventure-panel .ap-bag-actions .ap-eat { flex:none; border-color:var(--ap-accent); color:var(--ap-accent); font-weight:650; white-space:nowrap; }

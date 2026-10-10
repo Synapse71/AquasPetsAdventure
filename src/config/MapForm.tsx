@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import {
   SECONDARY_STAT_KEYS,
@@ -13,6 +13,7 @@ import type {
   LootCompositionDefinition,
   NodeLootDefinition,
 } from "../domain/types";
+import { mapArtwork, mapArtworkAnchors } from '../ui/mapArtwork';
 import {
   addEdgeToMap,
   applyEdgeDraft,
@@ -45,6 +46,29 @@ function inputNumber(value: string): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
+
+function MapAnchorEditor({ nodes, nodePositions, artwork, onChange }: { nodes: Record_; nodePositions: Record_; artwork: string; onChange: (positions: Record_) => void }) {
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record_>(nodePositions);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => setDraft(nodePositions), [nodePositions]);
+  const setPosition = useCallback((id: string, event: PointerEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return draft;
+    const next = { ...draft, [id]: { x: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)), y: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100)) } };
+    setDraft(next);
+    return next;
+  }, [draft]);
+  return <section className="config-map-anchor-editor">
+    <div className="config-map-graph-head"><div><strong>地图锚定编辑器</strong><span>拖拽地点图标到地物入口；松开后更新草稿，点「保存这条记录」生效</span></div></div>
+    <div ref={canvasRef} className="config-map-anchor-canvas" onPointerMove={(event) => { if (dragging) setPosition(dragging, event); }} onPointerUp={(event) => { if (dragging) onChange(setPosition(dragging, event)); setDragging(null); }} onPointerCancel={() => setDragging(null)}>
+      <img src={artwork} alt="当前地图底图" draggable={false} />
+      {Object.keys(nodes).map((id) => { const p = isRecord(draft[id]) ? draft[id] as Record_ : {}; const x = typeof p.x === 'number' ? p.x : 50, y = typeof p.y === 'number' ? p.y : 50; return <button type="button" className="config-map-anchor" style={{ left: `${x}%`, top: `${y}%` }} key={id} onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setDragging(id); setPosition(id, event); }} title={`${nodeLabel(nodes, id)} (${x.toFixed(1)}, ${y.toFixed(1)})`}><span>{nodeLabel(nodes, id).split('（')[0]}</span></button>; })}
+    </div>
+    <div className="config-map-anchor-values">{Object.keys(nodes).map((id) => { const p = isRecord(draft[id]) ? draft[id] as Record_ : {}; return <span key={id}>{nodeLabel(nodes, id).split('（')[0]}：{typeof p.x === 'number' ? p.x.toFixed(1) : '—'}%, {typeof p.y === 'number' ? p.y.toFixed(1) : '—'}%</span>; })}</div>
+  </section>;
+}
+
 
 function safeLoot(value: unknown): NodeLootDefinition {
   if (isRecord(value) && value.mode === "composition") {
@@ -2011,6 +2035,14 @@ export function MapForm({
           onChange={(event) => updateMap({ description: event.target.value })}
         />
       </label>
+
+      {typeof record.id === 'string' && mapArtwork[record.id] && <MapAnchorEditor
+        key={record.id}
+        nodes={nodes}
+        artwork={mapArtwork[record.id]}
+        nodePositions={{ ...mapArtworkAnchors[record.id], ...(isRecord(record.nodePositions) ? record.nodePositions : {}) }}
+        onChange={(nodePositions) => updateMap({ nodePositions })}
+      />}
 
       <MapGraphPreview
         nodes={nodes}

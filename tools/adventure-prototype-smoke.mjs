@@ -56,6 +56,12 @@ try {
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
     await sleep(450);
   };
+  // 桌面上的真实点击会先发 pointerdown。行前整备的左键菜单是 portal，寄生在 document.body 上，
+  // 漏掉 data-desktop-ui 时事件会冒泡到桌宠外壳并被当成点空白处——整个面板关掉、只剩菜单漂着。
+  const pointerClick = async selector => {
+    await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});for(const type of ['pointerdown','pointerup'])el.dispatchEvent(new PointerEvent(type,{bubbles:true,button:0}));el.click();})()`);
+    await sleep(450);
+  };
   // 开箱时长现在跟战利品稀有度走（普通 1.286s，稀有度视频 5.04s），
   // 固定 sleep 会在高稀有度节点上等不到开箱完成，改成等战利品真的摆出来。
   const openChest = async () => {
@@ -121,7 +127,14 @@ try {
   await click('[aria-label="上一张地图"]');await textButton('选择起始点');await shot('04-entry');
   assert(await evaluate(`document.querySelector('.ap-footer .ap-primary').disabled`),'entry must be explicitly picked on the map');
   if (!process.argv.includes('--maps-only')) {
-  await click('.pickable .ap-map-node');await textButton('行前整备');await click('.ap-transfer section:first-child .ap-item');await shot('05-loadout');await frameCheck();
+  await click('.pickable .ap-map-node');await textButton('行前整备');
+  // 行前整备改成左键开菜单：先确认菜单出来了，再用真实 pointerdown 点「放入背包」。
+  await click('.ap-transfer section:first-child .ap-item');
+  assert(await evaluate(`!!document.querySelector('.ap-loadout-menu')`),'left click on a loadout item opens the action menu instead of moving it');
+  assert(await evaluate(`document.querySelector('.ap-loadout-menu button').textContent==='放入背包'`),'the warehouse column menu offers 放入背包');
+  await pointerClick('.ap-loadout-menu button');
+  assert(await evaluate(`!document.querySelector('.pet-panel-host').hidden&&!!document.querySelector('.ap-bag-col .ap-item')`),'a real pointerdown on the portalled menu moves the item without closing the panel');
+  await shot('05-loadout');await frameCheck();
   assert((await stored()).inventory.paper===3,'loadout is an uncommitted draft');
   await send('Page.reload');await loaded();await open();
   assert(await evaluate(`document.querySelector('.ap-bag-col .ap-item').getAttribute('aria-label')==='纸张 ×1'`),'loadout survives reload');
@@ -235,6 +248,14 @@ try {
   await seed(team);for(let i=1;i<=3;i++)await click('.ap-pet-card:nth-child('+i+')');
   assert(await evaluate(`document.querySelector('.ap-pet-card:nth-child(4)').disabled`),'three-pet team limit is preserved');
   await shot('24-team');
+  // 基地吃下、等下一次出发的食物加成：队伍概览上要能看见（它不属于任何一支在外队伍）。
+  const banked=structuredClone(team);banked.expeditions=[];banked.settlements=[];banked.foodBuff={itemId:'canned-food',stat:'fitness',amount:1};
+  await seed(banked);await click('.ap-overview');await sleep(400);
+  assert(await evaluate(`document.querySelector('[data-testid="overview-food-buff"]')?.textContent.includes('食物buff：体能 +1，下一次出发生效')`),'team overview shows the banked food buff with its source');
+  await shot('25-overview-food-buff');
+  const plain=structuredClone(banked);delete plain.foodBuff;
+  await seed(plain);await click('.ap-overview');await sleep(400);
+  assert(await evaluate(`!document.querySelector('[data-testid="overview-food-buff"]')`),'team overview hides the row when nothing is banked');
   }
   assert(errors.length===0,'no renderer exceptions throughout adventure flow');
   writeFileSync(join(out,process.argv.includes('--maps-only')?'maps-result.json':'result.json'),JSON.stringify({passed:true,scope:process.argv.includes('--maps-only')?'maps':'all',profile,errors},null,2));console.log('Screenshots: '+out);

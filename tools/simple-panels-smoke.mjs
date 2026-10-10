@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import electron from 'electron';
 
+const packageVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+const expectedGameName = `咕嘎搜撤没有打 v${packageVersion} Demo`;
 const port = 9500 + process.pid % 400;
 const settingsOnly = process.argv.includes('--settings-only');
 const appIndex = process.argv.indexOf('--app');
@@ -108,7 +110,7 @@ try {
   assert(await evaluate(`!document.querySelector('.st-about')&&!document.querySelector('.st-dev')&&document.querySelectorAll('.settings-panel .sp-tabs button').length===3`), 'about is a peer tab and absent from general settings');
   await textButton('关于');
   await waitFor(`document.querySelector('.st-game-logo')?.naturalWidth > 0`);
-  assert(await evaluate(`document.querySelector('.st-about').textContent.includes('版本信息')&&document.querySelector('.st-game-name').textContent==='咕嘎搜撤没有打 v0.1.0 Demo'&&document.querySelector('.st-about').textContent.includes('Aquamarine Studio')&&!document.querySelector('.st-dev')&&!document.querySelector('.st-row')&&!document.querySelector('.st-about').textContent.match(/Windows|macOS|策划配置台/)`), 'about shows the requested game name, version, logo and studio without old content');
+  assert(await evaluate(`document.querySelector('.st-about').textContent.includes('版本信息')&&document.querySelector('.st-game-name').textContent===${JSON.stringify(expectedGameName)}&&document.querySelector('.st-about').textContent.includes('Aquamarine Studio')&&!document.querySelector('.st-dev')&&!document.querySelector('.st-row')&&!document.querySelector('.st-about').textContent.match(/Windows|macOS|策划配置台/)`), 'about shows the package version, game name, logo and studio without old content');
   assert(await evaluate(`document.querySelector('.st-game-logo').getAttribute('src').endsWith('icons/aquamarine-1024.png')`), 'about reuses the same logo source as the native menu bar');
   await shot('09-about');
   await send('Page.reload');await loaded();await open('设置');
@@ -206,8 +208,8 @@ try {
   assert(reset.currency===initial.currency&&reset.pets[petId].baseStats.fitness===initial.pets[petId].baseStats.fitness,'confirmed reset creates a fresh game only in the isolated test profile');
   if (!settingsOnly) {
   await open('图鉴');await textButton('物品');
-  assert(await evaluate(`getComputedStyle(document.querySelector('.cd-cell.unknown img')).filter.includes('invert(1)')`),'unknown silhouettes remain visible in dark mode');
-  await shot('08-dark-codex');
+  assert(await evaluate(`(()=>{const img=document.querySelector('.cd-cell.unknown img');const s=getComputedStyle(img);return img.naturalWidth>0&&s.filter.includes('brightness(0)')&&!s.filter.includes('invert(1)')&&Number(s.opacity)>0&&s.visibility==='visible'})()`),'unknown items keep a loaded, visible silhouette in the fixed light theme');
+  await shot('08-unknown-codex');
   await click('.sp-close');
   }
   await open('设置');
@@ -249,6 +251,20 @@ try {
   await shot('14-compact-bookmarks');
   await click('.window-settings .sp-close');
   assert(await evaluate(`document.querySelector('.pet-panel-host').hidden&&document.querySelector('.pet-bookmarks').getClientRects().length===0`),'closing the panel also hides every bookmark');
+  // 基地吃下、等下一次出发的食物加成：状态面板要能看见，没有的时候不能凭空多一行。
+  const unbuffed=await stored();delete unbuffed.foodBuff;
+  await evaluate(`localStorage.setItem('idle-pet-adventure.demo.v1',${JSON.stringify(JSON.stringify(unbuffed))})`);
+  await send('Page.reload');await loaded();
+  await click('.pet-hit');await click('.pet-bubbles button[aria-label="状态"]');
+  await waitFor(`!!document.querySelector('.pet-status-panel')`);
+  assert(await evaluate(`!document.querySelector('[data-testid="pending-food-buff"]')`),'status panel hides the food buff row when nothing is banked');
+  const banked=await stored();banked.foodBuff={itemId:'canned-food',stat:'fitness',amount:1};
+  await evaluate(`localStorage.setItem('idle-pet-adventure.demo.v1',${JSON.stringify(JSON.stringify(banked))})`);
+  await send('Page.reload');await loaded();
+  await click('.pet-hit');await click('.pet-bubbles button[aria-label="状态"]');
+  await waitFor(`!!document.querySelector('.pet-status-panel')`);
+  assert(await evaluate(`document.querySelector('[data-testid="pending-food-buff"]')?.textContent==='食物buff：体能 +1，下一次出发生效'`),'status panel shows the banked food buff for the next departure');
+  await shot('15-status-food-buff');
   assert(errors.length===0,'simple panels have no renderer exceptions');
   writeFileSync(join(out,settingsOnly?'settings-result.json':'result.json'),JSON.stringify({passed:true,scope:settingsOnly?'settings':'all-simple-panels',profile,errors},null,2));
   console.log('Screenshots: '+out);

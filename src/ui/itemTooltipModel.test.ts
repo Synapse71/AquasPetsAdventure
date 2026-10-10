@@ -35,7 +35,7 @@ describe('物品悬浮提示', () => {
 
   it('成长道具、特质道具、食物各写各的效果', () => {
     expect(itemTooltipInfo('bubugao-dianduji')!.effects).toEqual(['使用后 学识 +2（永久生效，上限 20）']);
-    expect(itemTooltipInfo('canned-food')!.effects).toEqual(['出发前吃下：体能 +1，整趟冒险有效（同时只能有一个）']);
+    expect(itemTooltipInfo('canned-food')!.effects).toEqual(['吃下：体能 +1，只对接下来那一趟探险有效']);
     expect(itemTooltipInfo('chocolate')!.effects).toEqual(['吃下恢复 1 档伤势']);
   });
 

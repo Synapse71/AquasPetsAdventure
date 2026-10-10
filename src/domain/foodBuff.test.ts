@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bundledCatalog } from "./catalog";
 import {
-  cargoSlotCapacity, createInitialState, eatCargoFood, GameRuleError, healPetWithFood,
+  cargoSlotCapacity, createInitialState, eatCargoFood, eatWarehouseFood, GameRuleError, healPetWithFood,
   mapInformationTier, startExpedition, teamCarryCapacity, teamSecondaryStat, teamStat,
   teamStatForPets, tick,
 } from "./engine";
@@ -144,14 +144,16 @@ describe("食物 buff · 单槽与快照", () => {
 });
 
 describe("食物 · 吃的时机", () => {
-  it("行进途中不能吃", () => {
+  it("行进途中可以吃背包里的食物", () => {
     const catalog = fixture();
     const state = startExpedition(
       { ...createInitialState(), inventory: { chocolate: 1 } },
       { mapId: "map-1", petIds: [PET], cargo: { chocolate: 1 } }, 1, catalog,
     );
-    expect(() => eatCargoFood(state, state.expeditions[0].id, "chocolate", undefined, 2, catalog))
-      .toThrow(GameRuleError);
+    const fed = eatCargoFood(state, state.expeditions[0].id, "chocolate", undefined, 2, catalog);
+    expect(fed.expeditions[0].phase).toBe("traveling");
+    expect(fed.expeditions[0].cargo.chocolate).toBeUndefined();
+    expect(fed.expeditions[0].foodBuff).toMatchObject({ stat: "fitness", amount: 2 });
   });
 
   it("背包里没有就吃不了：不能吃还没拾取的战利品", () => {
@@ -160,21 +162,53 @@ describe("食物 · 吃的时机", () => {
     expect(() => eatCargoFood(state, id, "chocolate", undefined, 2, catalog)).toThrow(/背包里没有/);
   });
 
-  it("出发前是「选定」：出发那一刻才从仓库扣，反悔不消耗", () => {
+  it("基地吃掉立刻消耗，加成写进存档等下一次出发", () => {
     const catalog = fixture();
-    const base: GameState = { ...createInitialState(), inventory: { chocolate: 1 } };
-    const launched = startExpedition(base, { mapId: "map-1", petIds: [PET], foodItemId: "chocolate" }, 1, catalog);
-    expect(launched.inventory.chocolate ?? 0).toBe(0);
-    expect(launched.expeditions[0].foodBuff).toMatchObject({ stat: "fitness", amount: 2 });
-    // 原状态没被改动，等于玩家退回上一步时食物还在
-    expect(base.inventory.chocolate).toBe(1);
+    const base: GameState = { ...createInitialState(), inventory: { chocolate: 2 } };
+    const eaten = eatWarehouseFood(base, "chocolate", 5, catalog);
+    expect(eaten.inventory.chocolate).toBe(1);
+    expect(eaten.foodBuff).toEqual({ itemId: "chocolate", stat: "fitness", amount: 2 });
+    // 原状态没被改动
+    expect(base.inventory.chocolate).toBe(2);
+    expect(base.foodBuff).toBeUndefined();
   });
 
-  it("出发前选一份没有 buff 的食物会被拦下，而不是白白吃掉", () => {
+  it("基地吃掉的是快照：之后改配表不影响已经吃下去的那份", () => {
+    const catalog = fixture();
+    const eaten = eatWarehouseFood({ ...createInitialState(), inventory: { chocolate: 1 } }, "chocolate", 5, catalog);
+    catalog.items.chocolate.foodBuff = { stat: "fitness", amount: 99 };
+    const launched = startExpedition(eaten, { mapId: "map-1", petIds: [PET] }, 5, catalog);
+    expect(launched.expeditions[0].foodBuff).toEqual({ itemId: "chocolate", stat: "fitness", amount: 2 });
+  });
+
+  it("出发时把存档上那份加成领走：只顶一趟，存档里随即清空", () => {
+    const catalog = fixture();
+    const eaten = eatWarehouseFood({ ...createInitialState(), inventory: { chocolate: 2 } }, "chocolate", 5, catalog);
+    const launched = startExpedition(eaten, { mapId: "map-1", petIds: [PET] }, 5, catalog);
+    expect(launched.expeditions[0].foodBuff).toMatchObject({ stat: "fitness", amount: 2 });
+    expect(launched.foodBuff).toBeUndefined();
+    // 第二趟（另一只宠物）不再带上那份加成，剩下的那份还在仓库里等玩家自己吃
+    const second = { ...launched, pets: { ...launched.pets, "pet-b": { ...structuredClone(launched.pets[PET]), id: "pet-b", name: "队友乙" } } };
+    const again = startExpedition(second, { mapId: "map-1", petIds: ["pet-b"] }, 5, catalog);
+    expect(again.expeditions[1].foodBuff).toBeUndefined();
+    expect(again.inventory.chocolate).toBe(1);
+  });
+
+  it("出发失败（超格）时加成留在存档里，不会被吃掉", () => {
+    const catalog = fixture();
+    const base: GameState = { ...createInitialState(), inventory: { "canned-food": 200, chocolate: 1 } };
+    const eaten = eatWarehouseFood(base, "chocolate", 5, catalog);
+    expect(() => startExpedition(eaten, { mapId: "map-1", petIds: [PET], cargo: { "canned-food": 200 } }, 5, catalog))
+      .toThrow(/超过队伍背包上限/);
+    expect(eaten.foodBuff).toMatchObject({ stat: "fitness", amount: 2 });
+  });
+
+  it("没有属性加成的纯治疗食物不能走这条路，也不会白白消耗", () => {
     const catalog = fixture();
     const base: GameState = { ...createInitialState(), inventory: { "canned-food": 1 } };
-    expect(() => startExpedition(base, { mapId: "map-1", petIds: [PET], foodItemId: "canned-food" }, 1, catalog))
-      .toThrow(/没有出发前可用的效果/);
+    expect(() => eatWarehouseFood(base, "canned-food", 5, catalog)).toThrow(/没有出发前的属性加成/);
+    expect(base.inventory["canned-food"]).toBe(1);
+    expect(createInitialState().foodBuff).toBeUndefined();
   });
 });
 

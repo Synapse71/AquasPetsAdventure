@@ -89,6 +89,11 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
       {hurt && <img src={icon('stat-injury')} alt="" />}<span title={injuryText}>{injuryText}</span>
       {hurt && <button className="ps-heal" disabled={away || game.currency < healCost} title={away ? '回到基地后才能治疗' : game.currency < healCost ? '通用货币不足' : '立即完全恢复正常'} onClick={() => run(state => healPet(state, pet.id))}>治疗 <Coin amount={healCost} /></button>}
     </div>
+    {/* 食物 buff 挂在存档上、下一次出发才生效，所以在状态页也用一行说清楚。 */}
+    {game.foodBuff && <div className="ps-food" data-testid="pending-food-buff">
+      <img src={icon(`stat-${game.foodBuff.stat}`)} alt="" />
+      <span>食物buff：<b>{STAT_LABELS[game.foodBuff.stat]} +{game.foodBuff.amount}</b>，下一次出发生效</span>
+    </div>}
     <div className="ps-primary-heading"><h3>主属性</h3>{hurt && <span className="ps-multiplier">伤势 ×{multiplier}</span>}<span className="ps-points"><b data-testid="available-points">{number(available)}</b> 点待分配</span>
       <button className="ps-reset" disabled={!allocated || pending > 0 || askingReset} title={pending ? '请先确认或撤销加点' : !allocated ? '没有已分配的属性点' : `本次费用 ${number(cost)}`} onClick={() => setDraft({ basis: statusDraftBasis(game, pet), mode: 'reset', points: emptyPoints() })}>重置属性点</button>
     </div>

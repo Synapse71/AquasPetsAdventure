@@ -96,7 +96,7 @@ try {
   })()`);
   await click('.ap-footer .ap-primary');
   const launched=await stored();
-  assert(launched.expeditions[0].arriveAt-launched.expeditions[0].startedAt===30000,'real engine schedules the first leg for 30 seconds');
+  assert(launched.expeditions[0].arriveAt-launched.expeditions[0].startedAt===15000,'real engine schedules the first leg for 15 seconds');
   await waitFor("document.querySelector('.pet-hit canvas').dataset.pose==='start-explore'");
   assert(await folded(),'dispatch does not force a persistent travel overlay');
   await shot('01-departure');

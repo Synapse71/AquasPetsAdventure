@@ -135,13 +135,18 @@ try {
   assert(await evaluate(`document.querySelector('.pet-panel-host').hidden`), 'reload starts with panels folded');
   await click('.pet-hit'); await click('.pet-bubbles button[aria-label="行动"]');
   assert(await evaluate(`document.querySelector('.window-adventure .ap-pet-card').getAttribute('aria-pressed')==='true'`), 'unconfirmed dispatch selection survives reload');
-  for (let step = 0; step < 4; step++) await click('.window-adventure .ap-footer .ap-primary');
-  assert(await evaluate(`document.querySelector('.window-adventure').textContent.includes('行进中')`), 'dispatch calls the real engine and opens the expedition');
+  await click('.window-adventure .ap-footer .ap-primary'); // Map selection.
+  await click('.window-adventure .ap-footer .ap-primary'); // Entrance selection.
+  assert(await evaluate(`document.querySelector('.window-adventure .ap-footer .ap-primary').disabled`), 'entrance selection is required before loadout');
+  await click('.ap-map-anchor.pickable .ap-map-node');
+  await click('.window-adventure .ap-footer .ap-primary'); // Loadout.
+  await click('.window-adventure .ap-footer .ap-primary'); // Dispatch.
+  assert(await evaluate(`!!document.querySelector('.window-adventure .ap-travel') && JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1')).expeditions.some(e => e.phase === 'traveling')`), 'dispatch calls the real engine and opens the expedition');
   await shot('04-adventure');
   await evaluate(`window.dispatchEvent(new Event('blur'))`); await sleep(300);
   await waitFor(`!!document.querySelector('.pet-bulb')`);
   await click('.pet-bulb');
-  assert(await evaluate(`!!document.querySelector('.window-adventure .ap-choices') && document.querySelector('.window-adventure').textContent.includes('选择下一条路线')`), 'bulb prioritizes expedition decisions');
+  assert(await evaluate(`!!document.querySelector('.window-adventure .ap-route-choices') && JSON.parse(localStorage.getItem('idle-pet-adventure.demo.v1')).expeditions.some(e => e.phase === 'awaiting-route')`), 'bulb prioritizes expedition decisions');
   await evaluate(`window.dispatchEvent(new Event('blur'))`); await sleep(300);
   await click('.pet-hit'); await click('.pet-bubbles button[aria-label="设置"]');
   assert(await evaluate(`Array.from(document.querySelectorAll('.window-settings button')).some(b => b.textContent === '退出游戏')`), 'settings includes quit');

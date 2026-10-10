@@ -48,6 +48,8 @@ assets/**/*-status.json
 !/assets/maps/
 !/assets/maps/mat-white-hn-2.png
 !/assets/maps/mat-white-lock-2.png
+!/assets/maps/ue15-review-2026-09-28/
+!/assets/maps/ue15-review-2026-09-28/explorer-foothills-selected.png
 !/assets/ui-prototype/
 !/assets/ui-prototype/icons/
 !/assets/ui-prototype/icons/status.png

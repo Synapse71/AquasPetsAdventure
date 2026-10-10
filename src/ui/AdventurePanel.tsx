@@ -1,25 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { catalog } from '../domain/catalog';
-import { cargoCapacity, cargoSlotCapacity, completeTask, dismissSettlement, GameRuleError, inventorySlots, inventoryWeight, itemStackSize, overloadPenalty, INJURY_LABELS, mapIsCleared, MAX_TEAM_PETS, petEffectiveStats, petSecondaryStat, petTags, SECONDARY_STAT_LABELS, startExpedition, taskCanComplete, taskIsAvailable, taskRewardFitsWarehouse } from '../domain/engine';
+import { applySecondaryGrantItem, applyTagItem, cargoCapacity, cargoSlotCapacity, completeTask, dismissSettlement, eatWarehouseFood, GameRuleError, healPetWithFood, inventorySlots, inventoryWeight, itemStackSize, overloadPenalty, INJURY_LABELS, mapIsCleared, MAX_TEAM_PETS, petEffectiveStats, petSecondaryStat, petTags, SECONDARY_STAT_LABELS, startExpedition, taskCanComplete, taskIsAvailable, taskRewardFitsWarehouse } from '../domain/engine';
 import { PLAYER_MILESTONE_LABELS } from '../domain/milestones';
 import type { Expedition, GameState, Inventory, SecondaryStatKey, Settlement, StatKey } from '../domain/types';
 import { AdventureItems } from './AdventureItems';
 import { AdventureMap } from './AdventureMap';
 import { ExpeditionView } from './ExpeditionView';
 import { PetPortrait } from './PetPortrait';
+import { ItemUseDialog } from './ItemUseDialog';
 import { changeQuantity, isInventory, latestUnlockedMapId, STAT_LABELS, subtract, timeLabel } from './adventureModel';
-import { saleValue } from './inventoryPanelModel';
+import { foodUseBasis, saleValue, useBasis, useBlockReason } from './inventoryPanelModel';
 import { itemTagLabel } from '../domain/itemTags';
 import { useUIState } from './uiState';
 import './adventurePanel.css';
 import './adventurePrototype.css';
 
 type Run = (action: (state: GameState) => GameState) => boolean;
-interface View { tab: 'explore' | 'tasks'; screen: 'overview' | 'prepare' | 'expedition' | 'report'; step: number; mapId: string; petIds: string[]; cargo: Inventory; foodItemId: string; expeditionId: string; reportId: string }
+interface View { tab: 'explore' | 'tasks'; screen: 'overview' | 'prepare' | 'expedition' | 'report'; step: number; mapId: string; petIds: string[]; cargo: Inventory; expeditionId: string; reportId: string }
 const isView = (v: unknown): v is View => {
   if (!v || typeof v !== 'object') return false;
   const s = v as View;
-  return ['explore', 'tasks'].includes(s.tab) && ['overview', 'prepare', 'expedition', 'report'].includes(s.screen) && Number.isInteger(s.step) && s.step >= 0 && s.step <= 3 && typeof s.mapId === 'string' && Array.isArray(s.petIds) && s.petIds.length <= MAX_TEAM_PETS && s.petIds.every(id => typeof id === 'string') && new Set(s.petIds).size === s.petIds.length && isInventory(s.cargo) && typeof s.foodItemId === 'string' && typeof s.expeditionId === 'string' && typeof s.reportId === 'string';
+  return ['explore', 'tasks'].includes(s.tab) && ['overview', 'prepare', 'expedition', 'report'].includes(s.screen) && Number.isInteger(s.step) && s.step >= 0 && s.step <= 3 && typeof s.mapId === 'string' && Array.isArray(s.petIds) && s.petIds.length <= MAX_TEAM_PETS && s.petIds.every(id => typeof id === 'string') && new Set(s.petIds).size === s.petIds.length && isInventory(s.cargo) && typeof s.expeditionId === 'string' && typeof s.reportId === 'string';
 };
 const steps = ['选择伙伴', '选择地图', '确认入口', '携带物品'];
 const phaseNames = { traveling: '行进中', 'awaiting-event': '处理事件', 'awaiting-route': '选择路线', extraction: '撤离整理' };
@@ -33,28 +34,28 @@ function TaskView({ game, run }: { game: GameState; run: Run }) {
 
 export function AdventurePanel({ game, now, run, onClose, intent }: { game: GameState; now: number; run: Run; onClose: () => void; intent?: { tab: 'active' | 'tasks'; key: number; expeditionId?: string } }) {
   const newestMapId = latestUnlockedMapId(game.unlockedMapIds);
-  const [view, setView] = useUIState<View>('action-view', { tab: 'explore', screen: game.expeditions.length ? 'overview' : 'prepare', step: 0, mapId: newestMapId, petIds: [], cargo: {}, foodItemId: '', expeditionId: '', reportId: '' }, isView);
+  const [view, setView] = useUIState<View>('action-view', { tab: 'explore', screen: game.expeditions.length ? 'overview' : 'prepare', step: 0, mapId: newestMapId, petIds: [], cargo: {}, expeditionId: '', reportId: '' }, isView);
   const [eventSnapshot, setEventSnapshot] = useState<Expedition>();
   const [entryMap, setEntryMap] = useUIState('action-entry-map', '', (v): v is string => typeof v === 'string');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [sorted, setSorted] = useState(false);
   const [message, setMessage] = useState('');
+  const [useDialog, setUseDialog] = useState<{ id: string; source: 'inventory' | 'cargo'; petId: string; basis: string } | null>(null);
+  const [foodConfirm, setFoodConfirm] = useState<{ id: string; source: 'inventory' | 'cargo'; basis: string } | null>(null);
   const update = (patch: Partial<View>) => setView(v => ({ ...v, ...patch }));
   useEffect(() => { if (intent) setView(v => ({ ...v, tab: intent.tab === 'tasks' ? 'tasks' : 'explore', screen: intent.tab === 'active' ? 'expedition' : v.screen, expeditionId: intent.expeditionId ?? game.expeditions.find(e => e.phase !== 'traveling')?.id ?? v.expeditionId })); }, [intent, setView]);
   const busy = new Set(game.expeditions.flatMap(e => e.petIds));
   const pets = view.petIds.filter(id => game.pets[id] && !busy.has(id) && game.pets[id].injury !== 'incapacitated');
   const mapId = catalog.maps[view.mapId] ? view.mapId : newestMapId;
   const cargo = Object.fromEntries(Object.entries(view.cargo).filter(([id, q]) => !!catalog.items[id] && q > 0 && (game.inventory[id] ?? 0) >= q));
-  // 出发前只能选有 foodBuff 的食物：治疗类在基地用背包面板，途中用探险背包。
-  const foodChoices = Object.entries(game.inventory).filter(([id, q]) => q > 0 && catalog.items[id]?.foodBuff).map(([id]) => id);
-  const foodItemId = foodChoices.includes(view.foodItemId) ? view.foodItemId : '';
-  const selectionStale = pets.length !== view.petIds.length || JSON.stringify(cargo) !== JSON.stringify(view.cargo) || foodItemId !== view.foodItemId;
-  useEffect(() => { if (selectionStale) { setView(v => ({ ...v, petIds: pets, cargo, foodItemId })); setMessage('部分伙伴、携带物品或食物已不可用，已从出发草稿移除。'); } }, [selectionStale, JSON.stringify(pets), JSON.stringify(cargo), foodItemId, setView]);
+  const selectionStale = pets.length !== view.petIds.length || JSON.stringify(cargo) !== JSON.stringify(view.cargo);
+  useEffect(() => { if (selectionStale) { setView(v => ({ ...v, petIds: pets, cargo })); setMessage('部分伙伴或携带物品已不可用，已从出发草稿移除。'); } }, [selectionStale, JSON.stringify(pets), JSON.stringify(cargo), setView]);
+  // 基地吃下的食物加成挂在存档上，出发时由 startExpedition 领走，所以这里只预览不给食物入参。
   const preview = useMemo(() => {
-    try { const state = startExpedition(game, { mapId, petIds: pets, cargo, foodItemId: foodItemId || undefined }, 0); return { expedition: state.expeditions.at(-1)!, error: '' }; }
+    try { const state = startExpedition(game, { mapId, petIds: pets, cargo }, 0); return { expedition: state.expeditions.at(-1)!, error: '' }; }
     catch (e) { return { error: e instanceof Error ? e.message : '无法出发' }; }
-  }, [game, mapId, JSON.stringify(pets), JSON.stringify(cargo), foodItemId]);
+  }, [game, mapId, JSON.stringify(pets), JSON.stringify(cargo)]);
   // 仅供容量展示，不模拟奖励或随机事件。
   const previewExpedition = preview.expedition ?? { petIds: pets, cargo } as Expedition;
   const ended = game.settlements.find(s => s.expeditionId === view.expeditionId);
@@ -73,8 +74,8 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
   };
   const start = () => {
     let id = '';
-    if (run(state => { const next = startExpedition(state, { mapId, petIds: pets, cargo, foodItemId: foodItemId || undefined }); id = next.expeditions.at(-1)!.id; return next; })) {
-      update({ screen: 'expedition', expeditionId: id, petIds: [], cargo: {}, foodItemId: '', step: 0 }); setMessage('');
+    if (run(state => { const next = startExpedition(state, { mapId, petIds: pets, cargo }); id = next.expeditions.at(-1)!.id; return next; })) {
+      update({ screen: 'expedition', expeditionId: id, petIds: [], cargo: {}, step: 0 }); setMessage('');
     }
   };
   const allMaps = Object.values(catalog.maps), firstLockedMap = allMaps.find(m => !game.unlockedMapIds.includes(m.id));
@@ -86,14 +87,64 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
   const filteredInventory = Object.fromEntries(Object.entries(inv).filter(([id]) => (filter === 'all' || catalog.items[id].tags?.includes(filter)) && catalog.items[id].name.includes(search.trim())).sort((a,b) => sorted ? (catalog.items[b[0]].sellValue ?? 0) - (catalog.items[a[0]].sellValue ?? 0) : 0));
   const cargoRoom = (id: string) => { const stack = itemStackSize(id), held = cargo[id] ?? 0; return (held % stack ? stack - held % stack : 0) + Math.max(0,cargoSlotCapacity(game,previewExpedition)-inventorySlots(cargo))*stack; };
   const moveCargo = (id: string, q: number, add: boolean) => {
-    const available = add ? (game.inventory[id] ?? 0) - (cargo[id] ?? 0) : cargo[id] ?? 0;
+    const available = add ? (inv[id] ?? 0) : cargo[id] ?? 0;
     const next = changeQuantity(cargo, id, Math.min(q, available) * (add ? 1 : -1));
     if (add && inventorySlots(next) > cargoSlotCapacity(game, previewExpedition)) { setMessage('背包格子不足，请减少携带数量。'); return; }
     update({ cargo: next }); setMessage('');
   };
+  /**
+   * 行前吃掉一份带属性加成的食物：立刻从仓库扣一份，加成写进存档等这一趟出发时领走。
+   * 所以退回上一步也不会白费——加成还挂在存档里。
+   * 存档里已经有一份时先确认覆盖（同一份食物再点一次也一样，覆盖不会让它更强）。
+   */
+  const eatBuffFood = (id: string, source: 'inventory' | 'cargo') => {
+    if (source === 'inventory' ? !(inv[id] ?? 0) : !(cargo[id] ?? 0)) return;
+    if (game.foodBuff) { setFoodConfirm({ id, source, basis: foodUseBasis(game, id) }); return; }
+    commitEat(id, source);
+  };
+  const commitEat = (id: string, source: 'inventory' | 'cargo') => {
+    if (source === 'cargo' && !cargo[id]) return;
+    if (!run(state => eatWarehouseFood(state, id))) return;
+    // 背包那一份是出发草稿：吃掉的要从草稿里拿走，否则出发时会按旧数量提交。
+    if (source === 'cargo') update({ cargo: changeQuantity(cargo, id, -1) });
+    setFoodConfirm(null);
+    setMessage(`吃下了${catalog.items[id]?.name}，加成下一次出发时生效。`);
+  };
+  const useLoadoutItem = (id: string, source: 'inventory' | 'cargo') => {
+    const item = catalog.items[id];
+    if (!item) return;
+    if (item.foodBuff) eatBuffFood(id, source);
+    else if (item.secondaryGrant || item.tagGrantId || item.foodHeal) {
+      setUseDialog({ id, source, petId: '', basis: useBasis(game, id) });
+    }
+  };
+  const quickUseLoadoutItem = (id: string, source: 'inventory' | 'cargo') => {
+    const item = catalog.items[id];
+    if (item?.foodBuff || item?.secondaryGrant) { useLoadoutItem(id, source); return; }
+    if (!item?.foodHeal) return;
+    const target = Object.values(game.pets).filter(pet => !busy.has(pet.id) && pet.injury !== 'healthy')
+      .sort((a, b) => (b.injury === 'incapacitated' ? 2 : 1) - (a.injury === 'incapacitated' ? 2 : 1))[0];
+    if (!target) { setMessage('没有需要治疗的伙伴。'); return; }
+    if (source === 'inventory' ? !(inv[id] ?? 0) : !(cargo[id] ?? 0)) return;
+    if (run(state => healPetWithFood(state, target.id, id))) {
+      if (source === 'cargo') update({ cargo: changeQuantity(cargo, id, -1) });
+      setMessage(`${target.name}已使用${item.name}`);
+    }
+  };
+  const commitUse = () => {
+    if (!useDialog || useDialog.basis !== useBasis(game, useDialog.id)) { setUseDialog(null); setMessage('物品或伙伴状态已变化，请重新选择。'); return; }
+    const { id, source, petId } = useDialog;
+    const pet = game.pets[petId];
+    if (!pet || useBlockReason(pet, id, game) || (source === 'inventory' ? !(inv[id] ?? 0) : !(cargo[id] ?? 0))) return;
+    const item = catalog.items[id];
+    if (run(state => item.secondaryGrant ? applySecondaryGrantItem(state, petId, id) : item.tagGrantId ? applyTagItem(state, petId, id) : healPetWithFood(state, petId, id))) {
+      if (source === 'cargo') update({ cargo: changeQuantity(cargo, id, -1) });
+      setUseDialog(null); setMessage(`${item.name}已使用`);
+    }
+  };
   return <div className="adventure-panel" data-testid="adventure-panel">
     <header className="ap-header"><h1 id="window-title-adventure">{view.tab === 'tasks' || screen === 'overview' || (screen === 'prepare' && view.step === 0) ? '行动' : '探险'}</h1>{(view.tab === 'tasks' || screen === 'overview' || (screen === 'prepare' && view.step === 0)) && <div className="ap-tabs" role="tablist"><button role="tab" aria-selected={view.tab === 'explore'} onClick={() => update({ tab: 'explore' })}>探险</button><button role="tab" aria-selected={view.tab === 'tasks'} onClick={() => update({ tab: 'tasks' })}>任务{taskCount ? ` · ${taskCount}` : ''}</button></div>}{view.tab === 'explore' && screen === 'prepare' && <nav className="ap-steps" aria-label="出发准备">{steps.map((label,i) => <span key={label} aria-label={label} aria-current={i === view.step ? 'step' : undefined} className={i === view.step ? 'current' : i < view.step ? 'done' : ''} />)}</nav>}<button className="ap-overview" onClick={() => update({ screen: 'overview', tab: 'explore' })}>队伍概览{game.expeditions.length ? ` · ${game.expeditions.length}` : ''}</button><button className="ap-close" aria-label="关闭行动" onClick={onClose}>×</button></header>
-    {view.tab === 'tasks' ? <TaskView game={game} run={run} /> : screen === 'expedition' && expedition ? <ExpeditionView key={expedition.id} game={game} expedition={expedition} now={now} run={run} onFinished={goReport} onDeciding={setEventSnapshot} /> : screen === 'report' && report ? <><div className="ap-body ap-report"><div className="ap-report-heading"><h2>{report.outcome === 'success' ? '冒险成功' : '队伍溃败'}</h2><p>{report.petIds.map(id => game.pets[id]?.name ?? id).join('、')} · 每只伙伴获得 {report.xpAward} 经验</p></div>{report.outcome === 'success' ? <><div className="ap-sec-h">入库战利品</div><AdventureItems inventory={report.cargo} rows metric="value" empty="（没有入库物品）" />{!!Object.keys(report.firstExtractionRewards ?? {}).length && <><div className="ap-sec-h">首次撤离奖励</div><AdventureItems inventory={report.firstExtractionRewards!} rows metric="value" /></>}</> : <p className="ap-description">{report.lastResolution?.summary ?? report.summary}</p>}<div className="ap-report-rows"><div><span>入库战利品价值</span><b>{saleValue(report.cargo)+saleValue(report.firstExtractionRewards??{})}</b></div><div><span>就地售卖所得</span><b>{report.saleRevenue ?? 0}</b></div><div className="total"><span>总计收益</span><b>{saleValue(report.cargo)+saleValue(report.firstExtractionRewards??{})+(report.saleRevenue??0)}</b></div><div><span>每只伙伴经验</span><b>+{report.xpAward}</b></div><div><span>伤势</span><b>{report.petIds.map(id => game.pets[id] ? `${game.pets[id].name} · ${INJURY_LABELS[game.pets[id].injury]}` : id).join('、')}</b></div></div></div><footer className="ap-footer"><span>结果已结算，关闭不会影响奖励</span><button className="ap-primary" onClick={() => { if (run(s => dismissSettlement(s, report.id))) update({ screen: 'overview', reportId: '' }); }}>关闭战报</button></footer></> : screen === 'overview' ? <><div className="ap-body"><div className="ap-section-heading"><div><h2>伙伴的旅程</h2><p>查看在外队伍，或组织下一次探险。</p></div></div><div className="ap-team-list">{game.expeditions.map(e => <button key={e.id} onClick={() => update({ screen: 'expedition', expeditionId: e.id })}><span><strong>{e.petIds.map(id => game.pets[id]?.name).join('、')}</strong><small>{catalog.maps[e.mapId]?.name} · {catalog.maps[e.mapId]?.nodes[e.currentNodeId ?? e.targetNodeId]?.name}</small></span><em>{e.phase === 'traveling' ? `行进中 · ${timeLabel(e.arriveAt - now)}` : `${e.pendingLoot!==undefined?'拾取战利品':phaseNames[e.phase]} →`}</em></button>)}</div>{!game.expeditions.length && <div className="ap-empty"><span>⚑</span><h3>当前没有在外探险的队伍</h3><p>选好伙伴，开始新的旅程。</p></div>}{!!game.settlements.length && <><h3>最近战报</h3><div className="ap-team-list">{game.settlements.map(s => <button key={s.id} onClick={() => goReport(s)}><span>{s.petIds.map(id => game.pets[id]?.name).join('、')} · {s.outcome === 'success' ? '成功撤离' : '溃败'}</span><em>查看 →</em></button>)}</div></>}</div><footer className="ap-footer"><span>每支队伍最多 {MAX_TEAM_PETS} 名伙伴</span><button className="ap-primary" onClick={() => update({ screen: 'prepare' })}>准备出发</button></footer></> : <>
+    {view.tab === 'tasks' ? <TaskView game={game} run={run} /> : screen === 'expedition' && expedition ? <ExpeditionView key={expedition.id} game={game} expedition={expedition} now={now} run={run} onFinished={goReport} onDeciding={setEventSnapshot} /> : screen === 'report' && report ? <><div className="ap-body ap-report"><div className="ap-report-heading"><h2>{report.outcome === 'success' ? '冒险成功' : '队伍溃败'}</h2><p>{report.petIds.map(id => game.pets[id]?.name ?? id).join('、')} · 每只伙伴获得 {report.xpAward} 经验</p></div>{report.outcome === 'success' ? <><div className="ap-sec-h">入库战利品</div><AdventureItems inventory={report.cargo} rows metric="value" empty="（没有入库物品）" />{!!Object.keys(report.firstExtractionRewards ?? {}).length && <><div className="ap-sec-h">首次撤离奖励</div><AdventureItems inventory={report.firstExtractionRewards!} rows metric="value" /></>}</> : <p className="ap-description">{report.lastResolution?.summary ?? report.summary}</p>}<div className="ap-report-rows"><div><span>入库战利品价值</span><b>{saleValue(report.cargo)+saleValue(report.firstExtractionRewards??{})}</b></div><div><span>就地售卖所得</span><b>{report.saleRevenue ?? 0}</b></div><div className="total"><span>总计收益</span><b>{saleValue(report.cargo)+saleValue(report.firstExtractionRewards??{})+(report.saleRevenue??0)}</b></div><div><span>每只伙伴经验</span><b>+{report.xpAward}</b></div><div><span>伤势</span><b>{report.petIds.map(id => game.pets[id] ? `${game.pets[id].name} · ${INJURY_LABELS[game.pets[id].injury]}` : id).join('、')}</b></div></div></div><footer className="ap-footer"><span>结果已结算，关闭不会影响奖励</span><button className="ap-primary" onClick={() => { if (run(s => dismissSettlement(s, report.id))) update({ screen: 'overview', reportId: '' }); }}>关闭战报</button></footer></> : screen === 'overview' ? <><div className="ap-body"><div className="ap-section-heading"><div><h2>伙伴的旅程</h2><p>查看在外队伍，或组织下一次探险。</p></div></div>{game.foodBuff && <p className="ap-food-pick" data-testid="overview-food-buff">食物buff：{STAT_LABELS[game.foodBuff.stat]} +{game.foodBuff.amount}，下一次出发生效（来自{catalog.items[game.foodBuff.itemId]?.name ?? game.foodBuff.itemId}）</p>}<div className="ap-team-list">{game.expeditions.map(e => <button key={e.id} onClick={() => update({ screen: 'expedition', expeditionId: e.id })}><span><strong>{e.petIds.map(id => game.pets[id]?.name).join('、')}</strong><small>{catalog.maps[e.mapId]?.name} · {catalog.maps[e.mapId]?.nodes[e.currentNodeId ?? e.targetNodeId]?.name}</small></span><em>{e.phase === 'traveling' ? `行进中 · ${timeLabel(e.arriveAt - now)}` : `${e.pendingLoot!==undefined?'拾取战利品':phaseNames[e.phase]} →`}</em></button>)}</div>{!game.expeditions.length && <div className="ap-empty"><span>⚑</span><h3>当前没有在外探险的队伍</h3><p>选好伙伴，开始新的旅程。</p></div>}{!!game.settlements.length && <><h3>最近战报</h3><div className="ap-team-list">{game.settlements.map(s => <button key={s.id} onClick={() => goReport(s)}><span>{s.petIds.map(id => game.pets[id]?.name).join('、')} · {s.outcome === 'success' ? '成功撤离' : '溃败'}</span><em>查看 →</em></button>)}</div></>}</div><footer className="ap-footer"><span>每支队伍最多 {MAX_TEAM_PETS} 名伙伴</span><button className="ap-primary" onClick={() => update({ screen: 'prepare' })}>准备出发</button></footer></> : <>
       <div className={`ap-body ap-prepare ap-prepare-${view.step}`}>
         {view.step === 0 ? <><div className="ap-sec-h">选择要派遣的宠物</div><div className="ap-pet-grid">{Object.values(game.pets).map(pet => {
           const selected = pets.includes(pet.id), disabled = busy.has(pet.id) || pet.injury === 'incapacitated' || (!selected && pets.length >= MAX_TEAM_PETS), stats = petEffectiveStats(pet);
@@ -103,25 +154,14 @@ export function AdventurePanel({ game, now, run, onClose, intent }: { game: Game
           <AdventureMap key={mapId} game={game} mapId={mapId} petIds={pets} dots={mapDots} />
           <button className="ap-carousel-arrow" aria-label="下一张地图" disabled={mapIndex === availableMaps.length-1} onClick={() => {update({mapId:availableMaps[mapIndex+1].id});setEntryMap('');}}><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
         </div> : view.step === 2 ? <div className="ap-carousel ap-entry-carousel"><span className="ap-carousel-spacer"/><AdventureMap key={mapId} game={game} mapId={mapId} petIds={pets} picking picked={entryMap === mapId} onPick={() => setEntryMap(mapId)}/><span className="ap-carousel-spacer"/></div> : <div className="ap-transfer ap-loadout">
-          <section><h3>库存 <span>{inventorySlots(inv)} / {game.warehouseSlots} 格</span></h3><div className="ap-loadout-tools"><input type="search" aria-label="搜索物品名称" placeholder="搜索物品名称" value={search} onChange={e => setSearch(e.target.value)}/><button onClick={() => setSorted(true)}>整理</button></div><div className="ap-loadout-filter">{['all',...tags].map(tag => <button key={tag} aria-pressed={filter === tag} onClick={() => setFilter(tag)}>{tag === 'all' ? '全部' : itemTagLabel(tag)}</button>)}</div><AdventureItems inventory={filteredInventory} slots={game.warehouseSlots} onPick={(id,q) => moveCargo(id,q,true)} room={cargoRoom}/></section>
-          <section className="ap-bag-col"><h3>探险背包 <span>{inventorySlots(cargo)} / {cargoSlotCapacity(game,previewExpedition)} 格</span></h3><div className="ap-loadout-tools"><div className={`ap-weight${inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? ' over' : ''}`}><span>负重</span><i><b style={{width:`${Math.min(100,inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition))*100)}%`}}/></i><span>{inventoryWeight(cargo)} / {cargoCapacity(game,previewExpedition)}</span></div><button onClick={() => update({cargo:Object.fromEntries(Object.entries(cargo).sort(([a],[b]) => (catalog.items[b].sellValue??0)-(catalog.items[a].sellValue??0)))})}>整理</button></div><AdventureItems inventory={cargo} slots={cargoSlotCapacity(game,previewExpedition)} onPick={(id,q) => moveCargo(id,q,false)}/>
-            <div className="ap-food-pick">
-              <label htmlFor="ap-food-select">出发前吃</label>
-              <select id="ap-food-select" value={foodItemId} onChange={e => update({ foodItemId: e.target.value })}>
-                <option value="">不吃</option>
-                {foodChoices.map(id => {
-                  const buff = catalog.items[id].foodBuff!;
-                  return <option key={id} value={id}>{catalog.items[id].name} · {STAT_LABELS[buff.stat]} +{buff.amount}</option>;
-                })}
-              </select>
-              {/* 吃掉的真实代价是放弃售价，直接写出来，不用玩家自己去背包查。 */}
-              <em>{foodItemId
-                ? `整趟有效 · 放弃售价 ${catalog.items[foodItemId].sellValue ?? 0}`
-                : foodChoices.length ? '整趟冒险有效，同时只能有一个' : '仓库里没有能吃的食物'}</em>
-            </div></section>
+          <section><h3>库存 <span>{inventorySlots(inv)} / {game.warehouseSlots} 格</span></h3><div className="ap-loadout-tools"><input type="search" aria-label="搜索物品名称" placeholder="搜索物品名称" value={search} onChange={e => setSearch(e.target.value)}/><button onClick={() => setSorted(true)}>整理</button></div><div className="ap-loadout-filter">{['all',...tags].map(tag => <button key={tag} aria-pressed={filter === tag} onClick={() => setFilter(tag)}>{tag === 'all' ? '全部' : itemTagLabel(tag)}</button>)}</div><AdventureItems inventory={filteredInventory} slots={game.warehouseSlots} onPick={(id,q) => moveCargo(id,q,true)} onUse={id => useLoadoutItem(id,'inventory')} onQuickUse={id => quickUseLoadoutItem(id,'inventory')} transferLabel="放入背包" room={cargoRoom}/></section>
+          <section className="ap-bag-col"><h3>探险背包 <span>{inventorySlots(cargo)} / {cargoSlotCapacity(game,previewExpedition)} 格</span></h3><div className="ap-loadout-tools"><div className={`ap-weight${inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? ' over' : ''}`}><span>负重</span><i><b style={{width:`${Math.min(100,inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition))*100)}%`}}/></i><span>{inventoryWeight(cargo)} / {cargoCapacity(game,previewExpedition)}</span></div><button onClick={() => update({cargo:Object.fromEntries(Object.entries(cargo).sort(([a],[b]) => (catalog.items[b].sellValue??0)-(catalog.items[a].sellValue??0)))})}>整理</button></div><AdventureItems inventory={cargo} slots={cargoSlotCapacity(game,previewExpedition)} onPick={(id,q) => moveCargo(id,q,false)} onUse={id => useLoadoutItem(id,'cargo')} onQuickUse={id => quickUseLoadoutItem(id,'cargo')} transferLabel="放入仓库"/>
+            {game.foodBuff && <p className="ap-food-pick">食物buff：{STAT_LABELS[game.foodBuff.stat]} +{game.foodBuff.amount}，整次探险有效</p>}</section>
         </div>}
         {message && <p className="ap-warning" role="status">{message}</p>}{view.step === 3 && preview.error && <p className="ap-warning">{preview.error}</p>}
-      </div><footer className="ap-footer"><span>{message || (view.step === 0 ? pets.length ? `已选择 ${pets.length} / ${MAX_TEAM_PETS} 只宠物` : '请选择至少一只宠物' : view.step === 3 ? preview.error || (inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? `超载，事件风险 +${overloadPenalty(inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition)))}` : '左键移动单个物品　右键移动整格堆叠物品') : '')}</span>{view.step > 0 && <button onClick={() => update({ step: view.step - 1 })}>上一步</button>}<button className="ap-primary" disabled={!pets.length || (view.step >= 1 && !game.unlockedMapIds.includes(mapId)) || (view.step === 2 && entryMap !== mapId) || (view.step === 3 && !!preview.error)} onClick={() => view.step < 3 ? nextPreparationStep() : start()}>{['选择探险地图','选择起始点','行前整备','开始探索'][view.step]}</button></footer>
+      </div><footer className="ap-footer"><span>{message || (view.step === 0 ? pets.length ? `已选择 ${pets.length} / ${MAX_TEAM_PETS} 只宠物` : '请选择至少一只宠物' : view.step === 3 ? preview.error || (inventoryWeight(cargo) > cargoCapacity(game,previewExpedition) ? `超载，事件风险 +${overloadPenalty(inventoryWeight(cargo)/Math.max(1,cargoCapacity(game,previewExpedition)))}` : '左键打开菜单 · Ctrl+左键放入单件 · Shift+左键放入整组') : '')}</span>{view.step > 0 && <button onClick={() => update({ step: view.step - 1 })}>上一步</button>}<button className="ap-primary" disabled={!pets.length || (view.step >= 1 && !game.unlockedMapIds.includes(mapId)) || (view.step === 2 && entryMap !== mapId) || (view.step === 3 && !!preview.error)} onClick={() => view.step < 3 ? nextPreparationStep() : start()}>{['选择探险地图','选择起始点','行前整备','开始探索'][view.step]}</button></footer>
     </>}
+    {screen === 'prepare' && view.step === 3 && foodConfirm && <div className="ap-loadout-mask" role="presentation"><div className="ap-loadout-dialog" role="dialog" aria-modal="true" aria-label="确认覆盖食物buff"><p>现在已经有了一个食物buff，确认使用食物覆盖原有buff吗？</p><div><button onClick={() => setFoodConfirm(null)}>取消</button><button onClick={() => { if (foodConfirm.basis !== foodUseBasis(game, foodConfirm.id)) { setFoodConfirm(null); setMessage('物品或食物buff已变化，请重新选择。'); return; } commitEat(foodConfirm.id, foodConfirm.source); }}>确认使用</button></div></div></div>}
+    {screen === 'prepare' && view.step === 3 && useDialog && <div className="ap-loadout-mask" role="presentation"><div className="ap-loadout-dialog ip-dialog" role="dialog" aria-modal="true" aria-label={`使用 ${catalog.items[useDialog.id]?.name}`}><h2>使用 {catalog.items[useDialog.id]?.name}</h2><ItemUseDialog game={game} itemId={useDialog.id} petId={useDialog.petId} onSelect={petId => setUseDialog({...useDialog,petId})} onCancel={() => setUseDialog(null)} onConfirm={commitUse} canConfirm={useDialog.basis === useBasis(game,useDialog.id)} /></div></div>}
   </div>;
 }

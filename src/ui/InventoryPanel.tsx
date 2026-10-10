@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { catalog } from '../domain/catalog';
-import { applySecondaryGrantItem, applyTagItem, healPetWithFood, STAT_LABELS, cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, discardCargo,
-  GameRuleError, inventoryWeight, itemStackSize, petSecondaryStat, secondaryStatCap, SECONDARY_STAT_LABELS,
+import { applySecondaryGrantItem, applyTagItem, eatWarehouseFood, healPetWithFood, STAT_LABELS, cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, discardCargo,
+  GameRuleError, inventoryWeight, itemStackSize, SECONDARY_STAT_LABELS,
   sellWarehouseItems, toggleItemLock, warehouseSlotsUsed } from '../domain/engine';
 import { itemTagLabel } from '../domain/itemTags';
 import { RARITY_LABELS, rarityRank, type Rarity } from '../domain/rarity';
-import type { GameState, Inventory, Pet } from '../domain/types';
+import type { GameState, Inventory } from '../domain/types';
 import { lootIconUrl } from './lootIcons';
 import { ItemTooltip } from './ItemTooltip';
+import { ItemUseDialog } from './ItemUseDialog';
 import { menuIcon } from './PetDesktop';
 import { useUIState } from './uiState';
-import { cleanPicked, cellLimit, cellRef, cellRefs, discardBasis, foodHealPreview, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView,
+import { cleanPicked, cellLimit, cellRef, cellRefs, discardBasis, foodUseBasis, initialInventoryView, inventoryCells, isInventoryDialog, isInventoryView,
   itemCount, pickedQuantities, saleBasis, saleValue, sellable, sortedInventory, usableOnPet, useBasis, useBlockReason, validInventoryDialog,
   type InventoryDialog, type InventoryView, type SortKey } from './inventoryPanelModel';
 import './inventoryPanel.css';
@@ -24,14 +25,6 @@ function ItemArt({ id }: { id: string }) {
 }
 function Coin({ value }: { value: number }) { return <span className="ip-coin"><img src={menuIcon('coin')} alt="通用货币" />{num(value)}</span>; }
 function Lock() { return <span className="ip-lock" aria-label="已锁定"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" strokeWidth="2.5" /></svg></span>; }
-function usePreview(pet: Pet, itemId: string) {
-  const item = catalog.items[itemId];
-  if (item.tagGrantId) return `永久获得「${catalog.tags[item.tagGrantId]?.name ?? item.tagGrantId}」`;
-  if (item.foodHeal && !item.secondaryGrant) return `伤势 ${foodHealPreview(pet, item.foodHeal.steps)}`;
-  if (!item.secondaryGrant) return '无法使用';
-  const g = item.secondaryGrant, current = petSecondaryStat(pet, g.stat), next = Math.min(secondaryStatCap(), current + g.amount);
-  return `${SECONDARY_STAT_LABELS[g.stat]} ${current} → ${next}${current + g.amount > secondaryStatCap() ? `（超出 ${current + g.amount - secondaryStatCap()} 点将浪费）` : ''}`;
-}
 
 export function InventoryPanel({ game, run, onClose, active, reports }: {
   game: GameState; run: (action: (state: GameState) => GameState) => boolean;
@@ -89,12 +82,21 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
     const id = dialog.singleId;
     setDialog({ ...dialog, quantities: { [id]: Math.max(1, Math.min(saleLimit, Math.trunc(q) || 1)) } });
   };
+  /**
+   * buff 食物在基地吃掉就是吃掉：立刻扣一份，加成写进存档等下一次出发
+   * （`eatWarehouseFood`）。存档里已经有一份时先问一句，免得手里的稀有食物被顺手顶掉。
+   */
+  const eatBuffFood = (id: string) => {
+    if (game.foodBuff) { setDialog({ type: 'food', itemId: id, basis: foodUseBasis(game, id) }); setMenu(null); return; }
+    if (run(state => eatWarehouseFood(state, id))) { setMessage(`${catalog.items[id]?.name}已吃下，下一次出发生效。`); setMenu(null); }
+  };
   const commit = () => {
     if (!dialog || dialog.type === 'reports') return;
     const succeeded = run(state => {
       if (!validInventoryDialog(state, dialog)) throw new GameRuleError('物品或伙伴状态已变化，请重新确认。');
       if (dialog.type === 'sale') return sellWarehouseItems(state, dialog.quantities);
       if (dialog.type === 'discard') return discardCargo(state, dialog.expeditionId, dialog.itemId, dialog.quantity);
+      if (dialog.type === 'food') return eatWarehouseFood(state, dialog.itemId);
       const pet = state.pets[dialog.petId];
       if (!pet) throw new GameRuleError('请先选择伙伴。');
       const reason = useBlockReason(pet, dialog.itemId, state);
@@ -105,7 +107,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
       return healPetWithFood(state, pet.id, dialog.itemId);
     });
     if (succeeded) {
-      setMessage(dialog.type === 'sale' ? `已售出 ${itemCount(dialog.quantities)} 件，获得 ${num(saleValue(dialog.quantities))} 通用货币` : dialog.type === 'discard' ? '已丢弃所选物品' : '道具已使用，效果已永久生效');
+      setMessage(dialog.type === 'sale' ? `已售出 ${itemCount(dialog.quantities)} 件，获得 ${num(saleValue(dialog.quantities))} 通用货币` : dialog.type === 'discard' ? '已丢弃所选物品' : dialog.type === 'food' ? '食物已吃下，下一次出发生效' : '道具已使用，效果已永久生效');
       if (dialog.type === 'sale') update({ picked: [] });
       setDialog(null);
     }
@@ -190,7 +192,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           <div className="ip-tags">{item.tags?.map(tag => <span key={tag}>{itemTagLabel(tag)}</span>)}</div>
           {(item.secondaryGrant || item.tagGrantId) && <p className="ip-effect">{item.tagGrantId ? `赋予特质：${catalog.tags[item.tagGrantId]?.name ?? item.tagGrantId}` : `${SECONDARY_STAT_LABELS[item.secondaryGrant!.stat]} +${item.secondaryGrant!.amount}`} · 使用后永久生效</p>}
           {(item.foodBuff || item.foodHeal) && <p className="ip-effect">{[
-            item.foodBuff && `出发前吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，整趟冒险有效`,
+            item.foodBuff && `吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，只对接下来那一趟探险有效`,
             item.foodHeal && `吃下恢复 ${item.foodHeal.steps} 档伤势`,
           ].filter(Boolean).join(' · ')}</p>}
         </> : <p className="ip-empty">选择物品查看详情</p>}
@@ -205,8 +207,11 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
     </footer>
     </div>}
     {tip && <ItemTooltip id={tip.id} quantity={tip.quantity} x={tip.x} y={tip.y} />}
+    {/* 带属性加成的食物在基地是「吃掉」：立刻消耗、加成存进存档等下一次出发。 */}
     {menu && (game.inventory[menu.id] ?? 0) > 0 && !view.bulk && <div className="ip-menu" role="menu" aria-label="物品操作" style={{ left: menu.x, top: menu.y }} onClick={e => e.stopPropagation()}>
-      {usableOnPet(menu.id) && <button role="menuitem" onClick={() => { setDialog({ type: 'use', itemId: menu.id, petId: '', basis: useBasis(game, menu.id) }); setMenu(null); }}>使用</button>}
+      {usableOnPet(menu.id)
+        ? <button role="menuitem" onClick={() => { setDialog({ type: 'use', itemId: menu.id, petId: '', basis: useBasis(game, menu.id) }); setMenu(null); }}>使用</button>
+        : catalog.items[menu.id]?.foodBuff ? <button role="menuitem" onClick={() => eatBuffFood(menu.id)}>使用</button> : null}
       <button role="menuitem" disabled={!sellable(game, menu.id)} onClick={() => openSale({ [menu.id]: 1 }, { id: menu.id, cellIndex: menu.index })}>{game.lockedItemIds.includes(menu.id) ? '售卖（已锁定）' : catalog.items[menu.id]?.sellable ? '售卖' : '不可出售'}</button>
       <button role="menuitem" onClick={() => { const id = menu.id; if (run(state => toggleItemLock(state, id))) { setMenu(null); setMessage(game.lockedItemIds.includes(id) ? '已解除售卖锁定' : '已锁定，无法出售'); } }}>{game.lockedItemIds.includes(menu.id) ? '解锁' : '锁定'}</button>
     </div>}
@@ -220,7 +225,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
       }
     }}>
       <div className={`ip-dialog${dialog.type === 'reports' ? ' reports' : ''}`} ref={modal} role="dialog" aria-modal="true" aria-labelledby="inventory-dialog-title">
-        <h2 id="inventory-dialog-title">{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' ? `使用 ${catalog.items[dialog.itemId]?.name}` : dialog.type === 'discard' ? `丢弃 ${catalog.items[dialog.itemId]?.name}` : '冒险战报'}</h2>
+        <h2 id="inventory-dialog-title">{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' || dialog.type === 'food' ? `使用 ${catalog.items[dialog.itemId]?.name}` : dialog.type === 'discard' ? `丢弃 ${catalog.items[dialog.itemId]?.name}` : '冒险战报'}</h2>
         {dialog.type === 'sale' && <>
           {dialog.singleId && <div className="ip-quantity"><button aria-label="减少售卖数量" disabled={dialog.quantities[dialog.singleId] <= 1} onClick={() => setSaleQuantity(dialog.quantities[dialog.singleId!] - 1)}>−</button><input aria-label="售卖数量" type="number" min={1} max={saleLimit} value={dialog.quantities[dialog.singleId]} onChange={e => setSaleQuantity(Number(e.target.value))} /><button aria-label="增加售卖数量" disabled={dialog.quantities[dialog.singleId] >= saleLimit} onClick={() => setSaleQuantity(dialog.quantities[dialog.singleId!] + 1)}>＋</button><button onClick={() => setSaleQuantity(saleLimit)}>本格全部</button></div>}
           {dialog.singleId && <p className="ip-hint">本格共 {saleLimit} 件。同名的其它格子不会被一起卖出——要卖哪一格就点哪一格。</p>}
@@ -228,21 +233,17 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           <p className="ip-sale-total">共 {itemCount(dialog.quantities)} 件，合计 <Coin value={saleValue(dialog.quantities)} /></p>
           {Object.keys(dialog.quantities).some(id => rarityRank(catalog.items[id].rarity) >= rarityRank('epic')) && <p className="ip-warning">包含史诗或更高稀有度物品，请确认取舍。出售后无法撤销。</p>}
         </>}
-        {dialog.type === 'use' && <>
-          <p className="ip-hint">{catalog.items[dialog.itemId].foodHeal && !catalog.items[dialog.itemId].secondaryGrant && !catalog.items[dialog.itemId].tagGrantId
-            ? '选择伙伴，确认后消耗 1 份食物。出门在外的伙伴请在节点上吃背包里的食物。'
-            : '选择伙伴，确认后消耗 1 件道具，效果永久绑定。'}{catalog.items[dialog.itemId].secondaryGrant && `次要属性上限 ${secondaryStatCap()}。`}</p>
-          <div className="ip-pet-list">{Object.values(game.pets).map(pet => {
-            const reason = useBlockReason(pet, dialog.itemId, game);
-            return <button key={pet.id} className="ip-pet-choice" data-pet-id={pet.id} aria-pressed={dialog.petId === pet.id} disabled={!!reason} onClick={() => setDialog({ ...dialog, petId: pet.id })}><strong>{pet.name}</strong><span>{usePreview(pet, dialog.itemId)}{reason && ` · ${reason}`}</span></button>;
-          })}</div>
+        {dialog.type === 'use' && <ItemUseDialog game={game} itemId={dialog.itemId} petId={dialog.petId} onSelect={petId => setDialog({ ...dialog, petId })} onCancel={() => setDialog(null)} onConfirm={commit} />}
+        {dialog.type === 'food' && <>
+          <p className="ip-hint">现在已经有了一个食物buff，确认使用食物覆盖原有buff吗？</p>
+          <p className="ip-hint">{catalog.items[dialog.itemId]?.name}：吃下后立刻消耗，加成只对接下来那一趟探险有效。</p>
         </>}
         {dialog.type === 'discard' && <>
           <p className="ip-warning">丢弃后无法找回，也不会获得货币或经验。这一格最多 {discardLimit} 件，同名的其它格子不受影响。</p>
           <div className="ip-quantity"><label>数量 <input aria-label="丢弃数量" type="number" min={1} max={discardLimit} value={dialog.quantity} onChange={e => setDialog({ ...dialog, quantity: Math.max(1, Math.min(discardLimit, Math.trunc(Number(e.target.value)) || 1)) })} /></label><button onClick={() => setDialog({ ...dialog, quantity: discardLimit })}>本格全部</button></div>
         </>}
         {dialog.type === 'reports' && <div className="ip-reports-body">{game.settlements.length ? reports : <p className="ip-empty">还没有冒险战报。</p>}</div>}
-        <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>{dialog.type === 'reports' ? '关闭战报' : '取消'}</button>{dialog.type !== 'reports' && <button className="ip-primary ip-confirm" disabled={dialog.type === 'use' && (!dialog.petId || !!useBlockReason(game.pets[dialog.petId], dialog.itemId, game))} onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' ? '确认使用' : '确认丢弃'}</button>}</div>
+        {dialog.type !== 'use' && <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>{dialog.type === 'reports' ? '关闭战报' : '取消'}</button>{dialog.type !== 'reports' && <button className="ip-primary ip-confirm" onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'discard' ? '确认丢弃' : '确认使用'}</button>}</div>}
       </div>
     </div>}
   </div>;

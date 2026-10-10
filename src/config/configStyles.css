@@ -1060,6 +1060,13 @@
   gap: 9px;
 }
 
+.config-map-anchor-editor { display:grid; gap:8px; padding:10px; border:1px solid #d8ddd3; border-radius:8px; background:#fbfcf9; }
+.config-map-anchor-canvas { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border:1px solid #bfc9b8; border-radius:8px; background:#dfe8d8; touch-action:none; user-select:none; }
+.config-map-anchor-canvas > img { width:100%; height:100%; object-fit:cover; transform:scale(1.04); display:block; pointer-events:none; }
+.config-map-anchor { position:absolute; transform:translate(-50%,-100%); border:0; border-radius:999px; padding:3px 6px 4px; background:#fff; color:#26352b; box-shadow:0 1px 5px #1d302c99; font-size:11px; font-weight:700; cursor:grab; white-space:nowrap; touch-action:none; }
+.config-map-anchor:active { cursor:grabbing; background:#dff2df; }
+.config-map-anchor-values { display:flex; flex-wrap:wrap; gap:5px 14px; color:var(--config-muted); font-size:10px; }
+
 .config-node-create {
   display: flex;
   flex-wrap: wrap;

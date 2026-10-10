@@ -798,16 +798,9 @@ export function startExpedition(
       throw new GameRuleError(`仓库物品不足：${catalog.items[itemId].name}`);
     }
   }
-  // 行前整备选定的食物：这里才真正消耗，所以玩家在整备界面反悔不会浪费东西。
-  const food = input.foodItemId
-    ? requireFood(catalog, input.foodItemId)
-    : undefined;
-  if (food && !food.foodBuff) {
-    throw new GameRuleError(`${food.name}没有出发前可用的效果，请在基地或途中食用。`);
-  }
-  if (input.foodItemId && (state.inventory[input.foodItemId] ?? 0) <= 0) {
-    throw new GameRuleError(`仓库物品不足：${food!.name}`);
-  }
+  // 基地吃下的食物加成在这里被这一趟领走：搬进远征的同时从存档清空，
+  // 所以一份食物只顶一趟，下一趟要重新吃。快照照原样搬，不重新读配表。
+  const foodBuff = state.foodBuff ? { ...state.foodBuff } : undefined;
 
   // 出门就停表：带伤上路不会在途中自愈，回来才重新开始恢复。
   input.petIds.forEach((petId) => {
@@ -833,16 +826,8 @@ export function startExpedition(
     drawnEventIds: [],
     currentSeed: seed,
     completedNodeCount: 0,
-    // 快照，不存 itemId 引用：配置台改数值或删物品都不该影响在途的这一趟。
-    ...(food?.foodBuff
-      ? {
-          foodBuff: {
-            itemId: input.foodItemId!,
-            stat: food.foodBuff.stat,
-            amount: food.foodBuff.amount,
-          },
-        }
-      : {}),
+    // 快照：基地吃下的那一份原样搬到这一趟上，之后改配表也不影响它。
+    ...(foodBuff ? { foodBuff } : {}),
   };
   const usedSlots = cargoSlotsUsed(expedition, catalog);
   const slotCapacity = cargoSlotCapacity(state, expedition, catalog);
@@ -852,18 +837,12 @@ export function startExpedition(
     );
   }
   state.inventory = removeInventory(state.inventory, initialCargo);
-  if (input.foodItemId) {
-    // 和携带物在同一次结算里扣掉：要么都成，要么都不成。
-    state.inventory = removeInventory(state.inventory, { [input.foodItemId]: 1 });
-    // 同时带治疗效果的食物不会被浪费：治伤得最重的那只，并列取 petIds 里靠前的。
-    const healed = food?.foodHeal && mostInjuredPet(state, input.petIds);
-    if (healed && food?.foodHeal) {
-      improveInjury(healed, food.foodHeal.steps);
-      delete healed.injuryRecoveredAt;
-    }
+  if (foodBuff) {
+    // 和携带物在同一次结算里落地：槽位检查不过就整趟都不成，食物也留在存档里。
+    delete state.foodBuff;
     addLog(
       state,
-      `出发前吃掉了${food!.name}${healed ? `，${healed.name}的伤势好转为${INJURY_LABELS[healed.injury]}` : ""}。`,
+      `出发前吃下的食物还在生效：${STAT_LABELS[foodBuff.stat]} +${foodBuff.amount}。`,
       now,
     );
   }
@@ -2314,7 +2293,7 @@ export function applyTagItem(
 }
 
 /**
- * 途中吃背包里的食物。只能在节点上吃——行进途中背包本来就只能查看。
+ * 途中吃背包里的食物。远征尚未结束时都可以吃；行进中仍不能整理或丢弃背包。
  * 必须先把战利品捡进背包才能吃：直接吃浮层里未拾取的东西等于绕开了负重和格子检查
  * （设计文档 9.3）。吃掉同时腾出这件食物的重量和格子。
  *
@@ -2331,9 +2310,7 @@ export function eatCargoFood(
 ): GameState {
   const state = clone(source);
   const expedition = requireExpedition(state, expeditionId);
-  if (expedition.phase === "traveling") {
-    throw new GameRuleError("行进途中不能吃东西，抵达节点后才能整理背包。");
-  }
+
   const item = requireFood(catalog, itemId);
   if ((expedition.cargo[itemId] ?? 0) <= 0) {
     throw new GameRuleError(`背包里没有${item.name}。`);
@@ -2368,6 +2345,57 @@ export function eatCargoFood(
     notes.push(`${target.name}的伤势好转为${INJURY_LABELS[target.injury]}`);
   }
   addLog(state, `吃掉了${item.name}：${notes.join("；")}。`, now);
+  return state;
+}
+
+/**
+ * 在基地吃掉一份带属性加成的食物：**立刻消耗**，加成作为快照挂到存档上，
+ * 等下一次出发时由 `startExpedition` 搬到那一趟远征（搬走即清空，一份只顶一趟）。
+ *
+ * 为什么是「立刻吃掉」而不是「出发时才扣」：基地没有正在进行的远征，
+ * 加成必须有个地方待着，`GameState.foodBuff` 就是那个地方。玩家退回整备的
+ * 上一步也不会白费——加成还在存档里等下一次出发。
+ *
+ * 存档里同时只有一个，后吃的顶掉前面的（UI 在覆盖前会先让玩家确认）。
+ * 顺带带治疗的食物治伤势最重的一只基地宠物，不占用 buff 槽。
+ */
+export function eatWarehouseFood(
+  source: GameState,
+  itemId: string,
+  now = Date.now(),
+  catalog: Catalog = defaultCatalog,
+): GameState {
+  const state = clone(source);
+  const item = requireFood(catalog, itemId);
+  if (!item.foodBuff) {
+    throw new GameRuleError(
+      `${item.name}没有出发前的属性加成，请在基地或途中当作食物吃掉。`,
+    );
+  }
+  if ((state.inventory[itemId] ?? 0) <= 0) {
+    throw new GameRuleError(`仓库中没有${item.name}。`);
+  }
+  state.inventory = removeInventory(state.inventory, { [itemId]: 1 });
+  // 快照，不存引用：配置台改数值或删物品都不该影响已经吃下去的这份。
+  state.foodBuff = {
+    itemId,
+    stat: item.foodBuff.stat,
+    amount: item.foodBuff.amount,
+  };
+  const notes = [`${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}`];
+  // 顺带的治疗：基地这里没有指定对象，就治伤势最重的那只（并列取 id 靠前的）。
+  const patient = item.foodHeal
+    ? mostInjuredPet(state, Object.keys(state.pets).filter(
+      (petId) => !state.expeditions.some((entry) => entry.petIds.includes(petId)),
+    ))
+    : undefined;
+  if (patient && item.foodHeal) {
+    improveInjury(patient, item.foodHeal.steps);
+    // 基地吃东西和治疗一样：还没好透就重新开始计时。
+    beginRecovery(patient, now);
+    notes.push(`${patient.name}的伤势好转为${INJURY_LABELS[patient.injury]}`);
+  }
+  addLog(state, `吃下了${item.name}：${notes.join("；")}，下一次出发有效。`, now);
   return state;
 }
 

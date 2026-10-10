@@ -108,6 +108,8 @@ export function foodHealPreview(pet: Pet, steps: number): string {
 export type InventoryDialog =
   | { type: 'sale'; quantities: Inventory; basis: string; singleId?: string; cellIndex?: number }
   | { type: 'use'; itemId: string; petId: string; basis: string }
+  // 覆盖存档上那份食物加成前的确认：吃掉＝立刻消耗，所以先问一次。
+  | { type: 'food'; itemId: string; basis: string }
   | { type: 'discard'; expeditionId: string; itemId: string; quantity: number; cellIndex: number; basis: string }
   | { type: 'reports' };
 export function isInventoryDialog(v: unknown): v is InventoryDialog | null {
@@ -121,9 +123,14 @@ export function isInventoryDialog(v: unknown): v is InventoryDialog | null {
       || typeof v.singleId === 'string' && Object.keys(v.quantities).length === 1 && Object.hasOwn(v.quantities, v.singleId)
         && Number.isSafeInteger(cellIndex) && (cellIndex as number) >= 0);
   if (v.type === 'use') return typeof v.itemId === 'string' && typeof v.petId === 'string' && cellIndex === undefined;
+  if (v.type === 'food') return typeof v.itemId === 'string' && cellIndex === undefined;
   return v.type === 'discard' && typeof v.expeditionId === 'string' && typeof v.itemId === 'string'
     && Number.isSafeInteger(v.quantity) && (v.quantity as number) > 0
     && Number.isSafeInteger(cellIndex) && (cellIndex as number) >= 0;
+}
+/** 覆盖确认的失效基准：件数或存档上那份 buff 变了，这次确认就不再成立。 */
+export function foodUseBasis(game: GameState, itemId: string): string {
+  return JSON.stringify([game.inventory[itemId] ?? 0, game.foodBuff ?? null]);
 }
 export function discardBasis(game: GameState, expeditionId: string, itemId: string): string {
   const e = game.expeditions.find(e => e.id === expeditionId);
@@ -140,6 +147,8 @@ export function validInventoryDialog(game: GameState, dialog: InventoryDialog | 
       && (id !== dialog.singleId || q <= cellLimit(game.inventory[id], id, dialog.cellIndex ?? 0)));
   if (dialog.type === 'use') return Object.hasOwn(catalog.items, dialog.itemId) && (game.inventory[dialog.itemId] ?? 0) > 0
     && dialog.basis === useBasis(game, dialog.itemId) && (!dialog.petId || Object.hasOwn(game.pets, dialog.petId));
+  if (dialog.type === 'food') return Object.hasOwn(catalog.items, dialog.itemId) && (game.inventory[dialog.itemId] ?? 0) > 0
+    && dialog.basis === foodUseBasis(game, dialog.itemId);
   const e = game.expeditions.find(e => e.id === dialog.expeditionId);
   return !!e && ['awaiting-route', 'awaiting-event', 'extraction'].includes(e.phase)
     && (e.cargo[dialog.itemId] ?? 0) >= dialog.quantity && dialog.quantity <= cellLimit(e.cargo[dialog.itemId], dialog.itemId, dialog.cellIndex)

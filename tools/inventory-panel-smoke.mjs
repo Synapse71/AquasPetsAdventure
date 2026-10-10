@@ -231,7 +231,7 @@ try {
   await sleep(200);
   assert(await evaluate(`document.querySelector('.ip-footer').textContent.includes('已选 1 格 · 20 件')`), 'bulk picking one slot counts only that slot');
   await hover('.ip-cell[data-item-id="canned-food"]');
-  assert((await tipText()).includes('出发前吃下：体能 +1'), 'food tooltip carries its expedition buff');
+  assert((await tipText()).includes('吃下：体能 +1'), 'food tooltip carries its expedition buff');
   assert(await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"][aria-pressed="true"]').length === 1`), 'picking one slot does not select the same item in other slots');
   await click('.ip-bulk-sell');
   assert(await evaluate(`document.querySelector('.ip-sale-lines').textContent.includes('×20')`), 'batch quote shows the selected slot quantity only');
@@ -239,6 +239,13 @@ try {
   saved = await stored();
   assert(saved.inventory['cloth-strip'] === 26 && saved.currency === perCell.currency + 100, 'selling one slot deducts only that slot');
   await click('.ip-bulk-toggle');
+  // 带属性加成的食物在基地就是「吃掉」：立刻扣一份、加成写进存档等下一次出发。
+  await click('.ip-cell[data-item-id="canned-food"]');
+  assert(await evaluate(`(()=>{const b=[...document.querySelectorAll('.ip-menu button')].find(b=>b.textContent==='使用');return !!b&&!b.disabled})()`), 'warehouse menu offers 使用 for expedition food');
+  await evaluate(`[...document.querySelectorAll('.ip-menu button')].find(b=>b.textContent==='使用').click()`);
+  await sleep(300);
+  saved = await stored();
+  assert((saved.inventory['canned-food'] ?? 0) === 0 && saved.foodBuff?.itemId === 'canned-food' && saved.foodBuff?.stat === 'fitness' && saved.foodBuff?.amount === 1, 'eating expedition food consumes one and banks the buff for the next departure');
   await evaluate(`document.querySelectorAll('.ip-cell[data-item-id="cloth-strip"]')[0].click()`);
   await sleep(200);
   await menuAction('售卖');
