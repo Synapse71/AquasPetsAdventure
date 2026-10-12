@@ -76,3 +76,6 @@ assets/**/*-status.json
 !/assets/ui-prototype/chest/rarity-v1/*/open-still.webp
 /*.png
 /prototypes/animation-assets.html
+
+# Claude Code 本地入口，只引用 AGENTS.md
+CLAUDE.local.md
