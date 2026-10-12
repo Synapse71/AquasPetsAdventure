@@ -273,6 +273,62 @@ export interface TaskDefinition {
   prerequisiteTaskIds?: Id[];
 }
 
+// 扭蛋奖池的一条道具。先按稀有度权重抽档位，再在同档条目里按 weight 抽。
+export interface GachaPoolEntry {
+  itemId: Id;
+  weight: number;
+}
+
+// 每张地图一份抽奖预算：玩家已解锁的最新地图决定当天开出的金币与经验基准。
+// 默认值由配置台按「该地图约 30 分钟探索收益」重算填入，策划可再手调。
+export interface GachaBudget {
+  currency: number;
+  xp: number;
+}
+
+export type GachaPrizeKind = "currency" | "xp" | "item";
+
+export interface GachaDefinition {
+  id: Id;
+  name: string;
+  // 本地时间的整点，跨过它就算新的一天。
+  resetHour: number;
+  dailyFreeDraws: number;
+  // 第 n 次付费价格 = base × growth^(n-1)，每天重置。固定金币数，不随解锁地图变化。
+  paidPrice: { base: number; growth: number };
+  // 一颗蛋只开出一类奖励，先按这里的权重决定是哪一类。
+  prizeWeights: Record<GachaPrizeKind, number>;
+  // 金币与经验在「预算 × 倍率」上下按 spread 比例均匀浮动。
+  currency: { multiplier: number; spread: number };
+  xp: { multiplier: number; spread: number };
+  itemRarityWeights: RarityWeights;
+  itemPool: GachaPoolEntry[];
+  // 预算锚点：配置台「按地图重算」时取该地图探索这么多分钟的收益。
+  budgetAnchorMinutes: number;
+  budgets: Record<Id, GachaBudget>;
+}
+
+export interface GachaPrize {
+  kind: GachaPrizeKind;
+  amount: number;
+  // 只有 kind 为 item 时存在。
+  itemId?: Id;
+  // 开蛋演出用的档位：道具取物品稀有度，金币与经验没有档位。
+  rarity?: Rarity;
+}
+
+// 每日扭蛋的存档状态。dayKey 是按 resetHour 折算后的本地日期，
+// 跨日时 freeUsed / paidCount 清零；待领取的道具不随跨日清空。
+export interface GachaState {
+  dayKey: string;
+  freeUsed: number;
+  paidCount: number;
+  seed: number;
+  // 仓库放不下的道具先存在这里，玩家腾出空位后手动领取。
+  pending: Inventory;
+  lastPrize?: GachaPrize;
+}
+
 export interface StartExpeditionInput {
   mapId: Id;
   petIds: Id[];
@@ -397,6 +453,7 @@ export interface GameState {
   // 出发时 `startExpedition` 把它搬到新远征的 `foodBuff` 上并从存档清掉，所以一份食物只顶一趟。
   // 和 `Expedition.foodBuff` 一样是快照：存完数值就不再跟配表走。
   foodBuff?: { itemId: Id; stat: StatKey; amount: number };
+  gacha: GachaState;
   expeditions: Expedition[];
   settlements: Settlement[];
   log: GameLogEntry[];
@@ -420,4 +477,5 @@ export interface Catalog {
   eventPools: Record<Id, EventPoolDefinition>;
   tasks: Record<Id, TaskDefinition>;
   petTemplates: Record<Id, Pet>;
+  gachas: Record<Id, GachaDefinition>;
 }

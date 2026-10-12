@@ -1,4 +1,4 @@
-import { createInitialState } from "../domain/engine";
+import { createGachaState, createInitialState } from "../domain/engine";
 import type { GameState } from "../domain/types";
 
 // 不兼容的版本仍会重开；同版本新增的可选字段在这里做轻量补全，
@@ -71,6 +71,7 @@ export function loadGame(): GameState {
       completedMilestoneIds: parsed.completedMilestoneIds ?? [],
       completedExtractionNodeKeys: parsed.completedExtractionNodeKeys ?? [],
       discoveredRouteKeys: parsed.discoveredRouteKeys ?? [],
+      gacha: parsed.gacha ? { ...parsed.gacha, pending: parsed.gacha.pending ?? {} } : createGachaState(Date.now()),
       expeditions: (parsed.expeditions ?? []).map((expedition) => ({
         ...expedition,
         initialCargo: expedition.initialCargo ?? {},

@@ -141,7 +141,7 @@ function clonePetTemplate(template: Pet): Pet {
   return pet;
 }
 
-function nextRandom(seed: number): { value: number; seed: number } {
+export function nextRandom(seed: number): { value: number; seed: number } {
   let value = seed | 0;
   value ^= value << 13;
   value ^= value >>> 17;
@@ -158,9 +158,14 @@ function nextId(state: GameState, prefix: string): string {
   return id;
 }
 
-function addLog(state: GameState, message: string, now = Date.now()): void {
+export function addLog(state: GameState, message: string, now = Date.now()): void {
   state.log.unshift({ id: nextId(state, "log"), createdAt: now, message });
   state.log = state.log.slice(0, 80);
+}
+
+// dayKey 留空，第一次读取抽奖状态时再按当前时间落到具体某天。
+export function createGachaState(now: number): GameState["gacha"] {
+  return { dayKey: "", freeUsed: 0, paidCount: 0, seed: (now >>> 0) || 1, pending: {} };
 }
 
 export function createInitialState(): GameState {
@@ -193,6 +198,7 @@ export function createInitialState(): GameState {
     completedExtractionNodeKeys: [],
     discoveredNodeIds: [],
     discoveredRouteKeys: [],
+    gacha: createGachaState(Date.now()),
     expeditions: [],
     settlements: [],
     log: [],
@@ -889,7 +895,7 @@ function weightedPick<T>(
   return { value: candidates[candidates.length - 1].value, seed: random.seed };
 }
 
-function nodeLootCandidates(
+export function nodeLootCandidates(
   definition: NodeLootDefinition,
   rarity: Rarity,
   catalog: Catalog,
@@ -1345,7 +1351,7 @@ function injureRandomPet(
   return state.pets[petId].name;
 }
 
-function recordItemAcquisitions(state: GameState, inventory: Inventory): void {
+export function recordItemAcquisitions(state: GameState, inventory: Inventory): void {
   state.itemAcquisitionCounts ??= {};
   for (const [itemId, quantity] of Object.entries(inventory)) {
     if (!Number.isFinite(quantity) || quantity <= 0) continue;
@@ -2019,7 +2025,7 @@ export function xpToNextLevel(level: number): number {
   return Math.round(Math.pow(level, XP_CURVE_EXPONENT) * XP_CURVE_K);
 }
 
-function grantXp(pet: Pet, amount: number): void {
+export function grantXp(pet: Pet, amount: number): void {
   if (pet.level >= MAX_LEVEL) return;
   pet.xp += amount;
   while (pet.level < MAX_LEVEL && pet.xp >= xpToNextLevel(pet.level)) {

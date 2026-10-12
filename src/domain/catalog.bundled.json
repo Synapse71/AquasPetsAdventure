@@ -1261,7 +1261,7 @@
         "partial": 2,
         "full": 4
       },
-      "nodeXp": 25,
+      "nodeXp": 30,
       "nodes": {
         "m2-start": {
           "id": "m2-start",
@@ -2510,6 +2510,251 @@
       "injury": "healthy",
       "growthTagIds": [],
       "growthTagSlots": 2
+    }
+  },
+  "gachas": {
+    "daily": {
+      "id": "daily",
+      "name": "每日扭蛋",
+      "resetHour": 4,
+      "dailyFreeDraws": 1,
+      "paidPrice": {
+        "base": 500,
+        "growth": 2
+      },
+      "prizeWeights": {
+        "currency": 40,
+        "xp": 25,
+        "item": 40
+      },
+      "currency": {
+        "multiplier": 0.8,
+        "spread": 0.2
+      },
+      "xp": {
+        "multiplier": 2,
+        "spread": 0.2
+      },
+      "itemRarityWeights": {
+        "uncommon": 600,
+        "rare": 370,
+        "epic": 30,
+        "legendary": 0,
+        "mythic": 0
+      },
+      "itemPool": [
+        {
+          "itemId": "chocolate",
+          "weight": 1
+        },
+        {
+          "itemId": "canned-food",
+          "weight": 1
+        },
+        {
+          "itemId": "coffee-beans",
+          "weight": 1
+        },
+        {
+          "itemId": "honey",
+          "weight": 1
+        },
+        {
+          "itemId": "red-wine",
+          "weight": 1
+        },
+        {
+          "itemId": "thermos",
+          "weight": 1
+        },
+        {
+          "itemId": "electric-razor",
+          "weight": 1
+        },
+        {
+          "itemId": "umbrella",
+          "weight": 1
+        },
+        {
+          "itemId": "hair-dryer",
+          "weight": 1
+        },
+        {
+          "itemId": "desk-lamp",
+          "weight": 1
+        },
+        {
+          "itemId": "cast-iron-pan",
+          "weight": 1
+        },
+        {
+          "itemId": "f1-model",
+          "weight": 1
+        },
+        {
+          "itemId": "plush-toy",
+          "weight": 1
+        },
+        {
+          "itemId": "jigsaw-puzzle",
+          "weight": 1
+        },
+        {
+          "itemId": "toy-drone",
+          "weight": 1
+        },
+        {
+          "itemId": "fishing-rod",
+          "weight": 1
+        },
+        {
+          "itemId": "rugby-ball",
+          "weight": 1
+        },
+        {
+          "itemId": "skateboard",
+          "weight": 1
+        },
+        {
+          "itemId": "dumbbell",
+          "weight": 1
+        },
+        {
+          "itemId": "car-tire",
+          "weight": 1
+        },
+        {
+          "itemId": "smartwatch",
+          "weight": 1
+        },
+        {
+          "itemId": "noise-cancelling-headphones",
+          "weight": 1
+        },
+        {
+          "itemId": "game-controller",
+          "weight": 1
+        },
+        {
+          "itemId": "digital-camera",
+          "weight": 1
+        },
+        {
+          "itemId": "tablet",
+          "weight": 1
+        },
+        {
+          "itemId": "portable-speaker",
+          "weight": 1
+        },
+        {
+          "itemId": "camera-drone",
+          "weight": 1
+        },
+        {
+          "itemId": "mechanical-keyboard",
+          "weight": 1
+        },
+        {
+          "itemId": "black-truffle",
+          "weight": 1
+        },
+        {
+          "itemId": "caviar",
+          "weight": 1
+        },
+        {
+          "itemId": "red-velvet-cake",
+          "weight": 1
+        },
+        {
+          "itemId": "whisky",
+          "weight": 1
+        },
+        {
+          "itemId": "bluefin-tuna",
+          "weight": 1
+        },
+        {
+          "itemId": "titanium-ring",
+          "weight": 1
+        },
+        {
+          "itemId": "enamel-brooch",
+          "weight": 1
+        },
+        {
+          "itemId": "silver-bracelet",
+          "weight": 1
+        },
+        {
+          "itemId": "cloisonne-ornament",
+          "weight": 1
+        },
+        {
+          "itemId": "fountain-pen",
+          "weight": 1
+        },
+        {
+          "itemId": "mechanical-watch",
+          "weight": 1
+        },
+        {
+          "itemId": "binoculars",
+          "weight": 1
+        },
+        {
+          "itemId": "diamond-earrings",
+          "weight": 1
+        },
+        {
+          "itemId": "gold-necklace",
+          "weight": 1
+        },
+        {
+          "itemId": "violin",
+          "weight": 1
+        },
+        {
+          "itemId": "leather-handbag",
+          "weight": 1
+        },
+        {
+          "itemId": "aged-whisky",
+          "weight": 1
+        },
+        {
+          "itemId": "graphics-card",
+          "weight": 1
+        },
+        {
+          "itemId": "telephoto-lens",
+          "weight": 1
+        },
+        {
+          "itemId": "laptop",
+          "weight": 1
+        },
+        {
+          "itemId": "turntable",
+          "weight": 1
+        },
+        {
+          "itemId": "telescope",
+          "weight": 1
+        }
+      ],
+      "budgetAnchorMinutes": 60,
+      "budgets": {
+        "map-1": {
+          "currency": 674,
+          "xp": 22
+        },
+        "map-2": {
+          "currency": 955,
+          "xp": 29
+        }
+      }
     }
   }
 }

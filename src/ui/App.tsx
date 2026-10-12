@@ -5,6 +5,7 @@ import { RARITY_LABELS } from "../domain/rarity";
 import { createInitialState, dismissSettlement, itemStackSize, recordMilestone, taskCanComplete, taskIsAvailable, tick, GameRuleError } from "../domain/engine";
 import type { PlayerMilestoneId } from "../domain/milestones";
 import type { GameState, Inventory, Settlement } from "../domain/types";
+import { gachaStatus } from "../domain/gacha";
 import { clearGame, loadGame, saveGame } from "../persistence/storage";
 import { PetDesktop, PET_MENUS, type PanelId } from "./PetDesktop";
 import { clearUIState } from "./uiState";
@@ -210,6 +211,7 @@ export function App() {
   const attentionExpedition = game.expeditions.find(entry => entry.phase !== "traveling");
   const pendingTask = Object.values(catalog.tasks).some(task => taskIsAvailable(game, task.id) && taskCanComplete(game, task.id));
   const pendingPoints = Object.values(game.pets).some(pet => pet.unspentPoints > 0);
+  const pendingGacha = (gachaStatus(game, now)?.freeLeft ?? 0) > 0;
   const stagePet = Object.values(game.pets)[0];
   const stageExpedition = game.expeditions.find(entry => entry.petIds.includes(stagePet?.id));
   const traveling = stageExpedition?.phase === "traveling" ? stageExpedition : undefined;
@@ -219,7 +221,7 @@ export function App() {
     ? travelingEdge?.durationMs ?? START_TRAVEL_DURATION_MS
     : 0;
   const [visitedPanels, setVisitedPanels] = useState<PanelId[]>([]);
-  const [adventureIntent, setAdventureIntent] = useState<{ tab: "active" | "tasks"; key: number; expeditionId?: string }>();
+  const [adventureIntent, setAdventureIntent] = useState<{ tab: "active" | "tasks" | "gacha"; key: number; expeditionId?: string }>();
   const [statusIntent, setStatusIntent] = useState<{ petId: string; key: number }>();
   const [saveGeneration, setSaveGeneration] = useState(0);
 
@@ -237,6 +239,9 @@ export function App() {
       const pet = Object.values(game.pets).find(pet => pet.unspentPoints > 0)!;
       setStatusIntent({ petId: pet.id, key: Date.now() });
       openPanel("pets");
+    } else if (pendingGacha) {
+      setAdventureIntent({ tab: "gacha", key: Date.now() });
+      openPanel("adventure");
     }
   };
   const resetDemo = () => {
@@ -263,7 +268,7 @@ export function App() {
 
   return <PetDesktop key={saveGeneration} name={stagePet?.name ?? "宠物"}
     activePanel={activePanel} onOpen={openPanel} onClose={closePanel}
-    pending={!!attentionExpedition || pendingTask || pendingPoints} onPending={openPending}
+    pending={!!attentionExpedition || pendingTask || pendingPoints || pendingGacha} onPending={openPending}
     travel={traveling ? {
       // Identify the segment, not just the expedition: every new destination
       // gets one departure animation, while countdown updates keep the same key.

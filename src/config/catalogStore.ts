@@ -27,7 +27,10 @@ export interface CatalogIssue {
 const EVENT_STAT_KEYS = ["fitness", "perception", "technique"] as const;
 
 function cloneCatalog(value: Catalog): Catalog {
-  return normalizeStartTravelDuration(value);
+  const next = normalizeStartTravelDuration(value);
+  // 抽奖分类晚于本地草稿格式加入；旧草稿没有它时沿用代码内置配置，不让草稿失效。
+  next.gachas ??= structuredClone(bundledCatalog.gachas);
+  return next;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,6 +89,84 @@ function checkSecondaryRequirement(
       path: `${path}.value`,
       message: `门槛 ${value.value} 高于次要属性上限 ${secondaryStatCap()}，任何宠物都无法达到。`,
     });
+  }
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function checkGacha(
+  path: string,
+  gacha: Record<string, unknown>,
+  items: Record<string, unknown>,
+  mapIds: Set<string>,
+  issues: CatalogIssue[],
+): void {
+  const error = (field: string, message: string) => issues.push({ level: "error", path: `${path}.${field}`, message });
+  const resetHour = gacha.resetHour;
+  if (typeof resetHour !== "number" || !Number.isInteger(resetHour) || resetHour < 0 || resetHour > 23) {
+    error("resetHour", "重置时间必须是 0～23 的整点。");
+  }
+  if (typeof gacha.dailyFreeDraws !== "number" || !Number.isInteger(gacha.dailyFreeDraws) || gacha.dailyFreeDraws < 0) {
+    error("dailyFreeDraws", "每日免费次数必须是非负整数。");
+  }
+  const price = gacha.paidPrice;
+  if (!isRecord(price) || !isNonNegativeNumber(price.base) || !isNonNegativeNumber(price.growth) || price.growth < 1) {
+    error("paidPrice", "付费价格需要非负的初始价格，以及不小于 1 的倍率。");
+  }
+  const weights = gacha.prizeWeights;
+  if (
+    !isRecord(weights) ||
+    !["currency", "xp", "item"].every((kind) => isNonNegativeNumber(weights[kind])) ||
+    !["currency", "xp", "item"].some((kind) => (weights[kind] as number) > 0)
+  ) {
+    error("prizeWeights", "金币、经验、道具三类权重都必须是非负数，且至少一类大于 0。");
+  }
+  for (const kind of ["currency", "xp"] as const) {
+    const tuning = gacha[kind];
+    if (!isRecord(tuning) || !isNonNegativeNumber(tuning.multiplier) || !isNonNegativeNumber(tuning.spread) || tuning.spread > 1) {
+      error(kind, "倍率必须是非负数，浮动比例必须在 0～1 之间。");
+    }
+  }
+  const rarityWeights = gacha.itemRarityWeights;
+  if (!isRecord(rarityWeights) || Object.entries(rarityWeights).some(([rarity, weight]) => !isRarity(rarity) || !isNonNegativeNumber(weight))) {
+    error("itemRarityWeights", "稀有度权重的键必须是稀有度，值必须是非负数。");
+  }
+  if (!Array.isArray(gacha.itemPool)) {
+    error("itemPool", "道具池必须是数组。");
+  } else {
+    const seen = new Set<string>();
+    gacha.itemPool.forEach((entry, index) => {
+      if (!isRecord(entry) || typeof entry.itemId !== "string" || !isNonNegativeNumber(entry.weight)) {
+        error(`itemPool.${index}`, "每条需要物品 ID 和非负权重。");
+      } else if (!items[entry.itemId]) {
+        error(`itemPool.${index}.itemId`, `物品 ${entry.itemId} 不存在。`);
+      } else if (seen.has(entry.itemId)) {
+        error(`itemPool.${index}.itemId`, `物品 ${entry.itemId} 重复出现。`);
+      } else {
+        seen.add(entry.itemId);
+      }
+    });
+  }
+  if (!isNonNegativeNumber(gacha.budgetAnchorMinutes)) {
+    error("budgetAnchorMinutes", "预算锚点分钟数必须是非负数。");
+  }
+  const budgets = gacha.budgets;
+  if (!isRecord(budgets)) {
+    error("budgets", "预算必须是以地图 ID 为键的对象。");
+    return;
+  }
+  for (const [mapId, budget] of Object.entries(budgets)) {
+    if (!mapIds.has(mapId)) error(`budgets.${mapId}`, `地图 ${mapId} 不存在。`);
+    if (!isRecord(budget) || !isNonNegativeNumber(budget.currency) || !isNonNegativeNumber(budget.xp)) {
+      error(`budgets.${mapId}`, "金币与经验预算必须是非负数。");
+    }
+  }
+  for (const mapId of mapIds) {
+    if (!budgets[mapId]) {
+      issues.push({ level: "warning", path: `${path}.budgets`, message: `地图 ${mapId} 没有抽奖预算，解锁它后会沿用上一张地图的预算。` });
+    }
   }
 }
 
@@ -513,6 +594,7 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
     "eventPools",
     "tasks",
     "petTemplates",
+    "gachas",
   ]);
   for (const key of Object.keys(value)) {
     if (!allowedSections.has(key as CatalogCategory)) {
@@ -531,6 +613,8 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
   const eventPools = recordSection(value, "eventPools", issues);
   const tasks = recordSection(value, "tasks", issues);
   const petTemplates = recordSection(value, "petTemplates", issues);
+  // 旧草稿可以没有抽奖分类，载入时会补上内置配置。
+  const gachas = value.gachas === undefined ? {} : recordSection(value, "gachas", issues);
 
   const sections: [CatalogCategory, Record<string, unknown>][] = [
     ["items", items],
@@ -540,6 +624,7 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
     ["eventPools", eventPools],
     ["tasks", tasks],
     ["petTemplates", petTemplates],
+    ["gachas", gachas],
   ];
 
   for (const [sectionName, section] of sections) {
@@ -577,6 +662,10 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
   const eventIds = new Set(Object.keys(events));
   const poolIds = new Set(Object.keys(eventPools));
   const petIds = new Set(Object.keys(petTemplates));
+
+  for (const [gachaId, rawGacha] of Object.entries(gachas)) {
+    if (isRecord(rawGacha)) checkGacha(`gachas.${gachaId}`, rawGacha, items, mapIds, issues);
+  }
 
   for (const [itemId, rawItem] of Object.entries(items)) {
     if (!isRecord(rawItem)) continue;

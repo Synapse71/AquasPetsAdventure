@@ -2634,3 +2634,47 @@
 
 /* 配了食物效果却没打 food 标签：不是错误（能跑），但策划几乎一定是漏了。 */
 .config-food-warning { color: #9a5b12; background: #fdf3e2; border: 1px solid #edd6ae; border-radius: 7px; padding: 6px 9px; }
+
+/* 抽奖：六档稀有度权重一行排开，预算表按地图逐行对照。 */
+.config-gacha-rarity-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.config-gacha-pool {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.config-gacha-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.config-gacha-table th,
+.config-gacha-table td {
+  padding: 6px;
+  text-align: left;
+  border-bottom: 1px solid #e1e4dc;
+  vertical-align: middle;
+}
+
+.config-gacha-table th {
+  color: var(--config-muted);
+  font-weight: 600;
+}
+
+.config-gacha-table td code {
+  display: block;
+  color: var(--config-muted);
+  font-size: 10px;
+}
+
+.config-gacha-table input {
+  width: 80px;
+  padding: 5px 7px;
+  border: 1px solid #ccd1c8;
+  border-radius: 6px;
+}

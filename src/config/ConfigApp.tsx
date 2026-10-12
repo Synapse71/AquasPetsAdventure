@@ -32,6 +32,7 @@ import { PetForm } from "./PetForm";
 import { TaskForm } from "./TaskForm";
 import { EventForm } from "./EventForm";
 import { EventPoolForm } from "./EventPoolForm";
+import { GachaForm } from "./GachaForm";
 import { lootIconUrl } from "../ui/lootIcons";
 import "./configStyles.css";
 
@@ -78,6 +79,7 @@ const FORM_CATEGORIES: CatalogCategory[] = [
   "items",
   "petTemplates",
   "tasks",
+  "gachas",
 ];
 
 const SOURCE_LABELS: Record<CatalogSource, string> = {
@@ -105,6 +107,7 @@ const CATEGORY_META: Record<
     description: "初始属性与 Tag 槽",
   },
   tags: { label: "Tag", singular: "Tag", description: "永久正向特质" },
+  gachas: { label: "抽奖", singular: "抽奖", description: "每日扭蛋的价格、奖池与预算" },
 };
 
 const CATEGORY_ORDER: CatalogCategory[] = [
@@ -115,6 +118,7 @@ const CATEGORY_ORDER: CatalogCategory[] = [
   "tasks",
   "petTemplates",
   "tags",
+  "gachas",
 ];
 
 function recordsOf(
@@ -192,6 +196,10 @@ function recordDetail(
       : "次要属性缺失";
     return `${main}　|　${sub}`;
   }
+  if (category === "gachas") {
+    const pool = Array.isArray(record.itemPool) ? record.itemPool.length : 0;
+    return `每日免费 ${String(record.dailyFreeDraws ?? "-")} 次 · 道具池 ${pool} 件`;
+  }
   return typeof record.description === "string" ? record.description : "";
 }
 
@@ -267,6 +275,8 @@ function createTemplate(
         growthTagIds: [],
         growthTagSlots: 1,
       };
+    case "gachas":
+      return { ...structuredClone(bundledCatalog.gachas.daily), id, name: "新抽奖" };
   }
 }
 
@@ -918,6 +928,16 @@ export function ConfigApp() {
                     />
                   ) : category === "petTemplates" ? (
                     <PetForm
+                      key={mode}
+                      record={parsedRecord}
+                      catalog={draft}
+                      onChange={(next) => {
+                        setEditorText(JSON.stringify(next, null, 2));
+                        setEditorError("");
+                      }}
+                    />
+                  ) : category === "gachas" ? (
+                    <GachaForm
                       key={mode}
                       record={parsedRecord}
                       catalog={draft}
