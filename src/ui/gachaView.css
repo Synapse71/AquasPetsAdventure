@@ -49,9 +49,7 @@
 .gacha-result small { display:block; color:var(--ap-muted); font-size:12px; }
 .gacha-result strong { font-size:18px; color:var(--ap-ink); }
 .gacha-result-icon { display:grid; place-items:center; width:56px; height:56px; border-radius:10px; font-weight:800; font-size:14px; }
-.gacha-result-icon.currency { background:#fbe7a6; }
-.gacha-result-icon.currency img { width:38px; height:38px; }
-.gacha-result-icon.xp { background:#c5ece6; color:#24766b; }
+.gacha-result-icon img { width:38px; height:38px; object-fit:contain; }
 .gacha-rarity-rare { color:#38699c!important; }
 .gacha-rarity-epic { color:#7a4f9e!important; }
 .gacha-rarity-legendary { color:#a8761a!important; }
@@ -63,3 +61,15 @@
 @media (prefers-reduced-motion: reduce) {
   .gacha-stage *, .gacha-stage { animation-duration:.01ms!important; animation-iteration-count:1!important; }
 }
+
+/* 正式美术：白底的扭蛋机首帧与开蛋视频，比例 3:4，舞台跟着改成白底同比例。 */
+.adventure-panel button.gacha-stage.with-art { height:auto; aspect-ratio:3/4; background:#fff; border:1px solid var(--ap-line); }
+.gacha-machine-art, .gacha-fx, .gacha-fx>* { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.gacha-fx[hidden], .gacha-fx>[hidden], .gacha-machine-art[hidden] { display:none; }
+.stage-turning .gacha-machine-art { animation:gacha-shake .3s ease-in-out 3; }
+/* 视频里开壳后的扭蛋停在画面水平居中、约 62% 高度处，奖品从它上方冒出来。 */
+/* 与开箱拾取的战利品卡（.ap-loot-card）同款：2px 灰边、10px 圆角、内衬 inset 2px 的底色层，图标占 72%。 */
+.gacha-prize-pop { position:absolute; left:50%; top:48%; width:64px; height:64px; margin-left:-32px; border:2px solid var(--ap-line); border-radius:10px; background:var(--ap-panel); animation:gacha-pop .45s cubic-bezier(.3,1.6,.6,1) both; }
+.gacha-prize-pop>span { position:absolute; inset:2px; border-radius:7px; background:var(--item-color); }
+.gacha-prize-pop img { position:absolute; inset:14%; width:72%; height:72%; object-fit:contain; }
+@keyframes gacha-pop { from { transform:translateY(24px) scale(.3); opacity:0; } to { transform:none; opacity:1; } }

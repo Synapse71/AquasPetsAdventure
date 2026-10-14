@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState, startExpedition } from "../domain/engine";
 import type { GameState } from "../domain/types";
-import { addCurrency, arriveNow, fastForward, healResting, nextArrivalIn, restingInjuredCount } from "./gmActions";
+import { drawGacha, gachaStatus } from "../domain/gacha";
+import { addCurrency, arriveNow, fastForward, healResting, nextArrivalIn, resetGachaDay, restingInjuredCount } from "./gmActions";
 
 const NOW = 1_700_000_000_000;
 
@@ -78,5 +79,32 @@ describe("GM：剩余时间显示", () => {
     expect(nextArrivalIn(createInitialState(), NOW)).toBeNull();
     expect(nextArrivalIn(traveling(30), NOW)).toBe(30 * 60_000);
     expect(nextArrivalIn(traveling(-5), NOW)).toBe(0);
+  });
+});
+
+describe("GM：重置抽奖次数", () => {
+  it("免费次数回满、付费价格回到第 1 次，已经抽到的东西不动", () => {
+    let state = addCurrency(createInitialState(), 1_000_000);
+    const fresh = gachaStatus(state, NOW)!;
+    for (let i = 0; i < fresh.freeLeft + 2; i++) state = drawGacha(state, NOW);
+    const used = gachaStatus(state, NOW)!;
+    expect(used.freeLeft).toBe(0);
+    expect(used.paidCount).toBe(2);
+
+    const reset = resetGachaDay(state);
+    const status = gachaStatus(reset, NOW)!;
+    expect(status.freeLeft).toBe(fresh.freeLeft);
+    expect(status.paidCount).toBe(0);
+    expect(status.nextPrice).toBe(fresh.nextPrice);
+    expect(reset.gacha.seed).toBe(state.gacha.seed);
+    expect(reset.gacha.lastPrize).toEqual(state.gacha.lastPrize);
+    expect(reset.gacha.pending).toEqual(state.gacha.pending);
+    expect(reset.currency).toBe(state.currency);
+  });
+
+  it("重置后能再免费抽一次", () => {
+    let state = createInitialState();
+    while (gachaStatus(state, NOW)!.freeLeft > 0) state = drawGacha(state, NOW);
+    expect(gachaStatus(resetGachaDay(state), NOW)!.canDraw).toBe(true);
   });
 });

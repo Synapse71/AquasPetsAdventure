@@ -7,9 +7,9 @@ import type { Inventory } from '../domain/types';
 import { inventoryCells } from './inventoryPanelModel';
 import { ItemTooltip } from './ItemTooltip';
 import { lootIconUrl } from './lootIcons';
+import { ITEM_CELL_COLORS as colors } from './rarityColors';
 import coinIcon from '../../assets/ui-prototype/icons/coin.png';
 
-const colors = { common: '#e3e3e3', uncommon: '#a8dc82', rare: '#74b9f0', epic: '#b98bee', legendary: '#f3c63c', mythic: '#f08a86' };
 export function AdventureItems({ inventory, empty = '暂无物品', onPick, onUse, onQuickUse, transferLabel, movable, slots = 0, room, rows = false, metric = 'weight' }: {
   inventory: Inventory; empty?: string; onPick?: (id: string, quantity: number, cellIndex: number) => void; movable?: Inventory; slots?: number;
   onUse?: (id: string) => void; onQuickUse?: (id: string) => void; transferLabel?: string;

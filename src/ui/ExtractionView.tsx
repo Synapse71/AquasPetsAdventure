@@ -3,6 +3,7 @@ import { catalog } from '../domain/catalog';
 import { addInventory, cargoSlotCapacity, confirmExtractionPlan, GameRuleError, inventorySlots, inventoryWeight, itemStackSize, pendingFirstExtractionRewards } from '../domain/engine';
 import type { Expedition, GameState, Inventory, Settlement } from '../domain/types';
 import { AdventureItems } from './AdventureItems';
+import xpIcon from '../../assets/ui-prototype/icons/xp.png';
 import { changeQuantity, extractionBasis, extractionPlan, isInventory, subtract } from './adventureModel';
 import { itemCount, saleValue } from './inventoryPanelModel';
 import { useUIState } from './uiState';
@@ -56,7 +57,7 @@ export function ExtractionView({ game, expedition, run, onFinished }: { game: Ga
       {!!itemCount(first) && <div className="ap-first-reward"><strong>首次撤离奖励 · 已预留仓库空间</strong><AdventureItems inventory={first} /></div>}
       {(message || preview.error) && <p role="status" className="ap-warning">{message || preview.error}</p>}
     </div>
-    <footer className="ap-footer"><span>预计出售 +{saleValue(plan.sell)}　·　每只伙伴 +{preview.report?.xpAward ?? '—'} XP</span><button className="ap-primary" disabled={!!preview.error} onClick={() => itemCount(plan.sell) || itemCount(plan.discard) ? setDraft({ ...draft, confirming: true }) : commit()}>确认撤离</button></footer>
+    <footer className="ap-footer"><span>预计出售 +{saleValue(plan.sell)}　·　每只伙伴 +{preview.report?.xpAward ?? '—'}<img className="ap-xp" src={xpIcon} alt="XP" /></span><button className="ap-primary" disabled={!!preview.error} onClick={() => itemCount(plan.sell) || itemCount(plan.discard) ? setDraft({ ...draft, confirming: true }) : commit()}>确认撤离</button></footer>
     {draft.confirming && <div className="ap-mask"><section className="ap-dialog" role="alertdialog" aria-label="确认撤离清单"><h2>确认撤离</h2><p>以下操作一并完成，确认后不可撤销。</p><div className="ap-sale-list">{Object.entries(plan.sell).map(([id, q]) => <p key={id}><span>{catalog.items[id].name} ×{q}</span><b>+{(catalog.items[id].sellValue ?? 0) * q}</b></p>)}{!!itemCount(draft.discard) && <p className="ap-warning">丢弃：{Object.entries(draft.discard).map(([id, q]) => `${catalog.items[id].name} ×${q}`).join('、')}</p>}</div><p><strong>保留 {itemCount(plan.keep)} 件 · 出售合计 +{saleValue(plan.sell)}</strong></p><div className="ap-dialog-actions"><button onClick={() => setDraft({ ...draft, confirming: false })}>返回整理</button><button className="ap-primary" disabled={!!preview.error} onClick={commit}>确认撤离</button></div></section></div>}
   </>;
 }

@@ -128,6 +128,8 @@
 .ap-item-row>span:nth-child(2) { flex:1; min-width:0; }
 .ap-item-row>small { color:var(--ap-secondary); font-size:12.5px; }
 .ap-item-row small .ap-coin { width:14px; height:14px; padding:0; vertical-align:-2px; margin-right:2px; }
+/* 经验图标跟在数字后面当单位用：XP 字形偏宽，比金币大一号才看得清。 */
+.ap-xp { width:20px; height:20px; margin-left:2px; vertical-align:-5px; object-fit:contain; }
 
 /* Travel, arrival, and the header bag action. */
 .ap-expedition-tools { position:absolute; top:10px; right:138px; display:flex; gap:6px; z-index:2; }

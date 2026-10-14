@@ -7,6 +7,7 @@ import type { PlayerMilestoneId } from "../domain/milestones";
 import type { GameState, Inventory, Settlement } from "../domain/types";
 import { gachaStatus } from "../domain/gacha";
 import { clearGame, loadGame, saveGame } from "../persistence/storage";
+import xpIcon from "../../assets/ui-prototype/icons/xp.png";
 import { PetDesktop, PET_MENUS, type PanelId } from "./PetDesktop";
 import { clearUIState } from "./uiState";
 import { CodexPanel } from "./CodexPanel";
@@ -96,7 +97,7 @@ function SettlementCard({
         </h3>
         <p>{settlement.summary}</p>
         <p className="muted">
-          每只宠物已获得 {settlement.xpAward} XP。
+          每只宠物已获得 {settlement.xpAward}<img className="ap-xp" src={xpIcon} alt="XP" />。
           {settlement.outcome === "success"
             ? "战利品已直接入库。"
             : "本轮战利品全部遗失。"}

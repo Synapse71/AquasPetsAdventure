@@ -1,26 +1,66 @@
 import type { Rarity } from '../domain/rarity';
-import type { GachaPrize } from '../domain/types';
+import type { GachaDefinition, GachaPrize } from '../domain/types';
+import { ITEM_CELL_COLORS } from './rarityColors';
 
-export type GachaStage = 'idle' | 'turning' | 'dropping' | 'opening' | 'revealed';
+export type GachaStage = 'idle' | 'turning' | 'dropping' | 'opening' | 'playing' | 'revealed';
 
 // 占位演出的三段时长：转把手、蛋滚出来、开壳。正式美术接入后替换。
 export const GACHA_STAGE_MS = { turning: 900, dropping: 600, opening: 1100 } as const;
 
-// 蛋壳色沿用物品格的六档稀有度底色；金币蛋、经验蛋各用一种固定色，避免和档位混淆。
-const RARITY_EGG: Record<Rarity, string> = {
-  common: '#e3e3e3',
-  uncommon: '#a8dc82',
-  rare: '#74b9f0',
-  epic: '#b98bee',
-  legendary: '#f3c63c',
-  mythic: '#f08a86',
-};
+// 蛋壳色沿用物品格的六档稀有度底色；金币、经验按 gachaTier 挂到稀有、史诗档。
+const RARITY_EGG = ITEM_CELL_COLORS;
+
+// 金币、经验没有稀有度，奖品方框用各自图标的浅色底：金币浅金、经验浅蓝。
+const PRIZE_FILL = { currency: '#fbe7a6', xp: '#d6eafb' } as const;
+
+/** 奖品方框的底色：开蛋弹出的方框和右侧抽奖结果用同一个。道具跟仓库格子一样按稀有度上色。 */
+export function gachaPrizeFill(prize: GachaPrize): string {
+  return prize.kind === 'item' ? ITEM_CELL_COLORS[prize.rarity ?? 'common'] : PRIZE_FILL[prize.kind];
+}
 const RARITY_STEP: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 };
 
-/** 档位越高，开壳光晕越大、火花越多。金币与经验按蓝色档的表现。 */
+/** 档位越高，开壳光晕越大、火花越多。CSS 占位演出用，还没做视频的档位才会走到。 */
 export function gachaEggStyle(prize: GachaPrize): { color: string; glow: number; sparks: number } {
-  if (prize.kind === 'currency') return { color: '#f7d774', glow: 1, sparks: 4 };
-  if (prize.kind === 'xp') return { color: '#7fd1c7', glow: 1, sparks: 4 };
-  const step = RARITY_STEP[prize.rarity ?? 'common'];
-  return { color: RARITY_EGG[prize.rarity ?? 'common'], glow: 0.6 + step * 0.35, sparks: 2 + step * 2 };
+  const tier = gachaTier(prize);
+  const step = RARITY_STEP[tier];
+  return { color: RARITY_EGG[tier], glow: 0.6 + step * 0.35, sparks: 2 + step * 2 };
+}
+
+/** 抽奖页说明。免费次数、涨价倍率和重置时间都来自配置，文案不写死数字。 */
+export function gachaIntro(definition: GachaDefinition | undefined): string {
+  if (!definition) return '';
+  const free = definition.dailyFreeDraws > 0 ? `每天免费扭 ${definition.dailyFreeDraws} 次，` : '';
+  const { growth } = definition.paidPrice;
+  const rise = growth === 1 ? '价格不变' : growth === 2 ? '价格每次翻倍' : `价格每次 ×${growth}`;
+  return `${free}能开出金币、经验或稀有道具。之后可以花金币继续扭，${rise}，每天 ${definition.resetHour}:00 重置。`;
+}
+
+// ---- 正式开蛋视频（tools/build-gacha-opening.py 产出）----
+
+const clips = import.meta.glob<string>('../../assets/ui-prototype/gacha/opening-v1/*/open-anim.mp4', { eager: true, query: '?url', import: 'default' });
+const stills = import.meta.glob<string>('../../assets/ui-prototype/gacha/opening-v1/*/open-still.webp', { eager: true, query: '?url', import: 'default' });
+const idleImages = import.meta.glob<string>('../../assets/ui-prototype/gacha/first-frame/machine-d.webp', { eager: true, query: '?url', import: 'default' });
+
+/** 没抽之前显示的扭蛋机。所有档位的视频都从这张图起播。 */
+export const GACHA_IDLE_IMAGE: string | undefined = Object.values(idleImages)[0];
+
+/** 视频没能播（解码失败、被策略挡住）时的兜底收尾时长，略长于 5 秒原片。 */
+export const GACHA_CLIP_MS = 5300;
+
+/**
+ * 奖励播哪一档的开蛋演出：道具按物品稀有度；金币算稀有，经验算史诗。
+ * 金币和经验没有物品档位，按它们大致的价值感挂到中间两档上。
+ */
+export function gachaTier(prize: GachaPrize): Rarity {
+  if (prize.kind === 'currency') return 'rare';
+  if (prize.kind === 'xp') return 'epic';
+  return prize.rarity ?? 'common';
+}
+
+/** 该档的开蛋视频与末帧；还没做视频的档位返回 null，继续用 CSS 占位演出。 */
+export function gachaClip(tier: Rarity, sources: { clips: Record<string, string>; stills: Record<string, string> } = { clips, stills }): { clip: string; still: string } | null {
+  const base = `../../assets/ui-prototype/gacha/opening-v1/${tier}`;
+  const clip = sources.clips[`${base}/open-anim.mp4`];
+  const still = sources.stills[`${base}/open-still.webp`];
+  return clip && still ? { clip, still } : null;
 }

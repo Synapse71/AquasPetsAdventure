@@ -57,6 +57,14 @@ export function healResting(state: GameState, now: number): GameState {
   return tick({ ...state, pets }, now);
 }
 
+/**
+ * 重置今天的抽奖次数，相当于跨过了每日重置点：免费次数回满，付费价格回到第 1 次。
+ * 随机种子、待领取的道具、上一次的奖品都不动——GM 要的是能再抽，不是清掉已经抽到的东西。
+ */
+export function resetGachaDay(state: GameState): GameState {
+  return { ...state, gacha: { ...state.gacha, freeUsed: 0, paidCount: 0 } };
+}
+
 /** 加钱。可以传负数，扣到 0 为止。 */
 export function addCurrency(state: GameState, amount: number): GameState {
   return { ...state, currency: Math.max(0, state.currency + amount) };
