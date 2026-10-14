@@ -4,9 +4,10 @@ import { applySecondaryGrantItem, applyTagItem, eatWarehouseFood, healPetWithFoo
   GameRuleError, inventoryWeight, itemStackSize, SECONDARY_STAT_LABELS,
   sellWarehouseItems, toggleItemLock, warehouseSlotsUsed } from '../domain/engine';
 import { itemTagLabel } from '../domain/itemTags';
-import { RARITY_LABELS, rarityRank, type Rarity } from '../domain/rarity';
+import { RARITY_LABELS, rarityRank } from '../domain/rarity';
 import type { GameState, Inventory } from '../domain/types';
 import { lootIconUrl } from './lootIcons';
+import { ITEM_CELL_COLORS as COLORS } from './rarityColors';
 import { ItemTooltip } from './ItemTooltip';
 import { ItemUseDialog } from './ItemUseDialog';
 import { menuIcon } from './PetDesktop';
@@ -16,7 +17,6 @@ import { cleanPicked, cellLimit, cellRef, cellRefs, discardBasis, foodUseBasis, 
   type InventoryDialog, type InventoryView, type SortKey } from './inventoryPanelModel';
 import './inventoryPanel.css';
 
-const COLORS: Record<Rarity, string> = { common: '#e3e3e3', uncommon: '#a8dc82', rare: '#74b9f0', epic: '#b98bee', legendary: '#f3c63c', mythic: '#f08a86' };
 const num = (value: number) => value.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
 const itemStyle = (id: string): CSSProperties => ({ background: COLORS[catalog.items[id]?.rarity ?? 'common'] });
 function ItemArt({ id }: { id: string }) {

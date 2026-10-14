@@ -2,15 +2,15 @@ import { useRef, useState } from 'react';
 import { catalog } from '../domain/catalog';
 import { SECONDARY_STAT_KEYS, SECONDARY_STAT_LABELS, STAT_LABELS } from '../domain/engine';
 import { itemTagLabel } from '../domain/itemTags';
-import { RARITY_LABELS, rarityRank, type Rarity } from '../domain/rarity';
+import { RARITY_LABELS, rarityRank } from '../domain/rarity';
 import type { GameState, StatKey } from '../domain/types';
 import { codexGroups, codexItemCount } from './codexGroups';
 import { lootIconUrl } from './lootIcons';
+import { ITEM_CELL_COLORS as COLORS } from './rarityColors';
 import { useUIState } from './uiState';
 import './simplePanels.css';
 import { PetPortrait } from './PetPortrait';
 
-const COLORS: Record<Rarity, string> = { common:'#e3e3e3', uncommon:'#a8dc82', rare:'#74b9f0', epic:'#b98bee', legendary:'#f3c63c', mythic:'#f08a86' };
 export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => void }) {
   const [tab, setTab] = useUIState<'item' | 'pet'>('codex-tab', 'item', (v): v is 'item' | 'pet' => v === 'item' || v === 'pet');
   const [tip, setTip] = useState<{id:string;x:number;y:number} | null>(null);

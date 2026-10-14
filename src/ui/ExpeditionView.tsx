@@ -10,6 +10,7 @@ import { ExtractionView } from './ExtractionView';
 import { EventOptionInfo } from './EventOptionInfo';
 import { useUIState } from './uiState';
 import { lootIconUrl } from './lootIcons';
+import { ITEM_CELL_COLORS as colors } from './rarityColors';
 import { RARITY_CHEST_MS, rarityChestFx, topLootRarity } from './chestRarity';
 import { foodBuffNote, foodEatLabel, foodInCargo } from './foodModel';
 import { cellQuantity } from './inventoryPanelModel';
@@ -24,7 +25,6 @@ const face = (n: number) => dice[`../../assets/ui-prototype/dice/face-${n}.png`]
 const statIcon = (key: string) => stats[`../../assets/ui-prototype/icons/stat-${key}.png`];
 const resolutionOf = (c: EventChoiceDefinition) => c.resolution ?? {type:'primary' as const,stat:c.stat ?? 'perception',difficulty:c.difficulty ?? 0};
 const DICE_MS = 1470;
-const colors = { common:'#e3e3e3',uncommon:'#a8dc82',rare:'#74b9f0',epic:'#b98bee',legendary:'#f3c63c',mythic:'#ef6b55' };
 
 /** Prototype C: fast face changes, cubic deceleration, diminishing hops, then a landing pop.
  * Random faces here are presentation only; the final faces always come from the saved check. */
