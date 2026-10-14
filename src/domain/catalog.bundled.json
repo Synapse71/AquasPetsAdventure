@@ -1233,20 +1233,20 @@
       },
       "nodePositions": {
         "m1-start": {
-          "x": 51.334823036743515,
-          "y": 89.67839417227025
+          "x": 50.25300567363112,
+          "y": 90.944704610951
         },
         "m1-point-1": {
-          "x": 28.759343479827088,
-          "y": 56.332552833813644
+          "x": 27.330522784582133,
+          "y": 53.84946365674031
         },
         "m1-point-2": {
-          "x": 77.0820199927954,
-          "y": 62.02669708613513
+          "x": 82.54232708933718,
+          "y": 58.26378882484791
         },
         "m1-goal-1": {
-          "x": 50.90310923991355,
-          "y": 16.415005603586295
+          "x": 50.705826729106626,
+          "y": 15.851144732628883
         }
       }
     },
@@ -1312,15 +1312,14 @@
               "mythic": 0
             },
             "whitelistItemIds": [
-              "nail",
-              "wood-strip",
               "spring",
               "bearing",
               "iron-sheet",
-              "fur"
+              "fur",
+              "rubber-block",
+              "screw"
             ],
             "whitelistItemTags": [
-              "tool",
               "food"
             ],
             "blacklistItemIds": [
@@ -1360,7 +1359,9 @@
               "bearing",
               "spring",
               "duct-tape",
-              "cast-iron-pan"
+              "cast-iron-pan",
+              "screw",
+              "rubber-block"
             ],
             "whitelistItemTags": [
               "food"
@@ -1432,7 +1433,9 @@
               "fountain-pen",
               "enamel-brooch",
               "wood-strip",
-              "iron-sheet"
+              "iron-sheet",
+              "rubber-block",
+              "bearing"
             ],
             "whitelistItemTags": [],
             "blacklistItemIds": [
@@ -1518,7 +1521,6 @@
               "screw",
               "paper",
               "duct-tape",
-              "empty-bottle",
               "battery",
               "bulb",
               "black-truffle",
@@ -1526,7 +1528,8 @@
               "honey",
               "red-wine",
               "umbrella",
-              "leather-handbag"
+              "leather-handbag",
+              "rubber-block"
             ],
             "blacklistItemIds": [
               "poop"
@@ -1561,9 +1564,15 @@
               "legendary": 0,
               "mythic": 0
             },
-            "whitelistItemIds": [],
+            "whitelistItemIds": [
+              "rubber-block",
+              "screw",
+              "bearing",
+              "wood-strip",
+              "nail",
+              "spring"
+            ],
             "whitelistItemTags": [
-              "material",
               "food"
             ],
             "blacklistItemIds": [
@@ -1608,11 +1617,13 @@
               "tablet",
               "telephoto-lens",
               "telescope",
-              "violin"
+              "violin",
+              "rubber-block",
+              "bearing",
+              "screw"
             ],
             "whitelistItemTags": [
               "food",
-              "material",
               "tool"
             ],
             "blacklistItemIds": [

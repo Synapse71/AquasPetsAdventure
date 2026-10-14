@@ -1,4 +1,5 @@
-import foothillsArt from '../../assets/maps/ue15-review-2026-09-28/explorer-foothills-selected.png';
+// 山麓 2026-10-14 按克格纳的画风重出（assets/maps/map1-restyle-2026-10-14 的 A 版），压成 WebP。
+import foothillsArt from './art/foothills-selected.webp';
 import kegnaArt from './art/kegna-selected.png';
 
 // 锚点指向可交互地物；配置台保存 nodePositions 后覆盖这些初始位置。
@@ -9,10 +10,10 @@ export const mapArtwork: Record<string, string> = {
 
 export const mapArtworkAnchors: Record<string, Record<string, { x: number; y: number }>> = {
   'map-1': {
-    'm1-start': { x: 55.4, y: 91.3 },
-    'm1-point-1': { x: 24.2, y: 61.3 },
-    'm1-point-2': { x: 82.8, y: 59.5 },
-    'm1-goal-1': { x: 54.9, y: 16 },
+    'm1-start': { x: 52, y: 88 },
+    'm1-point-1': { x: 28.5, y: 55 },
+    'm1-point-2': { x: 80.5, y: 58.5 },
+    'm1-goal-1': { x: 52, y: 17 },
   },
   'map-2': {
     'm2-start': { x: 20.8, y: 86.8 },
