@@ -1,13 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { catalog } from '../domain/catalog';
 import {
-  allocateStats, CARRY_BASE, CARRY_PER_FITNESS, GameRuleError, healPet,
+  allocateStats, GameRuleError, healPet,
   INJURY_LABELS, injuryHealCost, injuryMultiplier, maxLevel, petCarryCapacity,
   petEffectiveStats, petSecondaryStat, petSlotCapacity, petStatResetCost, petStats,
-  resetPetStats, SECONDARY_STAT_KEYS, SECONDARY_STAT_LABELS, SLOTS_BASE,
-  SLOTS_PER_TECHNIQUE, STAT_LABELS, xpToNextLevel,
+  resetPetStats, SECONDARY_STAT_KEYS, SECONDARY_STAT_LABELS,
+  STAT_LABELS, xpToNextLevel,
 } from '../domain/engine';
-import type { GameState, StatKey } from '../domain/types';
+import type { GameState, InjuryStage, StatKey } from '../domain/types';
 import { emptyPoints, isStatusDrafts, pointCount, previewPet, PRIMARY_KEYS, statusDraftBasis, validStatusDraft, type PetStatusDraft, type PetStatusDrafts } from './petStatusDraft';
 import { useUIState } from './uiState';
 import './petStatusPanel.css';
@@ -18,6 +18,18 @@ const icon = (name: string) => iconFiles[`../../assets/ui-prototype/icons/${name
 const number = (value: number) => value.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
 function Coin({ amount }: { amount: number }) {
   return <span className="ps-money"><img src={icon('coin')} alt="通用货币" />{number(amount)}</span>;
+}
+// 悬停主属性整行时的说明：只讲这项属性管什么，具体数值看下方负重、背包格上限。
+const STAT_TIPS: Record<StatKey, ReactNode> = {
+  fitness: <>决定<b>负重上限</b>及<b>力量类事件</b>的成败。</>,
+  perception: <>决定<b>情报等级</b>，情报等级越高，从地图获取的信息越多。也决定<b>观察类事件</b>的成败。</>,
+  technique: <>决定<b>背包格上限</b>及<b>技巧类事件</b>的成败。</>,
+};
+// 悬停伤势徽章时列出各档的属性折损，倍率直接读规则，当前档高亮。
+function InjuryTip({ current }: { current: InjuryStage }) {
+  return <span className="ps-injury-tip" id="injury-tip" role="tooltip">{(Object.keys(INJURY_LABELS) as InjuryStage[]).map(stage => <span key={stage} className={stage === current ? 'is-current' : ''}>
+    <b>{INJURY_LABELS[stage]}</b>{stage === 'healthy' ? '属性不受影响' : `主属性与负重上限 ×${injuryMultiplier(stage)}${stage === 'incapacitated' ? '，不能出发' : ''}`}
+  </span>)}</span>;
 }
 function remaining(ms: number): string {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -82,7 +94,7 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
         <div className="ps-level">Lv.{pet.level}<span>{pet.level >= maxLevel() ? '已满级' : `${number(pet.xp)} / ${number(xpToNextLevel(pet.level))} 经验`}</span></div>
         <div className="ps-xp" role="progressbar" aria-label="升级经验" aria-valuemin={0} aria-valuemax={pet.level >= maxLevel() ? 1 : xpToNextLevel(pet.level)} aria-valuenow={pet.level >= maxLevel() ? 1 : pet.xp}><i style={{ width: `${pet.level >= maxLevel() ? 100 : Math.min(100, pet.xp / xpToNextLevel(pet.level) * 100)}%` }} /></div>
       </div>
-      <span className={`ps-badge ps-${pet.injury}`}>{INJURY_LABELS[pet.injury]}</span>
+      <span className="ps-badge-wrap" tabIndex={0} aria-describedby="injury-tip" data-testid="injury-badge"><span className={`ps-badge ps-${pet.injury}`}>{INJURY_LABELS[pet.injury]}</span><InjuryTip current={pet.injury} /></span>
       <button className="ps-close" aria-label="关闭窗口" onClick={onClose}>×</button>
     </header>
     <div className={`ps-injury ${hurt ? 'is-hurt' : ''}`}>
@@ -97,19 +109,21 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
     <div className="ps-primary-heading"><h3>主属性</h3>{hurt && <span className="ps-multiplier">伤势 ×{multiplier}</span>}<span className="ps-points"><b data-testid="available-points">{number(available)}</b> 点待分配</span>
       <button className="ps-reset" disabled={!allocated || pending > 0 || askingReset} title={pending ? '请先确认或撤销加点' : !allocated ? '没有已分配的属性点' : `本次费用 ${number(cost)}`} onClick={() => setDraft({ basis: statusDraftBasis(game, pet), mode: 'reset', points: emptyPoints() })}>重置属性点</button>
     </div>
-    <div className="ps-stats">{PRIMARY_KEYS.map(key => <div className="ps-stat" key={key} data-stat={key}>
+    <div className="ps-stats">{PRIMARY_KEYS.map(key => <div className="ps-stat" key={key} data-stat={key} data-testid={`stat-row-${key}`}>
       <img src={icon(`stat-${key}`)} alt="" /><span className="ps-stat-label">{STAT_LABELS[key]}</span>
       <span className="ps-stat-numbers">{points[key] > 0 && <small className="ps-delta">+{points[key]}</small>}<strong className={hurt ? 'is-hurt' : ''} data-testid={`effective-${key}`}>{number(effective[key])}</strong>{hurt && <small>原 <s>{number(raw[key])}</s></small>}</span>
       <button className={`ps-minus ${points[key] ? '' : 'is-placeholder'}`} disabled={!points[key] || askingReset} aria-label={`撤回${STAT_LABELS[key]}一点`} onClick={() => changePoint(key, -1)}>−</button>
-      <button className="ps-plus" disabled={!available || askingReset} aria-label={`给${STAT_LABELS[key]}加一点`} onClick={() => changePoint(key, 1)}>+</button>
+      <button className="ps-plus" disabled={!available || askingReset} aria-label={`给${STAT_LABELS[key]}加一点`} aria-describedby={`stat-tip-${key}`} onClick={() => changePoint(key, 1)}>+</button>
+      <span className="ps-stat-tip" id={`stat-tip-${key}`} role="tooltip">{STAT_TIPS[key]}</span>
     </div>)}</div>
     <div className={`ps-actions ${pending || askingReset ? '' : 'is-idle'}`} aria-hidden={!pending && !askingReset}>
       {askingReset ? <><div className="ps-action-copy is-hurt"><span>退回 <b>{number(allocated)}</b> 点 · {cost === 0 ? '首次免费' : <Coin amount={cost} />}</span><small>{game.currency < cost ? '通用货币不足' : '全部已分配属性清零，基础属性不变'}</small></div><button onClick={clearDraft}>取消</button><button className="ps-danger" disabled={game.currency < cost} onClick={confirmReset}>确认重置</button></> : <><div className="ps-action-copy" title={PRIMARY_KEYS.filter(k => points[k]).map(k => `${STAT_LABELS[k]} +${points[k]}`).join('，')}>本次分配 <b>{number(pending)}</b> 点<small>确认后生效</small></div><button onClick={clearDraft} disabled={!pending}>撤销</button><button className="ps-confirm" onClick={commit} disabled={!pending}>确认 {number(pending)} 点</button></>}
     </div>
     <section className="ps-section"><h3>次要属性 <small>门槛判定 · 不受伤势影响</small></h3><div className="ps-secondary">{SECONDARY_STAT_KEYS.map(key => <div key={key}><img src={icon(`stat-${key}`)} alt=""/><span>{SECONDARY_STAT_LABELS[key]}</span><strong>{number(petSecondaryStat(pet, key))}</strong></div>)}</div></section>
-    <section className="ps-section"><h3>派生 <small>{pending ? '预览 · 尚未提交' : '当前属性'}</small></h3><div className="ps-derived">
-      <div><span>负重上限</span><strong className={hurt ? 'is-hurt' : ''} data-testid="carry-capacity">{number(carry)}{carryDelta > 0 && <small className="ps-delta"> +{number(carryDelta)}</small>}</strong><small>({CARRY_BASE} + {number(raw.fitness)} × {CARRY_PER_FITNESS}){hurt && ` × ${multiplier}`}</small></div>
-      <div><span>格子上限</span><strong data-testid="slot-capacity">{number(slots)}{slotsDelta > 0 && <small className="ps-delta"> +{number(slotsDelta)}</small>}</strong><small>{SLOTS_BASE} + {number(raw.technique)} × {SLOTS_PER_TECHNIQUE}{hurt && ' · 不受伤势影响'}</small></div>
+    {/* 只给最终数值；加点时的预览靠数值后面的 +N 表示。 */}
+    <section className="ps-section ps-derived-section"><div className="ps-derived">
+      <div><span>负重上限</span><strong className={hurt ? 'is-hurt' : ''} data-testid="carry-capacity">{number(carry)}{carryDelta > 0 && <small className="ps-delta"> +{number(carryDelta)}</small>}</strong></div>
+      <div><span>背包格上限</span><strong data-testid="slot-capacity">{number(slots)}{slotsDelta > 0 && <small className="ps-delta"> +{number(slotsDelta)}</small>}</strong></div>
     </div></section>
     <section className="ps-section"><h3>特质 <small>最多 {tagSlots} 个</small></h3><div className="ps-tags">
       {tags.map(tag => <div key={tag.id} title={catalog.tags[tag.id]?.description}><b>{catalog.tags[tag.id]?.name ?? '未知特质'}<small>{tag.innate ? '先天' : '成长'}</small></b><span>{catalog.tags[tag.id]?.description ?? '暂无描述'}</span></div>)}
