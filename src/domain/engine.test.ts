@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bundledCatalog } from "./catalog";
 import {
+  grantMissedExtractionRewards,
   GameRuleError,
   addInventory,
   allocateStat,
@@ -1177,6 +1178,38 @@ describe("account economy and permanent growth", () => {
     state = confirmExtraction(state, expeditionId, 3_000, catalog);
     expect(state.inventory).toEqual({ "probe-heavy-prize": 1 });
     expect(state.completedExtractionNodeKeys).toEqual(["map-1:m1-point-1"]);
+  });
+
+  it("通关之后才新增或加量的首次奖励，读档时补发差额，仓库放不下的进待领取", () => {
+    const catalog = catalogWith({
+      "probe-late-prize": { rarity: "rare", weight: 1, stackSize: 1 },
+      "probe-old-prize": { rarity: "rare", weight: 1, stackSize: 99 },
+    });
+    catalog.maps["map-1"].nodes["m1-point-1"].firstExtractionRewards = { "probe-old-prize": 1 };
+    let state = startExpedition(createInitialState(), { mapId: "map-1", petIds: ["gugugaga"] }, 1_000, catalog);
+    state.expeditions[0].phase = "extraction";
+    state.expeditions[0].currentNodeId = "m1-point-1";
+    state = confirmExtraction(state, state.expeditions[0].id, 2_000, catalog);
+    expect(state.claimedExtractionRewards["map-1:m1-point-1"]).toEqual({ "probe-old-prize": 1 });
+    expect(grantMissedExtractionRewards(state, 3_000, catalog).state).toBe(state);
+
+    // 策划之后给这个撤离点加量旧奖励、再加一件新奖励；仓库只剩 1 格。
+    catalog.maps["map-1"].nodes["m1-point-1"].firstExtractionRewards = { "probe-old-prize": 2, "probe-late-prize": 2 };
+    state.warehouseSlots = 2;
+    const { state: next, granted, pending } = grantMissedExtractionRewards(state, 4_000, catalog);
+    expect(granted).toEqual({ "probe-old-prize": 1, "probe-late-prize": 1 });
+    expect(pending).toEqual({ "probe-late-prize": 1 });
+    expect(next.inventory).toEqual({ "probe-old-prize": 2, "probe-late-prize": 1 });
+    expect(next.gacha.pending).toEqual({ "probe-late-prize": 1 });
+    expect(next.claimedExtractionRewards["map-1:m1-point-1"]).toEqual({ "probe-old-prize": 2, "probe-late-prize": 2 });
+    expect(next.itemAcquisitionCounts["probe-late-prize"]).toBe(1);
+    expect(next.log[0].message).toContain("补发撤离点首次奖励");
+
+    // 补完就不再重复发；再撤离一次也没有首次奖励。
+    expect(grantMissedExtractionRewards(next, 5_000, catalog).state).toBe(next);
+    // 没撤离过的撤离点不补发，留给正常的首次撤离。
+    catalog.maps["map-1"].nodes["m1-goal-1"].firstExtractionRewards = { "probe-old-prize": 1 };
+    expect(grantMissedExtractionRewards(next, 6_000, catalog).state).toBe(next);
   });
 });
 

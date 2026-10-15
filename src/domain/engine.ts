@@ -26,7 +26,7 @@ import type {
 } from "./types";
 import { isPlayerMilestoneId, type PlayerMilestoneId } from "./milestones";
 
-const GAME_VERSION = 9;
+const GAME_VERSION = 10;
 const INJURY_ORDER: InjuryStage[] = ["healthy", "injured", "incapacitated"];
 
 export const INJURY_LABELS: Record<InjuryStage, string> = {
@@ -196,6 +196,7 @@ export function createInitialState(): GameState {
     completedMilestoneIds: [],
     reachedEndpointIds: [],
     completedExtractionNodeKeys: [],
+    claimedExtractionRewards: {},
     discoveredNodeIds: [],
     discoveredRouteKeys: [],
     gacha: createGachaState(Date.now()),
@@ -1852,6 +1853,13 @@ export function confirmExtraction(
   ) {
     state.completedExtractionNodeKeys.push(extractionKey);
   }
+  if (extractionKey && Object.keys(firstExtractionRewards).length) {
+    state.claimedExtractionRewards ??= {};
+    state.claimedExtractionRewards[extractionKey] = addInventory(
+      state.claimedExtractionRewards[extractionKey] ?? {},
+      firstExtractionRewards,
+    );
+  }
 
   // 战利品经验按「成功带出来的东西」算：入库的算，撤离时就地卖掉的也算，
   // 丢弃的不算。节点基础经验由当前地图独立配置。
@@ -1945,9 +1953,62 @@ export function pendingFirstExtractionRewards(
   if (!map || !nodeId || nodeId === map.startNodeId) return {};
   const node = map.nodes[nodeId];
   if (!node || (!node.terminal && !node.extractable)) return {};
-  const extractionKey = `${expedition.mapId}:${nodeId}`;
-  if ((state.completedExtractionNodeKeys ?? []).includes(extractionKey)) return {};
-  return clone(node.firstExtractionRewards ?? {});
+  return unclaimedExtractionRewards(state, `${expedition.mapId}:${nodeId}`, node.firstExtractionRewards);
+}
+
+/** 配置的首次奖励里还没领过的部分（逐个物品取差额，配置减量不倒扣）。 */
+function unclaimedExtractionRewards(state: GameState, key: string, configured: Inventory | undefined): Inventory {
+  const claimed = state.claimedExtractionRewards?.[key] ?? {};
+  const missing: Inventory = {};
+  for (const [itemId, quantity] of Object.entries(configured ?? {})) {
+    const owed = quantity - (claimed[itemId] ?? 0);
+    if (owed > 0) missing[itemId] = owed;
+  }
+  return missing;
+}
+
+/**
+ * 补发已经撤离过的撤离点上漏领的首次奖励，读档时调用一次。
+ * 场景：撤离点是在玩家通关之后才加上（或加量）首次奖励的，正常流程里玩家要再跑一趟才能拿到。
+ * 逐件放进仓库，放不下的进抽奖页的「待领取」，和扭蛋奖励共用一个暂存处。
+ */
+export function grantMissedExtractionRewards(
+  source: GameState,
+  now = Date.now(),
+  catalog: Catalog = defaultCatalog,
+): { state: GameState; granted: Inventory; pending: Inventory } {
+  const granted: Inventory = {}, pending: Inventory = {};
+  let state = source;
+  for (const key of source.completedExtractionNodeKeys ?? []) {
+    const [mapId, nodeId] = key.split(":");
+    const node = catalog.maps[mapId]?.nodes[nodeId];
+    if (!node) continue;
+    const missing = unclaimedExtractionRewards(state, key, node.firstExtractionRewards);
+    if (!Object.keys(missing).length) continue;
+    if (state === source) state = clone(source);
+    for (const [itemId, quantity] of Object.entries(missing)) {
+      for (let index = 0; index < quantity; index += 1) {
+        const one = { [itemId]: 1 };
+        if (inventorySlots(addInventory(state.inventory, one), catalog) <= state.warehouseSlots) {
+          state.inventory = addInventory(state.inventory, one);
+          granted[itemId] = (granted[itemId] ?? 0) + 1;
+        } else {
+          pending[itemId] = (pending[itemId] ?? 0) + 1;
+        }
+      }
+    }
+    state.claimedExtractionRewards = {
+      ...state.claimedExtractionRewards,
+      [key]: addInventory(state.claimedExtractionRewards?.[key] ?? {}, missing),
+    };
+  }
+  if (state === source) return { state, granted, pending };
+  // 和扭蛋一样：进仓库的当场计入图鉴，进待领取的等领取时再计。
+  recordItemAcquisitions(state, granted);
+  state.gacha = { ...state.gacha, pending: addInventory(state.gacha.pending ?? {}, pending) };
+  const names = Object.entries(addInventory(granted, pending)).map(([itemId, quantity]) => `${catalog.items[itemId]?.name ?? itemId} ×${quantity}`).join("、");
+  addLog(state, `补发撤离点首次奖励：${names}。`, now);
+  return { state, granted, pending };
 }
 
 export function warehouseSlotsUsed(

@@ -259,7 +259,7 @@ export function claimGachaPending(
   if (!Object.keys(claimed).length) throw new GameRuleError("仓库已满，先腾出空位再领取。");
   recordItemAcquisitions(state, claimed);
   state.gacha = { ...state.gacha, pending };
-  addLog(state, `领取了 ${Object.values(claimed).reduce((sum, value) => sum + value, 0)} 件扭蛋奖励。`, now);
+  addLog(state, `领取了 ${Object.values(claimed).reduce((sum, value) => sum + value, 0)} 件待领取的奖励。`, now);
   return state;
 }
 

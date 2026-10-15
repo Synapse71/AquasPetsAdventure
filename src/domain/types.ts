@@ -446,6 +446,9 @@ export interface GameState {
   reachedEndpointIds: Id[];
   // `${mapId}:${nodeId}`；只在从该节点成功撤离后写入。
   completedExtractionNodeKeys: string[];
+  // 同样以 `${mapId}:${nodeId}` 为键，记每个撤离点已经领过的首次奖励。
+  // 首次奖励按「配置 − 已领」发差额：策划给已通关的撤离点新增或加量奖励，老玩家也能补到。
+  claimedExtractionRewards: Record<string, Inventory>;
   discoveredNodeIds: Id[];
   // `${mapId}:${fromNodeId}:${edgeId}`；隐藏路线抵达目标节点后永久登记。
   discoveredRouteKeys: string[];

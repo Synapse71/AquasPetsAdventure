@@ -2,7 +2,7 @@ import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { catalog } from "../domain/catalog";
 import { RARITY_LABELS } from "../domain/rarity";
-import { createInitialState, dismissSettlement, itemStackSize, recordMilestone, taskCanComplete, taskIsAvailable, tick, GameRuleError } from "../domain/engine";
+import { createInitialState, dismissSettlement, grantMissedExtractionRewards, itemStackSize, recordMilestone, taskCanComplete, taskIsAvailable, tick, GameRuleError } from "../domain/engine";
 import type { PlayerMilestoneId } from "../domain/milestones";
 import type { GameState, Inventory, Settlement } from "../domain/types";
 import { gachaStatus } from "../domain/gacha";
@@ -146,11 +146,23 @@ function FloatingWindow({ panel, children }: { panel: PanelId; children: ReactNo
   </div>;
 }
 
+// 读档时顺带补发漏领的撤离点首次奖励（通关之后才新增的奖励），并用提示条告诉玩家东西去了哪。
+function loadWithCompensation(): { game: GameState; notice?: string } {
+  const { state, granted, pending } = grantMissedExtractionRewards(loadGame());
+  const names = (items: Inventory) => Object.entries(items).map(([itemId, quantity]) => `${catalog.items[itemId]?.name ?? itemId} ×${quantity}`).join("、");
+  const parts = [
+    Object.keys(granted).length ? `${names(granted)} 已放进仓库` : "",
+    Object.keys(pending).length ? `${names(pending)} 因仓库已满，放在抽奖页的「待领取」里` : "",
+  ].filter(Boolean);
+  return { game: state, notice: parts.length ? `补发撤离点首次奖励：${parts.join("；")}。` : undefined };
+}
+
 export function App() {
-  const [game, setGame] = useState<GameState>(loadGame);
+  const [boot] = useState(loadWithCompensation);
+  const [game, setGame] = useState<GameState>(boot.game);
   const gameRef = useRef(game);
   const [now, setNow] = useState(Date.now());
-  const [notice, setNotice] = useState<string>();
+  const [notice, setNotice] = useState<string | undefined>(boot.notice);
   const [activePanel, setActivePanel] = useState<PanelId | null>(null);
 
   useEffect(() => {

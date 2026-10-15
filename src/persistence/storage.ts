@@ -1,11 +1,13 @@
+import { catalog } from "../domain/catalog";
 import { createGachaState, createInitialState } from "../domain/engine";
 import type { GameState } from "../domain/types";
 
 // 不兼容的版本仍会重开；同版本新增的可选字段在这里做轻量补全，
 // 避免 Demo 迭代时因为一个数组字段让现有存档失效。
 const STORAGE_KEY = "idle-pet-adventure.demo.v1";
-const SUPPORTED_VERSION = 9;
+const SUPPORTED_VERSION = 10;
 const VERSION_WITH_SIMPLIFIED_INJURY = 8;
+const VERSION_WITH_ACQUISITION_COUNTS = 9;
 
 function migrateVersion7(parsed: GameState): GameState {
   const next = structuredClone(parsed);
@@ -26,7 +28,7 @@ function migrateVersion7(parsed: GameState): GameState {
 
 function migrateVersion8(parsed: GameState): GameState {
   const next = structuredClone(parsed);
-  next.version = SUPPORTED_VERSION;
+  next.version = VERSION_WITH_ACQUISITION_COUNTS;
 
   // 旧存档只记“是否见过”，无法还原已经出售或消耗的精确历史次数。
   // 用现有仓库与正在冒险中新增的物品建立可信下限，同时保证每个旧解锁至少为 1。
@@ -44,6 +46,25 @@ function migrateVersion8(parsed: GameState): GameState {
   return next;
 }
 
+function migrateVersion9(parsed: GameState): GameState {
+  const next = structuredClone(parsed);
+  next.version = SUPPORTED_VERSION;
+
+  // v9 只记「哪些撤离点撤离过」，撤离过就当首次奖励已领。v10 改记「每个撤离点领过什么」。
+  // 旧记录按当前配置换算：配置里的奖励物品，玩家得到过就算领过；从没得到过，说明是通关之后才加的
+  // （例如北山驿站的「卡牌：白鼬」），留给读档后的补发。
+  const counts = next.itemAcquisitionCounts ?? {};
+  const claimed: Record<string, GameState["inventory"]> = {};
+  for (const key of next.completedExtractionNodeKeys ?? []) {
+    const [mapId, nodeId] = key.split(":");
+    const rewards = catalog.maps[mapId]?.nodes[nodeId]?.firstExtractionRewards ?? {};
+    const owned = Object.fromEntries(Object.entries(rewards).filter(([itemId]) => (counts[itemId] ?? 0) > 0));
+    if (Object.keys(owned).length) claimed[key] = owned;
+  }
+  next.claimedExtractionRewards = claimed;
+  return next;
+}
+
 export function loadGame(): GameState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -53,6 +74,7 @@ export function loadGame(): GameState {
     if (parsed.version === VERSION_WITH_SIMPLIFIED_INJURY) {
       parsed = migrateVersion8(parsed);
     }
+    if (parsed.version === VERSION_WITH_ACQUISITION_COUNTS) parsed = migrateVersion9(parsed);
     if (parsed.version !== SUPPORTED_VERSION) return createInitialState();
     const itemAcquisitionCounts = parsed.itemAcquisitionCounts ?? {};
     const discoveredItemIds = Array.from(
@@ -70,6 +92,7 @@ export function loadGame(): GameState {
       discoveredItemIds,
       completedMilestoneIds: parsed.completedMilestoneIds ?? [],
       completedExtractionNodeKeys: parsed.completedExtractionNodeKeys ?? [],
+      claimedExtractionRewards: parsed.claimedExtractionRewards ?? {},
       discoveredRouteKeys: parsed.discoveredRouteKeys ?? [],
       gacha: parsed.gacha ? { ...parsed.gacha, pending: parsed.gacha.pending ?? {} } : createGachaState(Date.now()),
       expeditions: (parsed.expeditions ?? []).map((expedition) => ({
