@@ -87,9 +87,11 @@ try {
   if (!settingsOnly) {
   await open('图鉴');
   assert(await evaluate(`document.querySelector('.window-codex').getBoundingClientRect().width===812&&document.querySelector('.window-codex').getBoundingClientRect().height===750`),'codex keeps the shared 812x750 frame');
-  assert(await evaluate(`document.querySelector('.cd-group').dataset.group==='collectible' && !document.querySelector('.cd-cell[data-item-id="paper"]')`),'collectibles stay first and unknown ordinary items are absent');
+  assert(await evaluate(`document.querySelectorAll('.cd-filter').length===8 && document.querySelector('.cd-filter[data-filter="all"]').getAttribute('aria-pressed')==='true' && !document.querySelector('.cd-cell[data-item-id="paper"]')`),'codex opens on the all-items filter, unknown ordinary items absent');
   assert(await evaluate(`!document.querySelector('.cd-cell .cd-count') && !document.querySelector('.cd-cell[data-item-id="cloth-strip"]').textContent.match(/\\d/)`),'codex item icons do not display lifetime count badges');
   await shot('01-codex');
+  assert(await evaluate(`!document.querySelector('.cd-cell.unknown')`),'all-items filter hides unacquired collectibles');
+  await click('.cd-filter[data-filter="collectible"]');
   const unknown=await evaluate(`document.querySelector('.cd-cell.unknown').dataset.itemId`);
   await click('.cd-cell[data-item-id="'+unknown+'"]');
   assert(await evaluate(`document.querySelector('.cd-tip').textContent==='？？？' && !document.querySelector('.cd-cell.unknown .cd-count') && !document.querySelector('.cd-cell.unknown').getAttribute('style')`),'unknown collectible exposes no name, rarity, count, or tags');

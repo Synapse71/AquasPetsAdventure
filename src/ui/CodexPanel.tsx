@@ -4,7 +4,8 @@ import { SECONDARY_STAT_KEYS, SECONDARY_STAT_LABELS, STAT_LABELS } from '../doma
 import { itemTagLabel } from '../domain/itemTags';
 import { RARITY_LABELS, rarityRank } from '../domain/rarity';
 import type { GameState, StatKey } from '../domain/types';
-import { codexGroups, codexItemCount } from './codexGroups';
+import { CODEX_FILTER_LABELS, CODEX_FILTERS, codexItemCount, codexItems, isCodexFilter, type CodexFilter } from './codexGroups';
+import { CODEX_FILTER_ICONS } from './codexFilterIcons';
 import { lootIconUrl } from './lootIcons';
 import { ITEM_CELL_COLORS as COLORS } from './rarityColors';
 import { useUIState } from './uiState';
@@ -15,7 +16,8 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
   const [tab, setTab] = useUIState<'item' | 'pet'>('codex-tab', 'item', (v): v is 'item' | 'pet' => v === 'item' || v === 'pet');
   const [tip, setTip] = useState<{id:string;x:number;y:number} | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const groups = codexGroups(Object.values(catalog.items), game);
+  const [filter, setFilter] = useUIState<CodexFilter>('codex-filter', 'all', isCodexFilter);
+  const items = codexItems(Object.values(catalog.items), game, filter);
   const item = tip && catalog.items[tip.id], count = item ? codexItemCount(game, item.id) : 0;
   const show = (id: string, element: HTMLElement) => {
     const r = element.getBoundingClientRect(), host = root.current!.getBoundingClientRect();
@@ -27,8 +29,18 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
       <button aria-pressed={tab === 'pet'} onClick={() => {setTab('pet');setTip(null);}}>宠物</button>
     </nav><button className="sp-close" aria-label="关闭图鉴" onClick={onClose}>×</button></header>
     <div className="sp-content cd-content" onScroll={() => setTip(null)} onClick={e => { if (!(e.target as Element).closest('.cd-cell')) setTip(null); }}>
-      {tab === 'item' ? groups.map(group => <section className="cd-group" key={group.id} data-group={group.id}>
-        <h2>{group.label}</h2><div className="cd-grid">{group.items.map(entry => {
+      {tab === 'item' ? <>
+        <nav className="cd-filters" aria-label="按稀有度筛选">{CODEX_FILTERS.map(entry => {
+          const icon = CODEX_FILTER_ICONS[entry];
+          // 书签式页签，样式照搬面板左侧的功能菜单（petDesktop.css 的 .pet-bookmarks）：没选中的压一层灰，选中的盖住底线、和下面的内容连成一片。
+          return <button key={entry} className="cd-filter" data-filter={entry} aria-pressed={filter === entry} aria-label={CODEX_FILTER_LABELS[entry]}
+            onClick={() => { setFilter(entry); setTip(null); }}>
+            {icon ? <img src={icon} alt="" draggable={false} /> : <i aria-hidden="true">{CODEX_FILTER_LABELS[entry].slice(0, 1)}</i>}
+            {/* 页签上不写字，名称靠悬停提示；不用 title，系统提示框要等一秒多才出来、样式也和面板对不上。 */}
+            <span className="cd-filter-tip" aria-hidden="true">{CODEX_FILTER_LABELS[entry]}</span>
+          </button>;
+        })}</nav>
+        <div className="cd-grid">{items.map(entry => {
           const acquired = codexItemCount(game,entry.id), known = acquired > 0, url = lootIconUrl(entry.id);
           return <button className={`cd-cell${known ? '' : ' unknown'}`} key={entry.id} data-item-id={entry.id}
             aria-label={known ? `${entry.name}，累计获得 ${acquired} 件` : '？？？，未获得物品'}
@@ -38,7 +50,8 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
             {url ? <img src={url} alt="" draggable={false} /> : <span aria-hidden="true">◇</span>}
           </button>;
         })}</div>
-      </section>) : <div className="cd-pet-grid">{Object.values(catalog.petTemplates).map(pet => {
+        {!items.length && <p className="sp-empty">{filter === 'all' ? '冒险中的发现会记录在这里。' : `还没有获得过${CODEX_FILTER_LABELS[filter]}物品。`}</p>}
+      </> : <div className="cd-pet-grid">{Object.values(catalog.petTemplates).map(pet => {
         const known = Object.hasOwn(game.pets,pet.id);
         return <article className={`cd-pet${known ? '' : ' unknown'}`} key={pet.id}>
           {pet.id === 'gugugaga' ? <PetPortrait known={known} /> : <div className="cd-pet-placeholder" aria-hidden="true">◇</div>}
@@ -49,7 +62,6 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
           </div>
         </article>;
       })}</div>}
-      {tab === 'item' && !groups.length && <p className="sp-empty">冒险中的发现会记录在这里。</p>}
     </div>
     <footer className="sp-footer">{tab === 'item' ? '悬停或点击物品查看详情 · 累计获得件数不会因出售或使用减少' : '展示伙伴的初始属性，当前属性请查看状态面板'}</footer>
     {tab === 'item' && tip && item && <aside className="cd-tip" id="codex-item-tip" role="tooltip" style={{left:tip.x,top:tip.y}}>

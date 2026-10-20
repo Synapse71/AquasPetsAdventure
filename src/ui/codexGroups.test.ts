@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { codexGroups, codexItemCount } from './codexGroups';
+import { codexItemCount, codexItems } from './codexGroups';
 import type { ItemDefinition } from '../domain/types';
 const item = (id: string, rarity: ItemDefinition['rarity'], tags: string[] = []): ItemDefinition => ({ id, name: id, rarity, tags, weight: 1, sellable: false });
-describe('codex grouping', () => {
+describe('codex filtering', () => {
   it('uses recorded lifetime counts and falls back only for legacy entries', () => {
     const game = { discoveredItemIds:['zero','old','known'], itemAcquisitionCounts:{zero:0,known:9} };
     expect(codexItemCount(game,'zero')).toBe(0);
@@ -10,9 +10,18 @@ describe('codex grouping', () => {
     expect(codexItemCount(game,'old')).toBe(1);
     expect(codexItemCount(game,'unknown')).toBe(0);
   });
-  it('keeps unknown collectibles in one top group and hides unknown ordinary items', () => {
-    const groups = codexGroups([item('unknown-ordinary', 'mythic'), item('unknown-collectible', 'epic', ['collectible']), item('common', 'common'), item('rare', 'rare')], { discoveredItemIds: ['common', 'rare'], itemAcquisitionCounts: { common: 7, rare: 1 } });
-    expect(groups.map(group => group.id)).toEqual(['collectible', 'rare', 'common']);
-    expect(groups.flatMap(group => group.items.map(item => item.id))).toEqual(['unknown-collectible', 'rare', 'common']);
+  const items = [item('unknown-ordinary', 'mythic'), item('unknown-collectible', 'epic', ['collectible']), item('known-collectible', 'rare', ['collectible']), item('common', 'common'), item('rare', 'rare')];
+  const game = { discoveredItemIds: ['common', 'rare', 'known-collectible'], itemAcquisitionCounts: { common: 7, rare: 1, 'known-collectible': 1 } };
+  const ids = (filter: Parameters<typeof codexItems>[2]) => codexItems(items, game, filter).map(entry => entry.id);
+  it('shows only acquired items under all, collectibles first', () => {
+    expect(ids('all')).toEqual(['known-collectible', 'rare', 'common']);
+  });
+  it('lists every collectible, acquired or not, under the collectible filter', () => {
+    expect(ids('collectible')).toEqual(['unknown-collectible', 'known-collectible']);
+  });
+  it('filters by rarity without leaking unacquired items', () => {
+    expect(ids('rare')).toEqual(['known-collectible', 'rare']);
+    expect(ids('epic')).toEqual([]);
+    expect(ids('mythic')).toEqual([]);
   });
 });

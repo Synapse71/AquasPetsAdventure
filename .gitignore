@@ -62,6 +62,10 @@ assets/**/*-status.json
 !/assets/ui-prototype/icons/xp.png
 !/assets/ui-prototype/icons/bag.png
 !/assets/ui-prototype/icons/stat-*.png
+# 图鉴筛选图标：只版本化选定的 B 套（gpt25）缩出的 192px 成品；各模型原图、切图和评审图留在本机。
+!/assets/ui-prototype/icons/codex-filter/
+!/assets/ui-prototype/icons/codex-filter/*.png
+/assets/ui-prototype/icons/codex-filter/_*.png
 /assets/ui-prototype/icons/*-sheet.png
 !/assets/ui-prototype/dice/
 !/assets/ui-prototype/dice/face-*.png

@@ -13,7 +13,17 @@
 .sp-content { overflow:auto; min-height:0; padding:16px 18px; scrollbar-width:thin; }
 .sp-footer { border-top:1px solid var(--sp-line); padding:0 18px; display:flex; align-items:center; font-size:12px; color:var(--sp-muted); }
 .sp-muted { color:var(--sp-muted); }.sp-warning { color:var(--sp-warn); }.sp-empty { text-align:center; padding:32px; color:var(--sp-muted); }
-.cd-group { margin-bottom:18px; }.cd-group h2 { font-size:13px; margin:0 0 9px; font-weight:700; }
+.cd-filters { position:sticky; top:-16px; z-index:5; display:flex; align-items:flex-end; gap:6px; margin:-16px -18px 14px; padding:10px 18px 0; background:var(--sp-panel); border-bottom:1px solid #aeb2ba; }
+.simple-panel .cd-filter { position:relative; box-sizing:border-box; width:56px; height:46px; flex:none; display:grid; place-items:center; padding:0; margin-bottom:-1px; border:1px solid #aeb2ba; border-radius:9px 9px 0 0; background:#e8e9ed; }
+.simple-panel .cd-filter:hover:not(:disabled) { border-color:#aeb2ba; }
+.simple-panel .cd-filter[aria-pressed=true] { background:#fff; border-bottom-color:#fff; }
+.simple-panel .cd-filter:not([aria-pressed=true])::after { content:''; position:absolute; inset:0; border-radius:inherit; background:rgba(112,116,124,.45); pointer-events:none; }
+.simple-panel .cd-filter:not([aria-pressed=true]):hover::after { background:rgba(112,116,124,.3); }
+.simple-panel .cd-filter:focus-visible { outline:2px solid #9b751d; outline-offset:-3px; }
+.cd-filter img { width:34px; height:34px; object-fit:contain; pointer-events:none; }
+.cd-filter-tip { position:absolute; left:50%; top:calc(100% + 6px); z-index:6; transform:translateX(-50%); padding:3px 9px; border:1px solid #aeb2ba; border-radius:7px; background:var(--sp-panel); color:var(--sp-ink); font-size:12px; line-height:1.5; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .1s; }
+.simple-panel .cd-filter:hover .cd-filter-tip,.simple-panel .cd-filter:focus-visible .cd-filter-tip { opacity:1; }
+.cd-filter i { font-style:normal; font-weight:700; font-size:16px; color:#22252c; }
 .cd-grid { display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:7px; }
 .simple-panel .cd-cell { position:relative; aspect-ratio:1; width:100%; border:0; padding:0; border-radius:9px; background:var(--sp-field); }
 .cd-cell img { position:absolute; inset:6%; width:88%; height:88%; object-fit:contain; }
