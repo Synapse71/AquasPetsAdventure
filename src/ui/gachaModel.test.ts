@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bundledCatalog } from '../domain/catalog';
-import { gachaClip, gachaEggStyle, gachaIntro, gachaPrizeFill, gachaTier } from './gachaModel';
+import { gachaClip, gachaEggStyle, gachaPrizeFill, gachaTier } from './gachaModel';
 import { ITEM_CELL_COLORS } from './rarityColors';
-
-describe('抽奖页说明', () => {
-  it('免费次数、涨价倍率和重置时间跟着配置走', () => {
-    const daily = structuredClone(bundledCatalog.gachas.daily);
-    expect(gachaIntro({ ...daily, dailyFreeDraws: 2, resetHour: 5, paidPrice: { base: 1, growth: 1.5 } }))
-      .toBe('每天免费扭 2 次，能开出金币、经验或稀有道具。之后可以花金币继续扭，价格每次 ×1.5，每天 5:00 重置。');
-    expect(gachaIntro({ ...daily, dailyFreeDraws: 0, paidPrice: { base: 1, growth: 2 } })).toContain('价格每次翻倍');
-  });
-});
 
 describe('开蛋演出档位', () => {
   it('道具按物品稀有度，金币算稀有，经验算史诗', () => {

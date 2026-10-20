@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameState } from "../domain/types";
 import { gachaStatus } from "../domain/gacha";
-import { addCurrency, arriveNow, fastForward, healResting, nextArrivalIn, resetGachaDay, restingInjuredCount } from "./gmActions";
+import { addCurrency, addTestPet, arriveNow, removableTestPetCount, removeTestPets, fastForward, healResting, nextArrivalIn, resetGachaDay, restingInjuredCount } from "./gmActions";
 import "./gmPanel.css";
 
 /** App 在 dev 下挂到 window 上的把手。GM 后台不碰 React 树，只借这个口子读写存档。 */
@@ -44,6 +44,7 @@ export function GmPanel() {
 
   const traveling = game ? nextArrivalIn(game, now) : null;
   const resting = game ? restingInjuredCount(game) : 0;
+  const testPets = game ? removableTestPetCount(game) : 0;
   const gacha = game ? gachaStatus(game, now) : undefined;
   return (
     <section className="gm-panel" data-desktop-ui aria-label="GM 后台">
@@ -60,6 +61,8 @@ export function GmPanel() {
         <button type="button" disabled={!resting} onClick={() => apply(state => healResting(state, Date.now()))}>基地伤势痊愈{resting ? ` (${resting})` : ""}</button>
         <button type="button" disabled={!game} onClick={() => apply(state => addCurrency(state, 1000))}>+1000 金币</button>
         <button type="button" disabled={!gacha} onClick={() => apply(resetGachaDay)}>重置抽奖次数</button>
+        <button type="button" disabled={!game} onClick={() => apply(state => addTestPet(state, Date.now()))}>添加测试宠物</button>
+        <button type="button" disabled={!testPets} onClick={() => apply(removeTestPets)}>移除测试宠物{testPets ? ` (${testPets})` : ""}</button>
       </div>
       <p className="gm-note">金币 {game?.currency ?? "—"} · 出门在外的宠物不会被治疗（途中本来就不自愈）</p>
       {gacha && <p className="gm-note">抽奖：免费剩 {gacha.freeLeft} 次 · 今日已付费 {gacha.paidCount} 次 · 下次付费 {gacha.nextPrice} 金币</p>}

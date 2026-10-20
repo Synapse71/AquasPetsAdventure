@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { catalog } from '../domain/catalog';
 import { applySecondaryGrantItem, applyTagItem, eatWarehouseFood, healPetWithFood, STAT_LABELS, cargoCapacity, cargoSlotCapacity, cargoSlotsUsed, discardCargo,
   GameRuleError, inventoryWeight, itemStackSize, SECONDARY_STAT_LABELS,
@@ -26,9 +26,9 @@ function ItemArt({ id }: { id: string }) {
 function Coin({ value }: { value: number }) { return <span className="ip-coin"><img src={menuIcon('coin')} alt="通用货币" />{num(value)}</span>; }
 function Lock() { return <span className="ip-lock" aria-label="已锁定"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" strokeWidth="2.5" /></svg></span>; }
 
-export function InventoryPanel({ game, run, onClose, active, reports }: {
+export function InventoryPanel({ game, run, onClose, active }: {
   game: GameState; run: (action: (state: GameState) => GameState) => boolean;
-  onClose: () => void; active: boolean; reports: ReactNode;
+  onClose: () => void; active: boolean;
 }) {
   const [view, setView] = useUIState<InventoryView>('inventory-view', initialInventoryView, isInventoryView);
   const [section, setSection] = useUIState<'warehouse' | 'cargo'>('inventory-section', 'warehouse', (v): v is 'warehouse' | 'cargo' => v === 'warehouse' || v === 'cargo');
@@ -58,7 +58,10 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
   const entries = sortedInventory(game.inventory, view.sort, view.direction);
   const cells = inventoryCells(entries);
   const selectedId = entries.some(([id]) => id === view.selected) ? view.selected : entries[0]?.[0];
-  const item = selectedId ? catalog.items[selectedId] : undefined, quantity = selectedId ? game.inventory[selectedId] : 0;
+  const item = selectedId ? catalog.items[selectedId] : undefined;
+  // 详情按点中的那一格算，和格子菜单里「售卖」的上限一致；选中项回落到第一种物品、或记下的格已经没了时取它的第一格。
+  const selectedCell = selectedId ? cellLimit(game.inventory[selectedId], selectedId, selectedId === view.selected ? view.cell : 0) : 0;
+  const quantity = selectedCell || (selectedId ? cellLimit(game.inventory[selectedId], selectedId, 0) : 0);
   const expedition = game.expeditions.find(e => e.id === view.expeditionId) ?? game.expeditions[0];
   const cargoCells = inventoryCells(Object.entries(expedition?.cargo ?? {}));
   const weight = expedition ? inventoryWeight(expedition.cargo) : 0;
@@ -91,7 +94,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
     if (run(state => eatWarehouseFood(state, id))) { setMessage(`${catalog.items[id]?.name}已吃下，下一次出发生效。`); setMenu(null); }
   };
   const commit = () => {
-    if (!dialog || dialog.type === 'reports') return;
+    if (!dialog) return;
     const succeeded = run(state => {
       if (!validInventoryDialog(state, dialog)) throw new GameRuleError('物品或伙伴状态已变化，请重新确认。');
       if (dialog.type === 'sale') return sellWarehouseItems(state, dialog.quantities);
@@ -116,11 +119,10 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
     <header className="ip-header">
       <h1 id="window-title-inventory">库存</h1>
       <nav className="ip-tabs" aria-label="库存分类">
-        <button aria-pressed={section === 'warehouse'} onClick={() => { setSection('warehouse'); setMenu(null); setTip(null); }}>库存</button>
+        <button aria-pressed={section === 'warehouse'} onClick={() => { setSection('warehouse'); setMenu(null); setTip(null); }}>仓库</button>
         <button aria-pressed={section === 'cargo'} onClick={() => { setSection('cargo'); setMenu(null); setTip(null); }}>冒险背包</button>
       </nav>
       <Coin value={game.currency} />
-      <button className="ip-reports" onClick={() => setDialog({ type: 'reports' })}>战报{game.settlements.length ? ` ${game.settlements.length}` : ''}</button>
       <button className="ip-close" aria-label="关闭库存" onClick={onClose}>×</button>
     </header>
     {section === 'cargo' ? <div className="ip-cargo-page">
@@ -185,15 +187,23 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           <dl>
             <div><dt>名称</dt><dd>{item.name}</dd></div>
             <div><dt>稀有度</dt><dd><span className="ip-rarity" style={itemStyle(selectedId)}>{RARITY_LABELS[item.rarity]}</span></dd></div>
-            <div><dt>总数量</dt><dd>{quantity}<small>（每格 {itemStackSize(selectedId)}）</small></dd></div>
-            <div><dt>总价值</dt><dd>{item.sellable ? <><Coin value={(item.sellValue ?? 0) * quantity} /><small>单价 {num(item.sellValue ?? 0)}</small></> : '不可出售'}</dd></div>
-            <div><dt>总重量</dt><dd>{num(item.weight * quantity)}<small>单重 {num(item.weight)}</small></dd></div>
+            {/* 这一格多于 1 件才拆成单件 / 总计；只有 1 件时单件就是总计，只列价值和重量。 */}
+            {quantity > 1 ? <>
+              <div><dt>数量</dt><dd>{quantity}</dd></div>
+              <div><dt>单件价值</dt><dd>{item.sellable ? <Coin value={item.sellValue ?? 0} /> : '不可出售'}</dd></div>
+              <div><dt>总价值</dt><dd>{item.sellable ? <Coin value={(item.sellValue ?? 0) * quantity} /> : '不可出售'}</dd></div>
+              <div><dt>单件重量</dt><dd>{num(item.weight)}</dd></div>
+              <div><dt>总重量</dt><dd>{num(item.weight * quantity)}</dd></div>
+            </> : <>
+              <div><dt>价值</dt><dd>{item.sellable ? <Coin value={item.sellValue ?? 0} /> : '不可出售'}</dd></div>
+              <div><dt>重量</dt><dd>{num(item.weight)}</dd></div>
+            </>}
           </dl>
           <div className="ip-tags">{item.tags?.map(tag => <span key={tag}>{itemTagLabel(tag)}</span>)}</div>
           {(item.secondaryGrant || item.tagGrantId) && <p className="ip-effect">{item.tagGrantId ? `赋予特质：${catalog.tags[item.tagGrantId]?.name ?? item.tagGrantId}` : `${SECONDARY_STAT_LABELS[item.secondaryGrant!.stat]} +${item.secondaryGrant!.amount}`} · 使用后永久生效</p>}
           {(item.foodBuff || item.foodHeal) && <p className="ip-effect">{[
-            item.foodBuff && `吃下：${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，只对接下来那一趟探险有效`,
-            item.foodHeal && `吃下恢复 ${item.foodHeal.steps} 档伤势`,
+            item.foodBuff && `使用后${STAT_LABELS[item.foodBuff.stat]} +${item.foodBuff.amount}，只对接下来那一趟探险有效`,
+            item.foodHeal && `使用后恢复 ${item.foodHeal.steps} 档伤势`,
           ].filter(Boolean).join(' · ')}</p>}
         </> : <p className="ip-empty">选择物品查看详情</p>}
       </aside>
@@ -224,8 +234,8 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
         if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
       }
     }}>
-      <div className={`ip-dialog${dialog.type === 'reports' ? ' reports' : ''}`} ref={modal} role="dialog" aria-modal="true" aria-labelledby="inventory-dialog-title">
-        <h2 id="inventory-dialog-title">{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' || dialog.type === 'food' ? `使用 ${catalog.items[dialog.itemId]?.name}` : dialog.type === 'discard' ? `丢弃 ${catalog.items[dialog.itemId]?.name}` : '冒险战报'}</h2>
+      <div className="ip-dialog" ref={modal} role="dialog" aria-modal="true" aria-labelledby="inventory-dialog-title">
+        <h2 id="inventory-dialog-title">{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'use' || dialog.type === 'food' ? `使用 ${catalog.items[dialog.itemId]?.name}` : `丢弃 ${catalog.items[dialog.itemId]?.name}`}</h2>
         {dialog.type === 'sale' && <>
           {dialog.singleId && <div className="ip-quantity"><button aria-label="减少售卖数量" disabled={dialog.quantities[dialog.singleId] <= 1} onClick={() => setSaleQuantity(dialog.quantities[dialog.singleId!] - 1)}>−</button><input aria-label="售卖数量" type="number" min={1} max={saleLimit} value={dialog.quantities[dialog.singleId]} onChange={e => setSaleQuantity(Number(e.target.value))} /><button aria-label="增加售卖数量" disabled={dialog.quantities[dialog.singleId] >= saleLimit} onClick={() => setSaleQuantity(dialog.quantities[dialog.singleId!] + 1)}>＋</button><button onClick={() => setSaleQuantity(saleLimit)}>本格全部</button></div>}
           {dialog.singleId && <p className="ip-hint">本格共 {saleLimit} 件。同名的其它格子不会被一起卖出——要卖哪一格就点哪一格。</p>}
@@ -242,8 +252,7 @@ export function InventoryPanel({ game, run, onClose, active, reports }: {
           <p className="ip-warning">丢弃后无法找回，也不会获得货币或经验。这一格最多 {discardLimit} 件，同名的其它格子不受影响。</p>
           <div className="ip-quantity"><label>数量 <input aria-label="丢弃数量" type="number" min={1} max={discardLimit} value={dialog.quantity} onChange={e => setDialog({ ...dialog, quantity: Math.max(1, Math.min(discardLimit, Math.trunc(Number(e.target.value)) || 1)) })} /></label><button onClick={() => setDialog({ ...dialog, quantity: discardLimit })}>本格全部</button></div>
         </>}
-        {dialog.type === 'reports' && <div className="ip-reports-body">{game.settlements.length ? reports : <p className="ip-empty">还没有冒险战报。</p>}</div>}
-        {dialog.type !== 'use' && <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>{dialog.type === 'reports' ? '关闭战报' : '取消'}</button>{dialog.type !== 'reports' && <button className="ip-primary ip-confirm" onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'discard' ? '确认丢弃' : '确认使用'}</button>}</div>}
+        {dialog.type !== 'use' && <div className="ip-dialog-actions"><button onClick={() => setDialog(null)}>取消</button><button className="ip-primary ip-confirm" onClick={commit}>{dialog.type === 'sale' ? '确认售卖' : dialog.type === 'discard' ? '确认丢弃' : '确认使用'}</button></div>}
       </div>
     </div>}
   </div>;

@@ -183,7 +183,7 @@ export function GachaForm({
         <div className="config-loot-section-title">
           <div>
             <span>道具池 · {gacha.itemPool.length} 件</span>
-            <small>仓库放不下时，开出的道具进抽奖页的「待领取」。</small>
+            <small>仓库放不下时，开出的道具进扭蛋页的「待领取」。</small>
           </div>
         </div>
         <div className="config-task-item-list config-gacha-pool">

@@ -682,7 +682,6 @@ small {
 }
 
 .expedition-card,
-.settlement-card,
 .task-card,
 .pet-card,
 .shop-card {
@@ -819,25 +818,6 @@ small {
 .blocked-block p {
   margin: 4px 0 6px;
   color: #7a6660;
-  font-size: 11px;
-}
-
-.first-clear-preview {
-  margin: 8px 0;
-  padding: 9px 10px;
-  border: 1px solid #c9b777;
-  border-radius: 9px;
-  background: #fffbed;
-}
-
-.first-clear-preview > strong {
-  color: #66531c;
-  font-size: 13px;
-}
-
-.first-clear-preview > p {
-  margin: 4px 0 0;
-  color: #746b4d;
   font-size: 11px;
 }
 

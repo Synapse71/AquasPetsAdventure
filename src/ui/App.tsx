@@ -1,13 +1,11 @@
 import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { catalog } from "../domain/catalog";
-import { RARITY_LABELS } from "../domain/rarity";
-import { createInitialState, dismissSettlement, grantMissedExtractionRewards, itemStackSize, recordMilestone, taskCanComplete, taskIsAvailable, tick, GameRuleError } from "../domain/engine";
+import { createInitialState, grantMissedExtractionRewards, recordMilestone, taskCanComplete, taskIsAvailable, tick, GameRuleError } from "../domain/engine";
 import type { PlayerMilestoneId } from "../domain/milestones";
-import type { GameState, Inventory, Settlement } from "../domain/types";
+import type { GameState, Inventory } from "../domain/types";
 import { gachaStatus } from "../domain/gacha";
 import { clearGame, loadGame, saveGame } from "../persistence/storage";
-import xpIcon from "../../assets/ui-prototype/icons/xp.png";
 import { PetDesktop, PET_MENUS, type PanelId } from "./PetDesktop";
 import { clearUIState } from "./uiState";
 import { CodexPanel } from "./CodexPanel";
@@ -32,95 +30,6 @@ function formatTime(ms: number): string {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return minutes ? `${minutes}:${rest.toString().padStart(2, "0")}` : `${rest} 秒`;
-}
-
-function Empty({ children }: { children: ReactNode }) {
-  return <p className="empty">{children}</p>;
-}
-
-function InventoryRows({
-  inventory,
-  actions,
-}: {
-  inventory: Inventory;
-  actions?: (itemId: string, quantity: number) => ReactNode;
-}) {
-  const rows = Object.entries(inventory).filter(([, quantity]) => quantity > 0);
-  if (!rows.length) return <Empty>暂无物品</Empty>;
-  return (
-    <div className="inventory-list">
-      {rows.map(([itemId, quantity]) => {
-        const item = catalog.items[itemId];
-        const stack = itemStackSize(itemId);
-        const slots = Math.ceil(quantity / stack);
-        return (
-          <div className="inventory-row" key={itemId}>
-            <div>
-              <strong className={item ? `rarity-${item.rarity}` : undefined}>
-                {item?.name ?? itemId}
-              </strong>
-              <span>
-                {item ? `${RARITY_LABELS[item.rarity]} · ` : ""}× {quantity} ·{" "}
-                {slots} 格{stack > 1 ? `（每格 ${stack}）` : ""} · 单重{" "}
-                {item?.weight ?? 0}
-                {item?.sellable ? ` · 售价 ${item.sellValue ?? 0}` : " · 不可出售"}
-              </span>
-            </div>
-            {actions?.(itemId, quantity)}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// 冒险结束后的只读战报：经验和入库都已经在撤离那一刻完成了。
-function SettlementCard({
-  game,
-  settlement,
-  run,
-}: {
-  game: GameState;
-  settlement: Settlement;
-  run: (action: Action) => void;
-}) {
-  return (
-    <article className="settlement-card">
-      <div>
-        <p className="eyebrow">
-          {settlement.outcome === "success" ? "成功撤离" : "溃败结算"}
-        </p>
-        <h3>
-          {settlement.petIds
-            .map((id) => game.pets[id]?.name ?? id)
-            .join("、")}
-        </h3>
-        <p>{settlement.summary}</p>
-        <p className="muted">
-          每只宠物已获得 {settlement.xpAward}<img className="ap-xp" src={xpIcon} alt="XP" />。
-          {settlement.outcome === "success"
-            ? "战利品已直接入库。"
-            : "本轮战利品全部遗失。"}
-        </p>
-      </div>
-      {!!Object.keys(settlement.cargo).length && (
-        <InventoryRows inventory={settlement.cargo} />
-      )}
-      {settlement.firstExtractionRewards &&
-        !!Object.keys(settlement.firstExtractionRewards).length && (
-          <div className="first-clear-preview">
-            <strong>撤离点首次奖励</strong>
-            <InventoryRows inventory={settlement.firstExtractionRewards} />
-          </div>
-        )}
-      <button
-        className="primary full"
-        onClick={() => run((state) => dismissSettlement(state, settlement.id))}
-      >
-        知道了
-      </button>
-    </article>
-  );
 }
 
 function ActivityPanel({ game }: { game: GameState }) {
@@ -152,7 +61,7 @@ function loadWithCompensation(): { game: GameState; notice?: string } {
   const names = (items: Inventory) => Object.entries(items).map(([itemId, quantity]) => `${catalog.items[itemId]?.name ?? itemId} ×${quantity}`).join("、");
   const parts = [
     Object.keys(granted).length ? `${names(granted)} 已放进仓库` : "",
-    Object.keys(pending).length ? `${names(pending)} 因仓库已满，放在抽奖页的「待领取」里` : "",
+    Object.keys(pending).length ? `${names(pending)} 因仓库已满，放在扭蛋页的「待领取」里` : "",
   ].filter(Boolean);
   return { game: state, notice: parts.length ? `补发撤离点首次奖励：${parts.join("；")}。` : undefined };
 }
@@ -273,7 +182,7 @@ export function App() {
   };
   const content = {
     adventure: <AdventurePanel game={game} now={now} run={run} intent={adventureIntent} onClose={closePanel} />,
-    inventory: <InventoryPanel game={game} run={run} onClose={closePanel} active={activePanel === "inventory"} reports={game.settlements.map(settlement => <SettlementCard key={settlement.id} game={game} settlement={settlement} run={run} />)} />,
+    inventory: <InventoryPanel game={game} run={run} onClose={closePanel} active={activePanel === "inventory"} />,
     pets: <PetStatusPanel game={game} now={now} run={run} onClose={closePanel} intent={statusIntent} />,
     codex: <CodexPanel game={game} onClose={closePanel} />,
     settings: <SettingsPanel game={game} onReset={resetDemo} onClose={closePanel} active={activePanel === "settings"} activity={<ActivityPanel game={game} />} />,

@@ -162,7 +162,7 @@ export function rollGachaPrize(
     PRIZE_KINDS.map((kind) => ({ value: kind, weight: available[kind] ? definition.prizeWeights[kind] : 0 })),
     seed,
   );
-  if (!kindDraw) throw new GameRuleError("抽奖配置没有可开出的奖励。");
+  if (!kindDraw) throw new GameRuleError("扭蛋配置没有可开出的奖励。");
 
   if (kindDraw.value === "item") {
     const rarityDraw = weightedPick(rarityEntries, kindDraw.seed)!;
@@ -178,10 +178,6 @@ export function rollGachaPrize(
   return { prize: { kind: kindDraw.value, amount: amount.value }, seed: amount.seed };
 }
 
-/** 经验发给最早加入的宠物，也就是桌面上的咕嘎；在外探险也照样入账。 */
-export function gachaXpPetId(state: GameState): Id | undefined {
-  return Object.keys(state.pets)[0];
-}
 
 function fitsWarehouse(state: GameState, additions: Inventory, catalog: Catalog): boolean {
   return inventorySlots(addInventory(state.inventory, additions), catalog) <= state.warehouseSlots;
@@ -201,7 +197,7 @@ export function drawGacha(
 ): GameState {
   const definition = dailyGacha(catalog);
   const status = gachaStatus(source, now, catalog);
-  if (!definition || !status) throw new GameRuleError("抽奖尚未配置。");
+  if (!definition || !status) throw new GameRuleError("扭蛋尚未配置。");
   if (!status.canDraw) throw new GameRuleError("金币不足。");
 
   const state = structuredClone(source);
@@ -221,8 +217,8 @@ export function drawGacha(
   if (prize.kind === "currency") {
     state.currency += prize.amount;
   } else if (prize.kind === "xp") {
-    const petId = gachaXpPetId(state);
-    if (petId) grantXp(state.pets[petId], prize.amount);
+    // 每只宠物各得一份完整经验，不平分；在外探险的也照样入账。
+    for (const pet of Object.values(state.pets)) grantXp(pet, prize.amount);
   } else {
     const additions = { [prize.itemId!]: prize.amount };
     if (fitsWarehouse(state, additions, catalog)) {

@@ -5,8 +5,9 @@
 // 这样才单测得了，也才不会在面板里顺手改到别的字段。
 // 改完一律再过一遍 tick——抵达、伤势恢复这些后续都走引擎原来的流程，
 // GM 只负责把时间拨过去，不自己实现一套结算。
+import { catalog as defaultCatalog } from "../domain/catalog";
 import { tick } from "../domain/engine";
-import type { GameState } from "../domain/types";
+import type { Catalog, GameState, Pet } from "../domain/types";
 
 /** 让所有行进中的队伍立刻抵达。只把 arriveAt 拨到当前时刻，掉落和事件仍由 tick 生成。 */
 export function arriveNow(state: GameState, now: number): GameState {
@@ -81,4 +82,38 @@ export function nextArrivalIn(state: GameState, now: number): number | null {
     .filter(expedition => expedition.phase === "traveling")
     .map(expedition => expedition.arriveAt - now);
   return pending.length ? Math.max(0, Math.min(...pending)) : null;
+}
+
+/**
+ * 加一只测试宠物，用来看多宠物时的界面（状态面板头像栏等）。复制第一份宠物模板、换个 id 和名字；
+ * 单数号带 3 点待分配，双数号带伤（30 分钟后好转），两种角标都能看到。
+ */
+export function addTestPet(state: GameState, now: number, catalog: Catalog = defaultCatalog): GameState {
+  const template = Object.values(catalog.petTemplates)[0];
+  if (!template) return state;
+  let n = 1;
+  while (state.pets[`gm-pet-${n}`]) n += 1;
+  const pet: Pet = { ...structuredClone(template), id: `gm-pet-${n}`, name: `测试伙伴${n}` };
+  if (n % 2) pet.unspentPoints = 3;
+  else { pet.injury = "injured"; pet.injuryRecoveredAt = now + 30 * 60_000; }
+  return { ...state, pets: { ...state.pets, [pet.id]: pet } };
+}
+
+const isTestPet = (id: string) => id.startsWith("gm-pet-");
+
+/** 能移除的测试宠物数：在外探险的不算，等它回来再删，免得队伍里凭空少一只。 */
+export function removableTestPetCount(state: GameState): number {
+  const away = new Set(state.expeditions.flatMap(expedition => expedition.petIds));
+  return Object.keys(state.pets).filter(id => isTestPet(id) && !away.has(id)).length;
+}
+
+/** 删掉 addTestPet 加的、待在基地的测试宠物；战报里的名字也一并去掉。正式宠物不动。 */
+export function removeTestPets(state: GameState): GameState {
+  const away = new Set(state.expeditions.flatMap(expedition => expedition.petIds));
+  const gone = (id: string) => isTestPet(id) && !away.has(id);
+  return {
+    ...state,
+    pets: Object.fromEntries(Object.entries(state.pets).filter(([id]) => !gone(id))),
+    settlements: state.settlements.map(settlement => ({ ...settlement, petIds: settlement.petIds.filter(id => !gone(id)) })),
+  };
 }

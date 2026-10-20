@@ -99,14 +99,19 @@ describe("每日扭蛋", () => {
     expect(first.gacha.seed).not.toBe(state.gacha.seed);
   });
 
-  it("经验发给咕嘎，道具进仓库并计入图鉴", () => {
+  it("经验每只宠物各得一份，道具进仓库并计入图鉴", () => {
     const xpOnly = fixture({ prizeWeights: { currency: 0, xp: 1, item: 0 } });
-    const leveled = drawGacha(game(), NOON, xpOnly);
+    const two = game();
+    two.pets.buddy = { ...structuredClone(two.pets[PET]), id: "buddy" };
+    const leveled = drawGacha(two, NOON, xpOnly);
     const xp = leveled.gacha.lastPrize!.amount;
     expect(xp).toBeGreaterThanOrEqual(24);
     expect(xp).toBeLessThanOrEqual(36);
-    const pet = leveled.pets[PET];
-    expect(pet.level > 1 || pet.xp === xp).toBe(true);
+    for (const id of [PET, "buddy"]) {
+      const pet = leveled.pets[id];
+      expect(pet.level > 1 || pet.xp === xp).toBe(true);
+    }
+    expect(leveled.pets.buddy).toEqual({ ...leveled.pets[PET], id: "buddy" });
 
     const itemOnly = fixture({ prizeWeights: { currency: 0, xp: 0, item: 1 } });
     const looted = drawGacha(game(), NOON, itemOnly);

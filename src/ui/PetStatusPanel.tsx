@@ -7,7 +7,7 @@ import {
   resetPetStats, SECONDARY_STAT_KEYS, SECONDARY_STAT_LABELS,
   STAT_LABELS, xpToNextLevel,
 } from '../domain/engine';
-import type { GameState, InjuryStage, StatKey } from '../domain/types';
+import type { GameState, InjuryStage, Pet, StatKey } from '../domain/types';
 import { emptyPoints, isStatusDrafts, pointCount, previewPet, PRIMARY_KEYS, statusDraftBasis, validStatusDraft, type PetStatusDraft, type PetStatusDrafts } from './petStatusDraft';
 import { useUIState } from './uiState';
 import './petStatusPanel.css';
@@ -30,6 +30,20 @@ function InjuryTip({ current }: { current: InjuryStage }) {
   return <span className="ps-injury-tip" id="injury-tip" role="tooltip">{(Object.keys(INJURY_LABELS) as InjuryStage[]).map(stage => <span key={stage} className={stage === current ? 'is-current' : ''}>
     <b>{INJURY_LABELS[stage]}</b>{stage === 'healthy' ? '属性不受影响' : `主属性与负重上限 ×${injuryMultiplier(stage)}${stage === 'incapacitated' ? '，不能出发' : ''}`}
   </span>)}</span>;
+}
+/** 头像：咕嘎有立绘，其他宠物还没有美术，先用名字的第一个字顶上。 */
+function Avatar({ pet }: { pet: Pet }) {
+  return pet.id === 'gugugaga' ? <PetPortrait /> : <span className="ps-avatar-initial">{[...pet.name][0] ?? '◇'}</span>;
+}
+/** 多于一只宠物时的头像栏：点哪只看哪只。角标提醒有待分配点数（红点）和伤势（按伤势档上色的点）。 */
+function Roster({ pets, current, onSelect }: { pets: Pet[]; current: string; onSelect: (id: string) => void }) {
+  return <nav className="ps-roster" role="tablist" aria-label="切换宠物">{pets.map(p => <button key={p.id} type="button" role="tab" aria-selected={p.id === current}
+    aria-label={[p.name, p.unspentPoints > 0 ? '有待分配点数' : '', p.injury !== 'healthy' ? INJURY_LABELS[p.injury] : ''].filter(Boolean).join('，')}
+    title={p.name} data-testid={`roster-${p.id}`} onClick={() => onSelect(p.id)}>
+    <Avatar pet={p} />
+    {p.unspentPoints > 0 && <i className="ps-roster-points" />}
+    {p.injury !== 'healthy' && <i className={`ps-roster-injury ps-${p.injury}`} />}
+  </button>)}</nav>;
 }
 function remaining(ms: number): string {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -85,12 +99,13 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
     ? `${remaining(pet.injuryRecoveredAt - now)}后好转为${pet.injury === 'incapacitated' ? '受伤' : '正常'}` : '在基地等待恢复';
   const carry = petCarryCapacity(preview), carryDelta = Math.round((carry - petCarryCapacity(pet)) * 10) / 10;
   const slots = petSlotCapacity(preview), slotsDelta = slots - petSlotCapacity(pet);
-  return <div className="pet-status-panel" data-testid="pet-status-panel">
+  return <div className={`pet-status-panel${pets.length > 1 ? ' has-roster' : ''}`} data-testid="pet-status-panel">
     <h1 className="ps-sr-only" id="window-title-pets">状态</h1>
+    {pets.length > 1 && <Roster pets={pets} current={pet.id} onSelect={setSelected} />}
     <header className="ps-header">
-      <div className="ps-avatar" aria-hidden="true">{pet.id === 'gugugaga' ? <PetPortrait /> : <span>◇</span>}</div>
+      <div className="ps-avatar" aria-hidden="true"><Avatar pet={pet} /></div>
       <div className="ps-identity">
-        {pets.length > 1 ? <select aria-label="选择宠物" value={pet.id} onChange={e => setSelected(e.target.value)}>{pets.map(p => <option key={p.id} value={p.id}>{p.name}{p.unspentPoints > 0 ? ' · 有待分配点数' : ''}</option>)}</select> : <h2>{pet.name}</h2>}
+        <h2>{pet.name}</h2>
         <div className="ps-level">Lv.{pet.level}<span>{pet.level >= maxLevel() ? '已满级' : `${number(pet.xp)} / ${number(xpToNextLevel(pet.level))} 经验`}</span></div>
         <div className="ps-xp" role="progressbar" aria-label="升级经验" aria-valuemin={0} aria-valuemax={pet.level >= maxLevel() ? 1 : xpToNextLevel(pet.level)} aria-valuenow={pet.level >= maxLevel() ? 1 : pet.xp}><i style={{ width: `${pet.level >= maxLevel() ? 100 : Math.min(100, pet.xp / xpToNextLevel(pet.level) * 100)}%` }} /></div>
       </div>

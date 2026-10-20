@@ -13,7 +13,7 @@ const RARITY_EGG = ITEM_CELL_COLORS;
 // 金币、经验没有稀有度，奖品方框用各自图标的浅色底：金币浅金、经验浅蓝。
 const PRIZE_FILL = { currency: '#fbe7a6', xp: '#d6eafb' } as const;
 
-/** 奖品方框的底色：开蛋弹出的方框和右侧抽奖结果用同一个。道具跟仓库格子一样按稀有度上色。 */
+/** 奖品方框的底色：开蛋弹出的奖品方框用它。道具跟仓库格子一样按稀有度上色。 */
 export function gachaPrizeFill(prize: GachaPrize): string {
   return prize.kind === 'item' ? ITEM_CELL_COLORS[prize.rarity ?? 'common'] : PRIZE_FILL[prize.kind];
 }
@@ -24,15 +24,6 @@ export function gachaEggStyle(prize: GachaPrize): { color: string; glow: number;
   const tier = gachaTier(prize);
   const step = RARITY_STEP[tier];
   return { color: RARITY_EGG[tier], glow: 0.6 + step * 0.35, sparks: 2 + step * 2 };
-}
-
-/** 抽奖页说明。免费次数、涨价倍率和重置时间都来自配置，文案不写死数字。 */
-export function gachaIntro(definition: GachaDefinition | undefined): string {
-  if (!definition) return '';
-  const free = definition.dailyFreeDraws > 0 ? `每天免费扭 ${definition.dailyFreeDraws} 次，` : '';
-  const { growth } = definition.paidPrice;
-  const rise = growth === 1 ? '价格不变' : growth === 2 ? '价格每次翻倍' : `价格每次 ×${growth}`;
-  return `${free}能开出金币、经验或稀有道具。之后可以花金币继续扭，${rise}，每天 ${definition.resetHour}:00 重置。`;
 }
 
 // ---- 正式开蛋视频（tools/build-gacha-opening.py 产出）----

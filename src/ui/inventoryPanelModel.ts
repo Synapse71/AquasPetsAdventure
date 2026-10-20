@@ -110,12 +110,10 @@ export type InventoryDialog =
   | { type: 'use'; itemId: string; petId: string; basis: string }
   // 覆盖存档上那份食物加成前的确认：吃掉＝立刻消耗，所以先问一次。
   | { type: 'food'; itemId: string; basis: string }
-  | { type: 'discard'; expeditionId: string; itemId: string; quantity: number; cellIndex: number; basis: string }
-  | { type: 'reports' };
+  | { type: 'discard'; expeditionId: string; itemId: string; quantity: number; cellIndex: number; basis: string };
 export function isInventoryDialog(v: unknown): v is InventoryDialog | null {
   if (v === null) return true;
   if (!record(v)) return false;
-  if (v.type === 'reports') return true;
   if (typeof v.basis !== 'string') return false;
   const cellIndex = v.cellIndex;
   if (v.type === 'sale') return positiveInventory(v.quantities) && Object.keys(v.quantities).length > 0
@@ -141,7 +139,7 @@ export function cellLimit(total: number | undefined, itemId: string, cellIndex: 
   return cellQuantity(total ?? 0, itemStackSize(itemId), cellIndex);
 }
 export function validInventoryDialog(game: GameState, dialog: InventoryDialog | null): boolean {
-  if (!dialog || dialog.type === 'reports') return true;
+  if (!dialog) return true;
   if (dialog.type === 'sale') return dialog.basis === saleBasis(game, dialog.quantities)
     && Object.entries(dialog.quantities).every(([id, q]) => sellable(game, id) && q <= game.inventory[id]
       && (id !== dialog.singleId || q <= cellLimit(game.inventory[id], id, dialog.cellIndex ?? 0)));

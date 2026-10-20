@@ -1,6 +1,16 @@
 /* 每日扭蛋的占位演出：纯 CSS 画扭蛋机和蛋，正式美术接入前用来跑通交互。 */
-.adventure-panel .gacha-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:22px; align-items:start; }
-.adventure-panel button.gacha-stage { position:relative; display:grid; place-items:center; height:420px; padding:0; border:0; border-radius:14px; background:var(--ap-field); cursor:default; overflow:hidden; }
+/* 扭蛋页没有 footer：内容区一直铺到面板底部。三栏：左栏空着、只和右栏配平；中栏放舞台和按钮行；右栏放待领取。
+   左右两栏宽度固定且对称，舞台始终水平居中，待领取出现与否都不会挤动它。
+   中栏里按钮行按自身高度排好，剩下的高度全给舞台：舞台在槽里按 3:4 取「高度放得下」和「宽度放得下」中较小的那个。
+   扭蛋美术左右两侧和底部都会被开蛋光晕用到，不能裁，所以舞台要的是高度。 */
+.adventure-panel .gacha-body { grid-row:2/-1; display:grid; grid-template-columns:150px minmax(0,1fr) 150px; grid-template-rows:minmax(0,1fr) auto; column-gap:14px; row-gap:14px; overflow:hidden; }
+.adventure-panel .gacha-body>.gacha-stage-slot { grid-column:2; grid-row:1; min-height:0; container-type:size; display:grid; place-items:center; }
+.adventure-panel .gacha-body>.gacha-controls { grid-column:2; grid-row:2; }
+.gacha-controls { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.gacha-broke { font-size:12px; line-height:18px; color:var(--ap-bad); }
+.gacha-broke.is-hidden { visibility:hidden; }
+.adventure-panel .gacha-controls button { padding:7px 16px; font-size:13px; white-space:nowrap; }
+.adventure-panel button.gacha-stage { position:relative; display:grid; place-items:center; width:min(100cqw, 75cqh); height:100cqh; padding:0; border:0; border-radius:14px; background:var(--ap-field); cursor:default; overflow:hidden; }
 .adventure-panel button.gacha-stage:disabled { opacity:1; }
 .adventure-panel button.gacha-stage:not(:disabled) { cursor:pointer; }
 
@@ -42,20 +52,12 @@
 @keyframes gacha-glow { 30% { opacity:1; } to { opacity:.75; transform:scale(calc(.8 + var(--glow) * .5)); } }
 @keyframes gacha-spark { 0% { opacity:1; transform:rotate(var(--a)) translateX(0); } to { opacity:0; transform:rotate(var(--a)) translateX(calc(70px + var(--glow) * 30px)); } }
 
-.gacha-side h2 { margin:0; font-size:20px; color:var(--ap-ink); }
-.gacha-result { display:flex; align-items:center; gap:14px; min-height:84px; padding:14px; border:1px solid var(--ap-line); border-radius:12px; background:var(--ap-panel); }
-.gacha-result.placeholder { justify-content:center; color:var(--ap-muted); font-size:13px; }
-.gacha-result .ap-items { display:block; width:auto; }
-.gacha-result small { display:block; color:var(--ap-muted); font-size:12px; }
-.gacha-result strong { font-size:18px; color:var(--ap-ink); }
-.gacha-result-icon { display:grid; place-items:center; width:56px; height:56px; border-radius:10px; font-weight:800; font-size:14px; }
-.gacha-result-icon img { width:38px; height:38px; object-fit:contain; }
-.gacha-rarity-rare { color:#38699c!important; }
-.gacha-rarity-epic { color:#7a4f9e!important; }
-.gacha-rarity-legendary { color:#a8761a!important; }
-.gacha-rarity-mythic { color:#c0453f!important; }
-.gacha-pending { margin-top:18px; }
+.gacha-pending { grid-column:3; grid-row:1/-1; align-self:start; max-height:100%; overflow-y:auto; scrollbar-width:thin; }
+.adventure-panel .gacha-pending .ap-sec-h { display:block; }
+.gacha-pending .ap-sec-h>.ap-muted { display:block; font-weight:400; letter-spacing:0; }
 .gacha-pending>button { margin-top:10px; }
+/* 右栏 150px 一行放 3 格。 */
+.gacha-pending .ap-items { grid-template-columns:repeat(3,44px); }
 .ap-tabs .gacha-dot { display:inline-block; width:6px; height:6px; margin-left:5px; border-radius:50%; background:var(--ap-bad); vertical-align:middle; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -63,7 +65,7 @@
 }
 
 /* 正式美术：白底的扭蛋机首帧与开蛋视频，比例 3:4，舞台跟着改成白底同比例。 */
-.adventure-panel button.gacha-stage.with-art { height:auto; aspect-ratio:3/4; background:#fff; border:1px solid var(--ap-line); }
+.adventure-panel button.gacha-stage.with-art { width:min(100cqw, 75cqh); height:auto; aspect-ratio:3/4; background:#fff; }
 .gacha-machine-art, .gacha-fx, .gacha-fx>* { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
 .gacha-fx[hidden], .gacha-fx>[hidden], .gacha-machine-art[hidden] { display:none; }
 .stage-turning .gacha-machine-art { animation:gacha-shake .3s ease-in-out 3; }
@@ -72,4 +74,6 @@
 .gacha-prize-pop { position:absolute; left:50%; top:48%; width:64px; height:64px; margin-left:-32px; border:2px solid var(--ap-line); border-radius:10px; background:var(--ap-panel); animation:gacha-pop .45s cubic-bezier(.3,1.6,.6,1) both; }
 .gacha-prize-pop>span { position:absolute; inset:2px; border-radius:7px; background:var(--item-color); }
 .gacha-prize-pop img { position:absolute; inset:14%; width:72%; height:72%; object-fit:contain; }
+/* 金币、经验的数量：方框正上方，白色描边保证叠在白底和光晕上都看得清。 */
+.gacha-prize-amount { position:absolute; left:50%; bottom:100%; margin-bottom:4px; transform:translateX(-50%); white-space:nowrap; font-size:20px; font-weight:800; line-height:1; color:var(--ap-ink); paint-order:stroke; -webkit-text-stroke:4px #fff; }
 @keyframes gacha-pop { from { transform:translateY(24px) scale(.3); opacity:0; } to { transform:none; opacity:1; } }

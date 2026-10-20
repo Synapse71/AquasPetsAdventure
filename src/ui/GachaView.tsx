@@ -4,7 +4,7 @@ import { claimGachaPending, drawGacha, gachaStatus } from '../domain/gacha';
 import { RARITIES, RARITY_LABELS, type Rarity } from '../domain/rarity';
 import type { GachaPrize, GameState, Inventory } from '../domain/types';
 import { AdventureItems } from './AdventureItems';
-import { gachaClip, gachaEggStyle, gachaIntro, gachaPrizeFill, gachaTier, GACHA_CLIP_MS, GACHA_IDLE_IMAGE, GACHA_STAGE_MS, type GachaStage } from './gachaModel';
+import { gachaClip, gachaEggStyle, gachaPrizeFill, gachaTier, GACHA_CLIP_MS, GACHA_IDLE_IMAGE, GACHA_STAGE_MS, type GachaStage } from './gachaModel';
 import { lootIconUrl } from './lootIcons';
 import coinIcon from '../../assets/ui-prototype/icons/coin.png';
 import xpIcon from '../../assets/ui-prototype/icons/xp.png';
@@ -20,26 +20,20 @@ function prizeIcon(prize: GachaPrize): string | undefined {
   return prize.kind === 'item' ? lootIconUrl(prize.itemId!) : prize.kind === 'currency' ? coinIcon : xpIcon;
 }
 
-function PrizeCard({ prize, game }: { prize: GachaPrize; game: GameState }) {
-  // 道具、金币、经验用同一种方框：大小和图标尺寸一致，只有底色不同（道具按稀有度，和仓库格子同色）。
-  const icon = <span className={`gacha-result-icon ${prize.kind}`} style={{ background: gachaPrizeFill(prize) }}>{prizeIcon(prize) && <img src={prizeIcon(prize)} alt="" />}</span>;
-  if (prize.kind === 'item') {
-    const item = catalog.items[prize.itemId!];
-    return <div className="gacha-result" data-testid="gacha-result">
-      {icon}
-      <div><small className={`gacha-rarity-${prize.rarity}`}>{RARITY_LABELS[prize.rarity ?? 'common']}</small><strong>{item?.name ?? prize.itemId}{prize.amount > 1 ? ` ×${prize.amount}` : ''}</strong></div>
-    </div>;
-  }
-  const pet = Object.values(game.pets)[0];
-  return <div className="gacha-result" data-testid="gacha-result">
-    {icon}
-    <div><small>{prize.kind === 'currency' ? '金币' : `${pet?.name ?? '伙伴'}获得经验`}</small><strong>+{prize.amount}</strong></div>
-  </div>;
+function prizeName(prize: GachaPrize): string {
+  if (prize.kind === 'currency') return `${prize.amount} 金币`;
+  if (prize.kind === 'xp') return `${prize.amount} 经验`;
+  const item = catalog.items[prize.itemId!];
+  return `${RARITY_LABELS[prize.rarity ?? 'common']}「${item?.name ?? prize.itemId}」`;
 }
 
-/** 开壳后从扭蛋里冒出来的奖品小图标。方框样式照搬开箱拾取的战利品卡：灰边、内衬一层带圆角的底色。 */
+/** 开壳后从扭蛋里冒出来的奖品小图标，抽奖结果只靠它体现。方框样式照搬开箱拾取的战利品卡：灰边、内衬一层带圆角的底色。
+ *  金币、经验在方框上方标出数量；道具只显示图标。 */
 function PrizePop({ prize }: { prize: GachaPrize }) {
-  return <span className={`gacha-prize-pop ${prize.kind}`} style={{ '--item-color': gachaPrizeFill(prize) } as CSSProperties} aria-hidden="true"><span />{prizeIcon(prize) && <img src={prizeIcon(prize)} alt="" />}</span>;
+  return <span className={`gacha-prize-pop ${prize.kind}`} style={{ '--item-color': gachaPrizeFill(prize) } as CSSProperties} role="img" aria-label={`开出${prizeName(prize)}`} data-testid="gacha-result">
+    <span />{prizeIcon(prize) && <img src={prizeIcon(prize)} alt="" />}
+    {prize.kind !== 'item' && <b className="gacha-prize-amount">+{prize.amount}</b>}
+  </span>;
 }
 
 export function GachaView({ game, now, run }: { game: GameState; now: number; run: Run }) {
@@ -74,7 +68,7 @@ export function GachaView({ game, now, run }: { game: GameState; now: number; ru
     video.play().catch(() => setStage('revealed'));
   }, [stage, tier]);
 
-  if (!status) return <div className="ap-body"><p className="ap-muted">抽奖尚未配置。</p></div>;
+  if (!status) return <div className="ap-body"><p className="ap-muted">扭蛋尚未配置。</p></div>;
   const animating = stage !== 'idle' && stage !== 'revealed';
   const draw = () => {
     let drawn: GachaPrize | undefined;
@@ -87,11 +81,16 @@ export function GachaView({ game, now, run }: { game: GameState; now: number; ru
   const pending = animating && pendingBefore ? pendingBefore : status.pending;
   const pendingCount = Object.values(pending).reduce((sum, value) => sum + value, 0);
   const egg = prize ? gachaEggStyle(prize) : undefined;
-  const buttonLabel = status.freeLeft > 0 ? `今日免费 · 剩 ${status.freeLeft} 次` : `再抽一次 · ${status.nextPrice} 金币`;
+  // 免费次数配成多次时，「首次」就不对了，改报剩余次数。
+  const freeDraws = catalog.gachas.daily?.dailyFreeDraws ?? 0;
+  const buttonLabel = status.freeLeft > 0
+    ? freeDraws > 1 ? `今日免费 · 剩 ${status.freeLeft} 次` : '每日首次免费'
+    : `${status.nextPrice} 金币再扭一次`;
   const showVideo = Boolean(fx) && (stage === 'playing' || stage === 'revealed');
 
-  return <>
-    <div className="ap-body gacha-body" data-testid="gacha-view">
+  return <div className="ap-body gacha-body" data-testid="gacha-view">
+    {/* 舞台占满按钮行和待领取区以外的全部高度，按 3:4 尽量放大，宽度不够时按宽度收。 */}
+    <div className="gacha-stage-slot">
       <button type="button" className={`gacha-stage stage-${stage}${GACHA_IDLE_IMAGE ? ' with-art' : ''}`} aria-label={animating ? '跳过开蛋动画' : '扭蛋机'} disabled={!animating} onClick={() => setStage('revealed')}
         style={egg ? { '--egg': egg.color, '--glow': egg.glow } as CSSProperties : undefined}>
         {GACHA_IDLE_IMAGE
@@ -107,23 +106,19 @@ export function GachaView({ game, now, run }: { game: GameState; now: number; ru
             hidden={stage === 'revealed'} onEnded={() => setStage(current => current === 'playing' ? 'revealed' : current)} />
         </span>)}
         {!showVideo && stage !== 'idle' && egg && <span className="gacha-egg" aria-hidden="true"><b className="glow" />{Array.from({ length: egg.sparks }, (_, index) => <em key={index} style={{ '--a': `${(360 / egg.sparks) * index}deg` } as CSSProperties} />)}<i className="top" /><i className="bottom" /></span>}
-        {showVideo && stage === 'revealed' && prize && <PrizePop prize={prize} />}
+        {stage === 'revealed' && prize && <PrizePop prize={prize} />}
       </button>
-      <div className="gacha-side">
-        <p className="ap-kicker">每日扭蛋</p>
-        <h2>{catalog.gachas.daily?.name ?? '扭蛋'}</h2>
-        <p className="ap-description">{gachaIntro(catalog.gachas.daily)}</p>
-        {stage === 'revealed' && prize ? <PrizeCard prize={prize} game={game} /> : <div className="gacha-result placeholder">{animating ? '开蛋中…（点击画面跳过）' : '投币，转动把手'}</div>}
-        {pendingCount > 0 && <section className="gacha-pending" data-testid="gacha-pending">
-          <div className="ap-sec-h">待领取 · {pendingCount} 件<span className="ap-muted">仓库放不下的道具会先放在这里</span></div>
-          <AdventureItems inventory={pending} />
-          <button type="button" onClick={() => run(state => claimGachaPending(state, Date.now()))}>领取到仓库</button>
-        </section>}
-      </div>
     </div>
-    <footer className="ap-footer">
-      <span>{status.freeLeft > 0 ? '今天的免费次数还没用' : `今天已付费 ${status.paidCount} 次 · 持有 ${game.currency} 金币`}</span>
+    <div className="gacha-controls">
       <button className="ap-primary" data-testid="gacha-draw" disabled={animating || !status.canDraw} onClick={draw}>{buttonLabel}</button>
-    </footer>
-  </>;
+      {/* 金币不够才提示；演出期间按钮也是灰的，但那不是金币的问题。提示行一直占位，出现时舞台不被压小。不能用 hidden 属性：桌面面板里 [hidden] 一律 display:none。 */}
+      <small className={`gacha-broke${status.canDraw ? ' is-hidden' : ''}`} data-testid="gacha-broke" aria-hidden={status.canDraw}>金币不足</small>
+    </div>
+    {/* 待领取在右栏。右栏和对称的左栏宽度固定、一直在，待领取出现或领完都不会挤动中间的舞台。 */}
+    {pendingCount > 0 && <section className="gacha-pending" data-testid="gacha-pending">
+      <div className="ap-sec-h">待领取 · {pendingCount} 件<span className="ap-muted">仓库放不下的道具会先放在这里</span></div>
+      <AdventureItems inventory={pending} />
+      <button type="button" onClick={() => run(state => claimGachaPending(state, Date.now()))}>领取到仓库</button>
+    </section>}
+  </div>;
 }

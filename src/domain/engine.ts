@@ -1970,7 +1970,7 @@ function unclaimedExtractionRewards(state: GameState, key: string, configured: I
 /**
  * 补发已经撤离过的撤离点上漏领的首次奖励，读档时调用一次。
  * 场景：撤离点是在玩家通关之后才加上（或加量）首次奖励的，正常流程里玩家要再跑一趟才能拿到。
- * 逐件放进仓库，放不下的进抽奖页的「待领取」，和扭蛋奖励共用一个暂存处。
+ * 逐件放进仓库，放不下的进扭蛋页的「待领取」，和扭蛋奖励共用一个暂存处。
  */
 export function grantMissedExtractionRewards(
   source: GameState,

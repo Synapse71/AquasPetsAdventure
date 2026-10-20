@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInitialState, startExpedition } from "../domain/engine";
 import type { GameState } from "../domain/types";
 import { drawGacha, gachaStatus } from "../domain/gacha";
-import { addCurrency, arriveNow, fastForward, healResting, nextArrivalIn, resetGachaDay, restingInjuredCount } from "./gmActions";
+import { addCurrency, addTestPet, arriveNow, fastForward, healResting, nextArrivalIn, removableTestPetCount, removeTestPets, resetGachaDay, restingInjuredCount } from "./gmActions";
 
 const NOW = 1_700_000_000_000;
 
@@ -106,5 +106,27 @@ describe("GM：重置抽奖次数", () => {
     let state = createInitialState();
     while (gachaStatus(state, NOW)!.freeLeft > 0) state = drawGacha(state, NOW);
     expect(gachaStatus(resetGachaDay(state), NOW)!.canDraw).toBe(true);
+  });
+});
+
+describe("GM：添加测试宠物", () => {
+  it("每次加一只新的，单数号带待分配点数、双数号带伤", () => {
+    const one = addTestPet(createInitialState(), NOW);
+    const two = addTestPet(one, NOW);
+    expect(Object.keys(two.pets)).toEqual(["gugugaga", "gm-pet-1", "gm-pet-2"]);
+    expect(two.pets["gm-pet-1"]).toMatchObject({ name: "测试伙伴1", unspentPoints: 3, injury: "healthy" });
+    expect(two.pets["gm-pet-2"]).toMatchObject({ name: "测试伙伴2", injury: "injured", injuryRecoveredAt: NOW + 30 * 60_000 });
+    expect(two.pets.gugugaga).toEqual(one.pets.gugugaga);
+  });
+});
+
+describe("GM：移除测试宠物", () => {
+  it("只删待在基地的测试宠物，正式宠物和在外探险的不动", () => {
+    let state = addTestPet(addTestPet(createInitialState(), NOW), NOW);
+    state = { ...state, expeditions: [{ ...({} as GameState["expeditions"][number]), petIds: ["gm-pet-1"] }] };
+    expect(removableTestPetCount(state)).toBe(1);
+    const cleaned = removeTestPets(state);
+    expect(Object.keys(cleaned.pets)).toEqual(["gugugaga", "gm-pet-1"]);
+    expect(removableTestPetCount(cleaned)).toBe(0);
   });
 });

@@ -107,7 +107,7 @@ try {
   // 悬浮提示：格子内容不动，重量 / 售价 / 标签 / 效果 / 描述都在 tooltip 里。
   await hover(cell('cloth-strip'));
   const commonTip = await tipText();
-  assert(commonTip.includes('布条') && commonTip.includes('重量') && commonTip.includes('2（单重 0.1）') && commonTip.includes('售价') && commonTip.includes('材料'), 'hover tooltip carries weight, price and item tags');
+  assert(commonTip.includes('布条') && commonTip.includes('重量') && !commonTip.includes('单重') && commonTip.includes('最大堆叠') && commonTip.includes('售价') && commonTip.includes('材料'), 'hover tooltip carries weight, price and item tags');
   await hover(cell('card-stoat'));
   const legendaryTip = await tipText();
   assert(legendaryTip.includes('传说') && legendaryTip.includes('白鼬'), 'legendary item tooltip carries rarity and description');
@@ -191,7 +191,7 @@ try {
   assert(await evaluate(`!!document.querySelector('.ip-slot[data-item-id="hemp-rope"] .ip-qty')`), 'stackable cargo retains its quantity badge');
   await hover('.ip-slot[data-item-id="hemp-rope"]');
   const cargoTip = await tipText();
-  assert(cargoTip.includes('麻绳') && cargoTip.includes('3.6（单重 0.3）') && cargoTip.includes('本格 72'), 'cargo slot tooltip reports this slot weight and value');
+  assert(cargoTip.includes('麻绳') && cargoTip.includes('3.6') && cargoTip.includes('72') && !cargoTip.includes('单重'), 'cargo slot tooltip reports this slot weight and value');
   assert(await evaluate(`document.querySelector('[data-testid="cargo-weight"]').classList.contains('over') && document.querySelector('[data-testid="cargo-slots"]').classList.contains('over')`), 'weight and slot overflow are distinct indicators');
   const arrived = await stored(); arrived.expeditions[0].phase = 'awaiting-route';
   await seed(arrived);
@@ -214,9 +214,7 @@ try {
   saved = await stored();
   assert(saved.expeditions[0].cargo['hemp-rope'] === 12 && saved.expeditions[0].cargo['card-stoat'] === 11, 'discarding one slot leaves the same item\'s other slot untouched');
   assert(JSON.stringify(await dimensions()) === JSON.stringify(baseline), 'cargo tab and confirmations never resize the frame');
-  await click('.ip-reports');
-  assert(await evaluate(`document.querySelector('.ip-dialog').textContent.includes('还没有冒险战报')`), 'reports remain accessible without a third inventory container');
-  await click('.ip-dialog-actions button'); await click('.ip-close');
+  await click('.ip-close');
   // 售卖以格为单位：46 件布条是 20 / 20 / 6 三格，点哪一格就只动哪一格。
   const perCell = await stored();
   perCell.inventory = {'cloth-strip': 46, 'canned-food': 1};

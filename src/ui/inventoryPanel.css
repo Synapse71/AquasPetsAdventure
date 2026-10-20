@@ -44,7 +44,7 @@
 .inventory-panel .ip-sort button { font-size:12px; background:none; border:0; padding:4px 10px; color:var(--ip-secondary); }
 .inventory-panel .ip-sort button[aria-pressed=true] { background:var(--ip-panel); color:var(--ip-ink); font-weight:600; }
 .inventory-panel .ip-direction { background:var(--ip-field); border:0; padding:4px 10px; }
-.ip-bulk-toggle,.ip-reports { font-size:12px !important; }
+.ip-bulk-toggle { font-size:12px !important; }
 .inventory-panel .ip-bulk-toggle[aria-pressed=true] { background:var(--ip-accent); color:#fff; border-color:var(--ip-accent); }
 .ip-coin { display:inline-flex; align-items:center; justify-content:flex-end; gap:5px; font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .ip-coin img { width:18px; height:18px; object-fit:contain; }
@@ -83,7 +83,6 @@
 .inventory-panel .ip-menu button:hover:not(:disabled) { background:var(--ip-field); }
 .ip-mask { position:absolute; inset:0; z-index:40; background:#14181e66; display:grid; place-items:center; padding:16px; }
 .ip-dialog { width:370px; max-width:100%; max-height:100%; overflow:auto; border:1px solid #aeb2ba; border-radius:12px; background:var(--ip-panel); padding:18px; }
-.ip-dialog.reports { width:650px; }
 .ip-dialog h2 { font-size:16px; margin:0 0 12px; }
 .ip-dialog .ip-hint,.ip-dialog .ip-warning { font-size:12px; margin:10px 0; }
 .ip-hint { color:var(--ip-secondary); }
@@ -98,4 +97,3 @@
 .inventory-panel .ip-pet-choice { text-align:left; display:flex; flex-direction:column; gap:4px; padding:10px; }
 .inventory-panel .ip-pet-choice[aria-pressed=true] { border-color:var(--ip-accent); background:var(--ip-field); }
 .ip-pet-choice span { color:var(--ip-secondary); font-size:12px; }
-.ip-reports-body { max-height:380px; overflow:auto; }
