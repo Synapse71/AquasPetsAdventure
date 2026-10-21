@@ -4,7 +4,7 @@ import { compareRarity, isRarity, RARITIES, RARITY_LABELS, type Rarity } from '.
 /** 图鉴物品页顶部的筛选：所有物品、六档稀有度、收集品。 */
 export type CodexFilter = 'all' | Rarity | 'collectible';
 export const CODEX_FILTERS: readonly CodexFilter[] = ['all', ...RARITIES, 'collectible'];
-export const CODEX_FILTER_LABELS: Record<CodexFilter, string> = { all: '所有物品', ...RARITY_LABELS, collectible: '收集品' };
+export const CODEX_FILTER_LABELS: Record<CodexFilter, string> = { all: '所有物品', ...RARITY_LABELS, collectible: '收藏品' };
 export const isCodexFilter = (value: unknown): value is CodexFilter => value === 'all' || value === 'collectible' || isRarity(value);
 
 export function codexItemCount(game: Pick<GameState, 'discoveredItemIds' | 'itemAcquisitionCounts'>, id: string): number {

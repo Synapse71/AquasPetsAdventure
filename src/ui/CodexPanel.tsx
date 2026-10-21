@@ -69,7 +69,7 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
       {count > 0 && <><span className="cd-rarity" style={{background:COLORS[item.rarity]}}>{RARITY_LABELS[item.rarity]}</span>
         {item.description && rarityRank(item.rarity) >= rarityRank('legendary') && <p className="cd-description">{item.description}</p>}
         <div className="cd-tags">{item.tags?.map(tag => <span key={tag}>{itemTagLabel(tag)}</span>)}</div>
-        <p>累计获得 <b>{count}</b> 件</p><p className="sp-muted">单重 {item.weight} · {item.sellable ? `售价 ${item.sellValue ?? 0}` : '不可出售'}</p></>}
+        <p>累计获得 <b>{count}</b> 件</p><p className="sp-muted">重量 {item.weight} · {item.sellable ? `售价 ${item.sellValue ?? 0}` : '不可出售'}</p></>}
     </aside>}
   </div>;
 }
