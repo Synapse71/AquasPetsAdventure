@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "./mapEntries";
 import { catalog as defaultCatalog } from "./catalog";
 import {
   GameRuleError,
@@ -328,7 +329,7 @@ export function estimateMapIncome(map: MapDefinition, catalog: Catalog = default
     if (!node) return;
     const edges = node.edges.filter((edge) => map.nodes[edge.toNodeId] && !visited.has(edge.toNodeId));
     if (node.terminal || !edges.length) {
-      if (nodeId !== map.startNodeId) paths.push({ durationMs, value, xp });
+      if (!mapEntryNodeIds(map).includes(nodeId)) paths.push({ durationMs, value, xp });
       return;
     }
     for (const edge of edges) {
@@ -336,7 +337,7 @@ export function estimateMapIncome(map: MapDefinition, catalog: Catalog = default
       walk(edge.toNodeId, new Set([...visited, edge.toNodeId]), durationMs + edge.durationMs, value + gain.value, xp + nodeXp + gain.xp);
     }
   };
-  walk(map.startNodeId, new Set([map.startNodeId]), START_TRAVEL_DURATION_MS, 0, 0);
+  for (const entryId of mapEntryNodeIds(map)) walk(entryId, new Set([entryId]), START_TRAVEL_DURATION_MS, 0, 0);
   if (!paths.length) return { durationMs: 0, value: 0, xp: 0, pathCount: 0 };
   const mean = (pick: (path: (typeof paths)[number]) => number) => paths.reduce((sum, path) => sum + pick(path), 0) / paths.length;
   return { durationMs: mean((path) => path.durationMs), value: mean((path) => path.value), xp: mean((path) => path.xp), pathCount: paths.length };

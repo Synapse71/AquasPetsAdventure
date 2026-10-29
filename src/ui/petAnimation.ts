@@ -1,13 +1,14 @@
-import spriteManifest from '../../public/pet-sprites/manifest.json';
+import { petVisuals } from './petVisuals';
+export const DORO_IDLE_CLIPS = ['blink-plain', 'orange-offer', 'orange-blitz'] as const;
 
 export const IDLE_CLIPS = ['idle-magnifier', 'idle-digging', 'blink-plain', 'blink-breath', 'blink-tilt', 'idle-selfie'] as const;
 export const TRAVEL_CLIPS = ['travel-map', 'travel-rest', 'travel-alert'] as const;
 export const ARRIVAL_CLIPS = ['arrive-a', 'arrive-b'] as const;
 export type TravelClip = typeof TRAVEL_CLIPS[number];
-export type ArrivalClip = typeof ARRIVAL_CLIPS[number];
-export type Clip = typeof IDLE_CLIPS[number] | TravelClip | ArrivalClip | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
+export type ArrivalClip = typeof ARRIVAL_CLIPS[number] | 'arrive';
+export type Clip = typeof DORO_IDLE_CLIPS[number] | typeof IDLE_CLIPS[number] | TravelClip | ArrivalClip | 'start-explore' | 'walk' | 'sleep-start' | 'sleep-loop' | 'sleep-end';
 export type Pose = Clip | 'standing';
-export const isArrival = (pose: Pose): pose is ArrivalClip => pose === 'arrive-a' || pose === 'arrive-b';
+export const isArrival = (pose: Pose): pose is ArrivalClip => pose === 'arrive-a' || pose === 'arrive-b' || pose === 'arrive';
 export const isTravelClip = (pose: Pose): pose is TravelClip => (TRAVEL_CLIPS as readonly string[]).includes(pose);
 export const chooseArrival = (random = Math.random): ArrivalClip => random() < .5 ? 'arrive-a' : 'arrive-b';
 // Parallel to IDLE_CLIPS. idle-selfie is the longest (10s) and rarest — a special
@@ -28,15 +29,19 @@ export function chooseTravel(previous: Pose, random = Math.random): TravelClip {
   const usable = pool.length ? pool : TRAVEL_CLIPS;
   return usable[Math.min(usable.length - 1, Math.floor(random() * usable.length))];
 }
-export function chooseIdle(previous: Pose, random = Math.random): Clip {
+export function chooseIdle(previous: Pose, random = Math.random, petId = 'gugugaga'): Clip {
+  if (petId === 'doro') {
+    const pool = DORO_IDLE_CLIPS.filter(clip => clip !== previous);
+    return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
+  }
   const choices = IDLE_CLIPS.map((clip, index) => ({ clip, weight: clip === previous ? 0 : WEIGHTS[index] }));
   let roll = random() * choices.reduce((sum, entry) => sum + entry.weight, 0);
   for (const entry of choices) { roll -= entry.weight; if (roll < 0) return entry.clip; }
   return choices.find(entry => entry.weight > 0)!.clip;
 }
-export function clipDuration(clip: Pose) {
+export function clipDuration(clip: Pose, petId = 'gugugaga') {
   if (clip === 'standing') return 0;
-  const sheet = spriteManifest[clip];
+  const sheet = petVisuals(petId).manifest[clip];
   return sheet.frames / sheet.fps * 1000;
 }
 // Pending work is deliberately NOT an input: it only affects the independent bulb.
@@ -57,7 +62,8 @@ export class PetAnimator {
   private pendingTravel?: TravelClip;
   private travelStopAt?: number;
   private previousTravel: Pose = 'standing';
-  constructor(now: number, private random = Math.random) { this.since = now; this.lastInteraction = now; this.restingSince = now; }
+  constructor(now: number, private random = Math.random, private petId = 'gugugaga') { this.since = now; this.lastInteraction = now; this.restingSince = now; }
+  private duration(pose: Pose) { return clipDuration(pose, this.petId); }
   set(pose: Pose, now: number) { this.pose = pose; this.since = now; }
   interact(now: number) {
     this.lastInteraction = now;
@@ -65,7 +71,7 @@ export class PetAnimator {
   }
   frame(now: number) {
     if (this.pose === 'standing') return 0;
-    const sheet = spriteManifest[this.pose];
+    const sheet = petVisuals(this.petId).manifest[this.pose];
     // Explicitly show the anchor frame even if a slow/suspended RAF skipped it.
     if (this.pose === 'walk' && this.walkTailSince !== undefined) return sheet.frames - 1;
     const index = Math.floor(Math.max(0, now - this.since) * sheet.fps / 1000);
@@ -76,7 +82,7 @@ export class PetAnimator {
     // arrival, including after suspended frames or a restored in-progress trip.
     if (this.wasTraveling && !traveling) {
       this.restingSince = now;
-      if (!this.pendingArrival && !isArrival(this.pose)) this.pendingArrival = chooseArrival(this.random);
+      if (!this.pendingArrival && !isArrival(this.pose)) this.pendingArrival = this.petId === 'doro' ? 'arrive' : chooseArrival(this.random);
     }
     this.wasTraveling = traveling;
     // 排队中的彩蛋不能在旅程结束后留下一个「停在回归点」的 walk：抵达、待机都会接着用它。
@@ -103,12 +109,12 @@ export class PetAnimator {
     if (departureId) this.lastDepartureId = departureId;
     // One-shot animation owns the pose until its actual manifest duration ends.
     if (this.pose === 'start-explore') {
-      if (now < this.since + clipDuration(this.pose)) return this.pose;
+      if (now < this.since + this.duration(this.pose)) return this.pose;
       this.set(traveling || this.pendingArrival ? 'walk' : 'standing', now);
     }
     if (this.pendingArrival) {
       if (this.pose !== 'walk') this.set('walk', now);
-      const duration = clipDuration('walk'), frameTime = 1000 / spriteManifest.walk.fps;
+      const duration = this.duration('walk'), frameTime = 1000 / petVisuals(this.petId).manifest.walk.fps;
       this.walkStopAt ??= this.since + (Math.floor(Math.max(0, now - this.since) / duration) + 1) * duration;
       if (now >= this.walkStopAt - frameTime) {
         this.walkTailSince ??= now;
@@ -122,7 +128,7 @@ export class PetAnimator {
       return this.pose;
     }
     if (isArrival(this.pose)) {
-      if (now < this.since + clipDuration(this.pose)) return this.pose;
+      if (now < this.since + this.duration(this.pose)) return this.pose;
       this.set(traveling ? (this.queuedDeparture ? 'start-explore' : 'walk') : 'standing', now);
       this.queuedDeparture = false;
       return this.pose;
@@ -134,7 +140,7 @@ export class PetAnimator {
     // the same anchor — no sideways snap at either seam.
     if (traveling) {
       if (isTravelClip(this.pose)) {
-        if (now < this.since + clipDuration(this.pose)) return this.pose;
+        if (now < this.since + this.duration(this.pose)) return this.pose;
         this.set('walk', now);
         this.travelBreakAt = now + TRAVEL_BREAK_EVERY;
         return this.pose;
@@ -143,13 +149,13 @@ export class PetAnimator {
         if (this.pose !== 'walk') this.set('walk', now);
         this.travelBreakAt = now + TRAVEL_BREAK_EVERY;
       }
-      if (now >= this.travelBreakAt) {
+      if (this.petId !== 'doro' && now >= this.travelBreakAt) {
         this.pendingTravel = chooseTravel(this.previousTravel, this.random);
         this.previousTravel = this.pendingTravel;
         this.travelBreakAt = undefined;
       }
       if (this.pendingTravel) {
-        const duration = clipDuration('walk'), frameTime = 1000 / spriteManifest.walk.fps;
+        const duration = this.duration('walk'), frameTime = 1000 / petVisuals(this.petId).manifest.walk.fps;
         this.travelStopAt ??= this.since + (Math.floor(Math.max(0, now - this.since) / duration) + 1) * duration;
         if (now >= this.travelStopAt - frameTime) {
           this.walkTailSince ??= now;
@@ -166,19 +172,19 @@ export class PetAnimator {
     this.travelBreakAt = undefined;
     if (this.pose === 'walk') this.set('standing', now);
     if (this.pose === 'sleep-end') {
-      if (now - this.since >= clipDuration(this.pose)) this.set('standing', now);
+      if (now - this.since >= this.duration(this.pose)) this.set('standing', now);
       return this.pose;
     }
     if (this.pose === 'sleep-start') {
-      if (now - this.since >= clipDuration(this.pose)) this.set('sleep-loop', now);
+      if (now - this.since >= this.duration(this.pose)) this.set('sleep-loop', now);
       return this.pose;
     }
     if (this.pose === 'sleep-loop') return this.pose;
     if (now - Math.max(this.lastInteraction, this.restingSince) >= SLEEP_AFTER) { this.set('sleep-start', now); return this.pose; }
-    if (this.pose !== 'standing' && now - this.since >= clipDuration(this.pose)) this.set('standing', now);
+    if (this.pose !== 'standing' && now - this.since >= this.duration(this.pose)) this.set('standing', now);
     if (menuOpen && this.pose === 'standing') this.since = now;
     if (!menuOpen && this.pose === 'standing' && now - this.since >= IDLE_PAUSE) {
-      const next = chooseIdle(this.previousIdle, this.random);
+      const next = chooseIdle(this.previousIdle, this.random, this.petId);
       this.previousIdle = next; this.set(next, now);
     }
     return this.pose;

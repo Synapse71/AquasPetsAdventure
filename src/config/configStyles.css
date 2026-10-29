@@ -2678,3 +2678,7 @@
   border: 1px solid #ccd1c8;
   border-radius: 6px;
 }
+
+.config-map-anchor.entry { background:#dcecf9; }
+.config-map-anchor.extractable { background:#d9edcf; }
+.config-map-anchor.terminal { background:#f4e1b8; }

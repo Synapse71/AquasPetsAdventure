@@ -4,11 +4,13 @@ import { downloadSaveBackup } from '../persistence/saveBackup';
 import type { DesktopState, LoginItemState } from './desktopBridge';
 import { PET_MENUS, menuIcon } from './PetDesktop';
 import { useUIState } from './uiState';
+import { petVisuals } from './petVisuals';
 import './simplePanels.css';
 import { petMetrics, MIN_PET_CANVAS, MAX_PET_CANVAS } from '../../desktop/geometry.mjs';
 
-export function SettingsPanel({ game, onReset, onClose, active, activity }: {
+export function SettingsPanel({ game, onReset, onClose, active, activity, petId = 'gugugaga', visualScale }: {
   game: GameState; onReset: () => void; onClose: () => void; active: boolean; activity: ReactNode;
+  petId?: string; visualScale?: number;
 }) {
   const [tab,setTab] = useUIState<'settings'|'log'|'about'>('settings-tab','settings',(v): v is 'settings'|'log'|'about' => v === 'settings' || v === 'log' || v === 'about');
   const [desktop,setDesktop] = useState<DesktopState>();
@@ -68,7 +70,8 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
   }, []);
   const exportSave = () => { try { downloadSaveBackup(game);setMessage('已发起存档导出，请查看下载文件。'); } catch { setMessage('导出失败，请重试。'); } };
   const size = desktop?.canvas ?? 300;
-  const { menuWidth, bubble, gap } = petMetrics(size);
+  const visual = petVisuals(petId);
+  const { menuWidth, bubble, gap } = petMetrics(size * (visualScale ?? visual.defaultScale));
   return <div className="simple-panel settings-panel">
     <header className="sp-header"><h1 id="window-title-settings">设置</h1><nav className="sp-tabs" aria-label="设置分类"><button aria-pressed={tab==='settings'} onClick={() => setTab('settings')}>设置</button><button aria-pressed={tab==='log'} onClick={() => setTab('log')}>行动记录</button><button aria-pressed={tab==='about'} onClick={() => setTab('about')}>关于</button></nav><span className="st-version">v{__APP_VERSION__} · Demo</span><button className="sp-close" aria-label="关闭设置" onClick={onClose}>×</button></header>
     <div className="sp-content st-content">{tab === 'log' ? activity : tab === 'about' ? <div className="st-about">
@@ -83,7 +86,7 @@ export function SettingsPanel({ game, onReset, onClose, active, activity }: {
           onPointerDown={e => { if(e.button!==0)return; resizing.current=true; apply({resizing:true}); if(e.isTrusted)e.currentTarget.setPointerCapture(e.pointerId); }}
           onPointerUp={endResize} onPointerCancel={endResize} onLostPointerCapture={endResize}
           onChange={e => apply({canvas:Number(e.target.value)})} /><output>{size}px</output></label>
-        <div className="st-preview"><img className="st-pet-standing" src={`${import.meta.env.BASE_URL}pet-sprites/standing.png`} alt="桌宠静止预览" draggable={false} /><div className="st-preview-info"><span className="st-ruler" style={{width:menuWidth}}>菜单宽 {menuWidth.toFixed(1)}px</span>
+        <div className="st-preview"><img className="st-pet-standing" src={`${visual.root}standing.png`} alt="桌宠静止预览" draggable={false} /><div className="st-preview-info"><span className="st-ruler" style={{width:menuWidth}}>菜单宽 {menuWidth.toFixed(1)}px</span>
           <div className="st-menu-preview" aria-label="真实像素气泡预览" style={{width:menuWidth,gap}}>{PET_MENUS.map(menu => <span key={menu.id} style={{width:bubble,height:bubble}}><img src={menuIcon(menu.icon)} alt={menu.label} /></span>)}</div>
           <span className="sp-muted">气泡直径 {bubble}px · 悬停气泡可查看功能名称</span>
           {!desktop && <span className="sp-muted">大小与置顶设置仅在桌面客户端可用。</span>}

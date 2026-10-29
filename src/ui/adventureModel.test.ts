@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../domain/catalog';
 import { createInitialState } from '../domain/engine';
-import { changeQuantity, extractionPlan, knownMapGraph, latestUnlockedMapId, routeHint, subtract } from './adventureModel';
+import { changeQuantity, extractionPlan, hasRouteRequirement, knownMapGraph, latestUnlockedMapId, routeHint, subtract } from './adventureModel';
 
 describe('action view models', () => {
+  it('renders cleared route requirements as ordinary routes', () => {
+    const edge = { id: 'route', label: '', description: '', toNodeId: 'goal', durationMs: 1 };
+    expect(hasRouteRequirement(edge)).toBe(false);
+    expect(hasRouteRequirement({ ...edge, requirement: {} })).toBe(false);
+    expect(hasRouteRequirement({ ...edge, requirement: { tagId: '', minimumStat: {} } })).toBe(false);
+    expect(hasRouteRequirement({ ...edge, requirement: { secondary: { stat: 'guile', value: 3 } } })).toBe(true);
+    expect(hasRouteRequirement({ ...edge, requirement: { tagId: 'tag-lucky' } })).toBe(true);
+    expect(hasRouteRequirement({ ...edge, requirement: { minimumStat: { fitness: 2 } } })).toBe(true);
+  });
   it('defaults to the last valid unlock, not map name or catalog order', () => {
     const maps = { earlier: {} as typeof catalog.maps[string], later: {} as typeof catalog.maps[string] };
     expect(latestUnlockedMapId(['earlier', 'later'], maps)).toBe('later');

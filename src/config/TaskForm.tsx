@@ -240,7 +240,7 @@ export function TaskForm({
   }
 
   function replaceGoals(
-    type: "clear-map" | "milestone",
+    type: "clear-map" | "milestone" | "event-choice",
     replacements: Record_[],
   ): void {
     updateSection("requirement", "goals", [
@@ -346,6 +346,7 @@ export function TaskForm({
         }
       />
 
+      <IdChecklist title="目标：事件交付" description="现场完成指定交付选项后永久记录。" values={goals.filter(g => g.type === "event-choice").map(g => JSON.stringify([g.eventId, g.choiceId]))} options={Object.values(catalog.events).flatMap(event => event.choices.filter(c => c.resolution?.type === "delivery").map(choice => ({ id: JSON.stringify([event.id, choice.id]), label: `${event.title} · ${choice.label}` })))} onChange={ids => replaceGoals("event-choice", ids.map(id => { const [eventId, choiceId] = JSON.parse(id); return { type: "event-choice", eventId, choiceId }; }))}/>
       <div className="config-task-heading">
         <strong>任务奖励</strong>
         <small>任务不会奖励宠物经验值。</small>

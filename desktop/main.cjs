@@ -21,11 +21,12 @@ function persist() {
     fs.renameSync(preferenceFile + '.tmp', preferenceFile);
   } catch (error) { console.error('Cannot save desktop preferences', error); }
 }
+let visualScale = 1; // 当前展示宠物的目录补偿，不覆盖用户保存的尺寸偏好。
 function state() { return { layout, canvas: preferences.canvas, alwaysOnTop: preferences.alwaysOnTop }; }
 function place() {
   const display = screen.getDisplayNearestPoint({ x: Math.round(preferences.x + preferences.canvas / 2), y: Math.round(preferences.y + 150) });
-  const next = resizeStart ? computeResizePreview(resizeStart, preferences.canvas)
-    : computeNativeLayout(preferences, display.workArea, panel, preferences.canvas);
+  const next = resizeStart ? computeResizePreview(resizeStart, preferences.canvas * visualScale)
+    : computeNativeLayout(preferences, display.workArea, panel, preferences.canvas * visualScale);
   const unchanged = JSON.stringify(next) === JSON.stringify(layout);
   const boundsChanged = JSON.stringify(next.bounds) !== JSON.stringify(layout?.bounds);
   layout = next;
@@ -106,6 +107,7 @@ function setupIPC() {
     if (!valid(event) || !value || typeof value !== 'object') return null;
     if (value.resizing === true && panel === 'settings' && !resizeStart) resizeStart = structuredClone(layout);
     if (value.resizing === false) resizeStart = undefined;
+    if (typeof value.visualScale === 'number' && Number.isFinite(value.visualScale)) visualScale = Math.max(0.5, Math.min(2, value.visualScale));
     if (typeof value.canvas === 'number' && Number.isFinite(value.canvas)) preferences.canvas = Math.round(Math.max(MIN_PET_CANVAS, Math.min(MAX_PET_CANVAS, value.canvas)));
     if (typeof value.alwaysOnTop === 'boolean') {
       preferences.alwaysOnTop = value.alwaysOnTop;

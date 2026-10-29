@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "./mapEntries";
 import { catalog as defaultCatalog } from "./catalog";
 import { START_TRAVEL_DURATION_MS } from './expeditionTiming';
 import { RARITIES, type Rarity } from "./rarity";
@@ -193,6 +194,7 @@ export function createInitialState(): GameState {
     },
     unlockedMapIds: [firstMap.id],
     completedTaskIds: [],
+    completedEventChoiceKeys: [],
     completedMilestoneIds: [],
     reachedEndpointIds: [],
     completedExtractionNodeKeys: [],
@@ -714,6 +716,7 @@ export function getRiskPreview(
     };
   }
 
+  if (resolution.type === "delivery") return { label: "交付物品", detail: "从当前探险背包扣除物品，确定完成，不掷骰。", bigFailureProbability: 0 };
   const score = riskScore(state, expedition, choice, catalog);
   const advantage = hasEventRollAdvantage(state, expedition, catalog);
   const probabilities = primaryOutcomeProbabilities(score, advantage);
@@ -784,6 +787,10 @@ export function startExpedition(
   if (!map || !state.unlockedMapIds.includes(input.mapId)) {
     throw new GameRuleError("地图尚未解锁。");
   }
+  const startNodeId = input.startNodeId ?? map.startNodeId;
+  if (!mapEntryNodeIds(map).includes(startNodeId) || !map.nodes[startNodeId]) {
+    throw new GameRuleError("请选择有效的地图入口。");
+  }
   if (!input.petIds.length) throw new GameRuleError("至少选择一只宠物。");
   if (input.petIds.length > MAX_TEAM_PETS) {
     throw new GameRuleError(`一支队伍最多编入 ${MAX_TEAM_PETS} 只宠物。`);
@@ -821,7 +828,7 @@ export function startExpedition(
     mapId: map.id,
     petIds: [...input.petIds],
     phase: "traveling",
-    targetNodeId: map.startNodeId,
+    targetNodeId: startNodeId,
     startedAt: now,
     arriveAt: now + START_TRAVEL_DURATION_MS,
     cargo: initialCargo,
@@ -1065,8 +1072,7 @@ function drawEvent(
   state: GameState,
   expedition: Expedition,
   catalog: Catalog,
-): { eventId: string; seed: number } {
-  const node = catalog.maps[expedition.mapId].nodes[expedition.targetNodeId];
+): { eventId: string | undefined; seed: number } {
   // 次要属性不达标的事件不参与抽取。副作用是属性低时可用事件更少、重复率更高，
   // 这一点在设计文档 6.5.2 里记着，靠内容侧保证低门槛事件的数量。
   const candidates = nodeEventIds(
@@ -1074,6 +1080,7 @@ function drawEvent(
     expedition.mapId,
     catalog,
   ).filter((eventId) => {
+    if ((catalog.events[eventId]?.absentPetIds ?? []).some(id => state.pets[id])) return false;
     const requirement = catalog.events[eventId]?.requiredSecondary;
     return (
       !requirement ||
@@ -1084,7 +1091,7 @@ function drawEvent(
     (eventId) => !expedition.drawnEventIds.includes(eventId),
   );
   const pool = notDrawn.length ? notDrawn : candidates;
-  if (!pool.length) throw new GameRuleError(`节点 ${node.id} 没有可用事件。`);
+  if (!pool.length) return { eventId: undefined, seed: expedition.currentSeed };
   const random = nextRandom(expedition.currentSeed);
   const index = Math.min(pool.length - 1, Math.floor(random.value * pool.length));
   return { eventId: pool[index], seed: random.seed };
@@ -1136,8 +1143,8 @@ export function tick(
     }
 
     // 起始节点只是地图入口：不计探索节点、不生成战利品或事件，抵达后直接选路线。
-    // startNodeId 是唯一判据，因此策划无需再维护一组容易配错的开关字段。
-    if (node.id === map.startNodeId && expedition.completedNodeCount === 0) {
+    // 所有配置入口均跳过探索结算，兼容旧单入口地图。
+    if (mapEntryNodeIds(map).includes(node.id) && expedition.completedNodeCount === 0) {
       expedition.currentNodeId = node.id;
       expedition.currentEventId = undefined;
       expedition.arrivalLoot = {};
@@ -1152,10 +1159,9 @@ export function tick(
       continue;
     }
 
-    if (!node.loot) {
-      throw new GameRuleError(`探索节点 ${node.id} 没有配置战利品掉落。`);
-    }
-    const lootDraw = drawNodeLoot(node.loot, expedition.currentSeed, catalog);
+    const lootDraw = node.loot
+      ? drawNodeLoot(node.loot, expedition.currentSeed, catalog)
+      : { loot: {}, seed: expedition.currentSeed };
     expedition.currentSeed = lootDraw.seed;
     expedition.arrivalLoot = lootDraw.loot;
     expedition.pendingLoot = Object.keys(lootDraw.loot).length ? clone(lootDraw.loot) : undefined;
@@ -1172,7 +1178,11 @@ export function tick(
       (sum, quantity) => sum + quantity,
       0,
     );
-    if (!(node.eventPoolIds?.length)) {
+    const fixedEvent = (node.fixedEventIds ?? []).map(id => catalog.events[id]).find(event =>
+      event && (event.absentPetIds ?? []).every(id => !state.pets[id]) &&
+      (!event.requiredSecondary || checkSecondaryRequirement(state, expedition.petIds, event.requiredSecondary).met),
+    );
+    if (!fixedEvent && !(node.eventPoolIds?.length)) {
       expedition.currentEventId = undefined;
       expedition.phase = node.terminal ? "extraction" : "awaiting-route";
       addLog(
@@ -1185,14 +1195,14 @@ export function tick(
       continue;
     }
 
-    const draw = drawEvent(state, expedition, catalog);
+    const draw = fixedEvent ? { eventId: fixedEvent.id, seed: expedition.currentSeed } : drawEvent(state, expedition, catalog);
     expedition.currentEventId = draw.eventId;
     expedition.currentSeed = draw.seed;
-    expedition.drawnEventIds.push(draw.eventId);
-    expedition.phase = "awaiting-event";
+    if (draw.eventId) expedition.drawnEventIds.push(draw.eventId);
+    expedition.phase = draw.eventId ? "awaiting-event" : node.terminal ? "extraction" : "awaiting-route";
     addLog(
       state,
-      `队伍抵达${node.name}，发现 ${lootCount} 件战利品，${lootCount ? "正在等待拾取战利品，随后处理事件" : "正在等待处理事件"}。`,
+      `队伍抵达${node.name}，发现 ${lootCount} 件战利品，${lootCount ? "正在等待拾取战利品" : draw.eventId ? "正在等待处理事件" : node.terminal ? "正在准备撤离" : "正在等待选择路线"}。`,
       now,
     );
   }
@@ -1245,9 +1255,22 @@ export function isChoiceAvailable(
   state: GameState,
   expedition: Expedition,
   choice: EventChoiceDefinition,
+  catalog: Catalog = defaultCatalog,
 ): { available: boolean; reason?: string } {
   const resolution = choiceResolution(choice);
   if (resolution.type === "leave") return { available: true };
+  if (resolution.type === "delivery") {
+    const task = catalog.tasks[resolution.completeTaskId];
+    if (!task || !Object.keys(resolution.items).length || Object.entries(resolution.items).some(([id, quantity]) => !catalog.items[id] || !Number.isSafeInteger(quantity) || quantity <= 0)) return { available: false, reason: "交付配置无效。" };
+    if (!taskRewardFitsWarehouse(state, task.id, catalog)) return { available: false, reason: "任务奖励入库空间不足，请先整理库存。" };
+    const event = catalog.events[expedition.currentEventId ?? ""];
+    if ((event?.absentPetIds ?? []).some(id => state.pets[id]) || state.completedTaskIds.includes(resolution.completeTaskId))
+      return { available: false, reason: "该目标已经完成，无需重复交付。" };
+    for (const [id, quantity] of Object.entries(resolution.items)) {
+      if (state.lockedItemIds.includes(id)) return { available: false, reason: `${catalog.items[id]?.name ?? id}已锁定，请先解锁。` };
+      if ((expedition.cargo[id] ?? 0) < quantity) return { available: false, reason: `探险背包需要${catalog.items[id]?.name ?? id} ×${quantity}。` };
+    }
+  }
   if (choice.requiredTagId && !teamHasTag(state, expedition, choice.requiredTagId)) {
     return { available: false, reason: "队伍缺少所需 Tag" };
   }
@@ -1483,7 +1506,7 @@ export function resolveEvent(
   const event = catalog.events[expedition.currentEventId ?? ""];
   const choice = event?.choices.find((candidate) => candidate.id === choiceId);
   if (!event || !choice) throw new GameRuleError("找不到事件选项。");
-  const availability = isChoiceAvailable(state, expedition, choice);
+  const availability = isChoiceAvailable(state, expedition, choice, catalog);
   if (!availability.available) throw new GameRuleError(availability.reason ?? "选项不可用。");
   const resolution = choiceResolution(choice);
   let outcome: EventResolution["outcome"];
@@ -1492,6 +1515,23 @@ export function resolveEvent(
   if (resolution.type === "leave") {
     outcome = "leave";
     check = { type: "leave" };
+  } else if (resolution.type === "delivery") {
+    expedition.cargo = removeInventory(expedition.cargo, resolution.items);
+    for (const [id, quantity] of Object.entries(resolution.items)) {
+      const left = Math.max(0, (expedition.initialCargo[id] ?? 0) - quantity);
+      if (left) expedition.initialCargo[id] = left;
+      else delete expedition.initialCargo[id];
+    }
+    state.completedEventChoiceKeys = [...new Set([...(state.completedEventChoiceKeys ?? []), JSON.stringify([event.id, choice.id])])];
+    // 前置任务只控制提示可见性，不阻止现场交付。其他任务条件仍需满足。
+    const task = catalog.tasks[resolution.completeTaskId];
+    if (!task) throw new GameRuleError("关联任务不存在。");
+    const deliveryCatalog = { ...catalog, tasks: { ...catalog.tasks, [task.id]: { ...task, prerequisiteTaskIds: [] } } };
+    const completed = completeTask(state, task.id, now, deliveryCatalog);
+    // completeTask 返回克隆；保留本次正在修改的远征引用。
+    Object.assign(state, completed, { expeditions: state.expeditions });
+    outcome = "success";
+    check = { type: "delivery" };
   } else if (resolution.type === "secondary") {
     const current = teamSecondaryStat(
       state,
@@ -1542,6 +1582,12 @@ export function resolveEvent(
   if (rolls.length === 2) {
     const roll = Math.max(...rolls);
     summary = `幸运儿掷出 ${rolls[0]}、${rolls[1]}，取较高的 ${roll}。${summary}`;
+  }
+
+  if (resolution.type === "delivery") {
+    const task = catalog.tasks[resolution.completeTaskId];
+    const pets = (task.reward.addPetIds ?? []).map(id => catalog.petTemplates[id]?.name ?? id);
+    summary = `交付完成，任务“${task.title}”的奖励已立即发放。${pets.length ? `${pets.join("、")}已到达基地，不加入本次远征。` : ""}`;
   }
 
   expedition.cargo = addInventory(expedition.cargo, reward);
@@ -1723,7 +1769,7 @@ export function requestExtraction(
   }
   const map = catalog.maps[expedition.mapId];
   const node = map?.nodes[expedition.currentNodeId ?? ""];
-  if (!node || expedition.currentNodeId === map.startNodeId || (!node.terminal && !node.extractable)) {
+  if (!node || mapEntryNodeIds(map).includes(expedition.currentNodeId ?? "") || (!node.terminal && !node.extractable)) {
     throw new GameRuleError("当前节点不是撤离点，必须继续前往可撤离节点或地图终点。");
   }
   expedition.phase = "extraction";
@@ -1844,7 +1890,7 @@ export function confirmExtraction(
   state.completedExtractionNodeKeys ??= [];
   const extractionKey =
     expedition.currentNodeId &&
-    expedition.currentNodeId !== catalog.maps[expedition.mapId]?.startNodeId
+    !mapEntryNodeIds(catalog.maps[expedition.mapId] ?? {}).includes(expedition.currentNodeId)
       ? `${expedition.mapId}:${expedition.currentNodeId}`
       : undefined;
   if (
@@ -1950,7 +1996,7 @@ export function pendingFirstExtractionRewards(
 ): Inventory {
   const map = catalog.maps[expedition.mapId];
   const nodeId = expedition.currentNodeId;
-  if (!map || !nodeId || nodeId === map.startNodeId) return {};
+  if (!map || !nodeId || mapEntryNodeIds(map).includes(nodeId)) return {};
   const node = map.nodes[nodeId];
   if (!node || (!node.terminal && !node.extractable)) return {};
   return unclaimedExtractionRewards(state, `${expedition.mapId}:${nodeId}`, node.firstExtractionRewards);
@@ -2186,6 +2232,7 @@ export function taskCanComplete(
     if (goal.type === "milestone") {
       return (state.completedMilestoneIds ?? []).includes(goal.milestoneId);
     }
+    if (goal.type === "event-choice") return (state.completedEventChoiceKeys ?? []).includes(JSON.stringify([goal.eventId, goal.choiceId]));
     return false;
   });
   if (!hasItems || !hasCurrency || !hasGoals) return false;

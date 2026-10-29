@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { BOOKMARK_WIDTH, computeLayout, petMetrics, type Layout } from '../../desktop/geometry.mjs';
 import './desktopBridge';
-import { ARRIVAL_CLIPS, TRAVEL_CLIPS, isArrival, isTravelClip, PetAnimator, type Pose } from './petAnimation';
+import { isArrival, isTravelClip, PetAnimator, type Pose } from './petAnimation';
 import { petFrameOffsetX } from './petFrameAlignment';
 import { useUIState } from './uiState';
-import spriteManifest from '../../public/pet-sprites/manifest.json';
+import { petVisuals } from './petVisuals';
 import './petDesktop.css';
 
 export type PanelId = 'pets' | 'inventory' | 'adventure' | 'codex' | 'settings';
@@ -14,12 +14,11 @@ export const PET_MENUS: { id: PanelId; label: string; icon: string }[] = [
   { id: 'settings', label: '设置', icon: 'gear' },
 ];
 const icons = import.meta.glob<string>('../../assets/ui-prototype/icons/{status,storage,flag,codex,gear,bulb,coin}.png', { eager: true, query: '?url', import: 'default' });
-const standing = `${import.meta.env.BASE_URL}pet-sprites/standing.png`;
 export const menuIcon = (icon: string) => icons[`../../assets/ui-prototype/icons/${icon}.png`];
 const rectStyle = (rect: { x: number; y: number; width: number; height: number }): CSSProperties => ({ left: rect.x, top: rect.y, width: rect.width, height: rect.height });
 const isPosition = (v: unknown): v is { x: number; y: number } => !!v && typeof v === 'object' && 'x' in v && 'y' in v && Number.isFinite(v.x) && Number.isFinite(v.y);
-type Sheet = { file: string; frames: number; width: number; height: number; columns: number; fps: number; loop: boolean };
-export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPending, travel, children }: {
+export function PetDesktop({ petId = 'gugugaga', visualScale, name, activePanel, onOpen, onClose, pending, onPending, travel, children }: {
+  petId?: string; visualScale?: number;
   name: string; activePanel: PanelId | null; onOpen: (panel: PanelId) => void; onClose: () => void;
   pending: boolean; onPending: () => void;
   travel?: { label: string; remaining: string; progress: number; departureId?: string };
@@ -42,11 +41,13 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     return () => observer.disconnect();
   }, [activePanel]);
   const [canvasSize, setCanvasSize] = useState(300);
-  const metrics = petMetrics(canvasSize);
+  const scale = visualScale ?? petVisuals(petId).defaultScale;
+  const displaySize = petMetrics(canvasSize * scale).size;
+  const metrics = petMetrics(displaySize);
   const [position, setPosition] = useUIState('pet-position', { x: window.innerWidth - 340, y: window.innerHeight - 410 }, isPosition);
   const [viewport, setViewport] = useState({ x: 0, y: 0, width: window.innerWidth, height: window.innerHeight });
   const [nativeLayout, setNativeLayout] = useState<Layout>();
-  const fallback = computeLayout(position, viewport, activePanel, canvasSize);
+  const fallback = computeLayout(position, viewport, activePanel, displaySize);
   // Browser preview uses work-area coordinates. Native uses a stable panel envelope.
   const layout = nativeLayout ?? { ...fallback, pet: { ...fallback.pet, x: fallback.position.x, y: fallback.position.y }, panel: fallback.panel && { ...fallback.panel, x: fallback.panel.x + fallback.bounds.x, y: fallback.panel.y + fallback.bounds.y } };
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -57,6 +58,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
   const [assetError, setAssetError] = useState(false);
   const closeRef = useRef(onClose); closeRef.current = onClose;
   const interact = () => animator.current.interact(Date.now());
+  useEffect(() => { void bridge?.settings({ visualScale: scale }); }, [bridge, scale]);
 
   useEffect(() => {
     const resize = () => setViewport({ x: 0, y: 0, width: innerWidth, height: innerHeight });
@@ -79,9 +81,14 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
   useEffect(() => {
     let stopped = false, raf = 0, lastKey = '';
     const images = new Map<string, HTMLImageElement>();
-    const manifest: Record<string, Sheet> = spriteManifest;
+    const visual = petVisuals(petId);
+    const manifest = visual.manifest;
+    const standing = `${visual.root}standing.png`;
+    animator.current = new PetAnimator(Date.now(), Math.random, petId);
+    setAssetError(false);
     const context = canvas.current?.getContext('2d', { willReadFrequently: true });
     if (!context) return;
+    context.clearRect(0, 0, 300, 282);
     const load = (src: string) => {
       let image = images.get(src);
       if (!image) { image = new Image(); image.src = src; image.onerror = () => { if (!stopped) setAssetError(true); }; images.set(src, image); }
@@ -89,23 +96,20 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     };
     load(standing);
     // Warm the transition sheets before dispatch; no change to the source art.
-    load(`${import.meta.env.BASE_URL}pet-sprites/${manifest['start-explore'].file}`);
-    load(`${import.meta.env.BASE_URL}pet-sprites/${manifest.walk.file}`);
-    for (const clip of ARRIVAL_CLIPS) load(`${import.meta.env.BASE_URL}pet-sprites/${manifest[clip].file}`);
-    for (const clip of TRAVEL_CLIPS) load(`${import.meta.env.BASE_URL}pet-sprites/${manifest[clip].file}`);
+    for (const sheet of Object.values(manifest)) load(`${visual.root}${sheet.file}`);
     function render() {
       if (stopped || !context) return;
       const now = Date.now();
       const pose: Pose = animator.current.update(now, live.current.travel, live.current.menu, live.current.departureId);
       const sheet = manifest[pose];
-      const source = sheet ? `${import.meta.env.BASE_URL}pet-sprites/${sheet.file}` : standing;
+      const source = sheet ? `${visual.root}${sheet.file}` : standing;
       const image = load(source);
       // A cold image load must not consume the beginning of either transition.
       if ((pose === 'start-explore' || isArrival(pose) || isTravelClip(pose)) && !image.complete) animator.current.since = now;
       const frame = animator.current.frame(now);
       const key = `${pose}:${frame}:${image.complete}`;
       if (image.complete && image.naturalWidth && key !== lastKey) {
-        const offsetX = petFrameOffsetX(pose, frame);
+        const offsetX = visual.rootMotionCorrection ? petFrameOffsetX(pose, frame) : 0;
         context.clearRect(0, 0, 300, 282);
         if (sheet) context.drawImage(image, frame % sheet.columns * sheet.width, Math.floor(frame / sheet.columns) * sheet.height, sheet.width, sheet.height, offsetX, 0, 300, 282);
         else context.drawImage(image, 0, 0, 300, 282);
@@ -118,7 +122,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     }
     render();
     return () => { stopped = true; cancelAnimationFrame(raf); };
-  }, []);
+  }, [petId]);
 
   const hitPet = (x: number, y: number) => {
     const element = canvas.current;
@@ -147,7 +151,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
     if (!(event.target as Element).closest('[data-desktop-ui], .pet-hit')) { setMenu(false); onClose(); }
     else interact();
   }} onKeyDown={event => { interact(); if (event.key === 'Escape') { setMenu(false); onClose(); } }}>
-    <div className="pet-anchor" style={{ ...rectStyle(layout.pet), '--canvas': `${canvasSize}px`, '--bubble': `${metrics.bubble}px`, '--menu-width': `${metrics.menuWidth}px`, '--menu-gap': `${metrics.gap}px` } as CSSProperties}>
+    <div className="pet-anchor" style={{ ...rectStyle(layout.pet), '--canvas': `${displaySize}px`, '--bubble': `${metrics.bubble}px`, '--menu-width': `${metrics.menuWidth}px`, '--menu-gap': `${metrics.gap}px` } as CSSProperties}>
       {travel && menu && <div className="pet-travel" aria-live="off">
         <div><span>{travel.label}</span><time>{travel.remaining}</time></div>
         <div className="pet-travel-track"><i style={{ width: `${Math.max(0, Math.min(1, travel.progress)) * 100}%` }} /></div>
@@ -174,7 +178,7 @@ export function PetDesktop({ name, activePanel, onOpen, onClose, pending, onPend
           if (!start.moved) { interact(); if (activePanel) onClose(); else setMenu(value => !value); }
         }} onLostPointerCapture={() => { drag.current = null; bridge?.endDrag(); }}
         onClick={event => { if (event.detail === 0) { interact(); if (activePanel) onClose(); else setMenu(value => !value); } }}>
-        <canvas ref={canvas} width={300} height={282} aria-label={`${name}桌宠`} />
+        <canvas ref={canvas} data-pet-id={petId} width={300} height={282} aria-label={`${name}桌宠`} />
       </button>
       {pending && <button className="pet-bulb" data-desktop-ui aria-label="处理待办事项" title="处理待办事项" onClick={() => { interact(); setMenu(false); onPending(); }}><img src={menuIcon('bulb')} alt="" /></button>}
       <nav className={`pet-bubbles ${menu ? 'open' : ''}`} aria-label="宠物功能" aria-hidden={!menu}>

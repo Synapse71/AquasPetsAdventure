@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "../domain/mapEntries";
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import {
@@ -13,7 +14,7 @@ import type {
   LootCompositionDefinition,
   NodeLootDefinition,
 } from "../domain/types";
-import { mapArtwork, mapArtworkAnchors } from '../ui/mapArtwork';
+import { mapArtwork, mapArtworkAnchors, mapArtworkScale } from '../ui/mapArtwork';
 import {
   addEdgeToMap,
   applyEdgeDraft,
@@ -47,7 +48,7 @@ function inputNumber(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function MapAnchorEditor({ nodes, nodePositions, artwork, onChange }: { nodes: Record_; nodePositions: Record_; artwork: string; onChange: (positions: Record_) => void }) {
+function MapAnchorEditor({ nodes, nodePositions, artwork, artworkScale, aspectRatio, entryIds, onChange }: { nodes: Record_; nodePositions: Record_; artwork?: string; artworkScale?: number; aspectRatio?: number; entryIds: string[]; onChange: (positions: Record_) => void }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record_>(nodePositions);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -60,10 +61,22 @@ function MapAnchorEditor({ nodes, nodePositions, artwork, onChange }: { nodes: R
     return next;
   }, [draft]);
   return <section className="config-map-anchor-editor">
-    <div className="config-map-graph-head"><div><strong>地图锚定编辑器</strong><span>拖拽地点图标到地物入口；松开后更新草稿，点「保存这条记录」生效</span></div></div>
-    <div ref={canvasRef} className="config-map-anchor-canvas" onPointerMove={(event) => { if (dragging) setPosition(dragging, event); }} onPointerUp={(event) => { if (dragging) onChange(setPosition(dragging, event)); setDragging(null); }} onPointerCancel={() => setDragging(null)}>
-      <img src={artwork} alt="当前地图底图" draggable={false} />
-      {Object.keys(nodes).map((id) => { const p = isRecord(draft[id]) ? draft[id] as Record_ : {}; const x = typeof p.x === 'number' ? p.x : 50, y = typeof p.y === 'number' ? p.y : 50; return <button type="button" className="config-map-anchor" style={{ left: `${x}%`, top: `${y}%` }} key={id} onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setDragging(id); setPosition(id, event); }} title={`${nodeLabel(nodes, id)} (${x.toFixed(1)}, ${y.toFixed(1)})`}><span>{nodeLabel(nodes, id).split('（')[0]}</span></button>; })}
+    <div className="config-map-graph-head"><div><strong>地图布局与锚点</strong><span>拖拽地点图标到地物入口；松开后更新草稿，点「保存这条记录」生效</span></div></div>
+    <div ref={canvasRef} className="config-map-anchor-canvas" style={{ aspectRatio }} onPointerMove={(event) => { if (dragging) setPosition(dragging, event); }} onPointerUp={(event) => { if (dragging) onChange(setPosition(dragging, event)); setDragging(null); }} onPointerCancel={() => setDragging(null)}>
+      {artwork && <img src={artwork} style={{ transform: `scale(${artworkScale ?? 1.04})` }} alt="当前地图底图" draggable={false} />}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-label="实际位置上的单向路线">
+        <defs><marker id="config-anchor-arrow" markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto"><path d="M0 0L4 2L0 4Z" fill="#66735b" /></marker></defs>
+        {Object.entries(nodes).flatMap(([id, value]) => {
+          if (!isRecord(value) || !Array.isArray(value.edges) || !isRecord(draft[id])) return [];
+          const a = draft[id] as Record_;
+          return value.edges.flatMap((edge, index) => {
+            if (!isRecord(edge) || typeof edge.toNodeId !== 'string' || !isRecord(draft[edge.toNodeId])) return [];
+            const b = draft[edge.toNodeId] as Record_;
+            return <line key={`${id}-${index}`} x1={Number(a.x)} y1={Number(a.y)} x2={Number(b.x)} y2={Number(b.y)} stroke="#66735b" strokeWidth="0.3" markerEnd="url(#config-anchor-arrow)" />;
+          });
+        })}
+      </svg>
+      {Object.keys(nodes).map((id) => { const p = isRecord(draft[id]) ? draft[id] as Record_ : {}; const x = typeof p.x === 'number' ? p.x : 50, y = typeof p.y === 'number' ? p.y : 50; return <button type="button" className={`config-map-anchor ${entryIds.includes(id) ? "entry" : isRecord(nodes[id]) && (nodes[id] as Record_).terminal ? "terminal" : isRecord(nodes[id]) && (nodes[id] as Record_).extractable ? "extractable" : "normal"}`} style={{ left: `${x}%`, top: `${y}%` }} key={id} onPointerDown={(event) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); setDragging(id); setPosition(id, event); }} title={`${nodeLabel(nodes, id)} (${x.toFixed(1)}, ${y.toFixed(1)})`}><span>{nodeLabel(nodes, id).split('（')[0]}</span></button>; })}
     </div>
     <div className="config-map-anchor-values">{Object.keys(nodes).map((id) => { const p = isRecord(draft[id]) ? draft[id] as Record_ : {}; return <span key={id}>{nodeLabel(nodes, id).split('（')[0]}：{typeof p.x === 'number' ? p.x.toFixed(1) : '—'}%, {typeof p.y === 'number' ? p.y.toFixed(1) : '—'}%</span>; })}</div>
   </section>;
@@ -1063,7 +1076,7 @@ function MapGraphPreview({
   onSelectEdge,
 }: {
   nodes: Record_;
-  startNodeId: string;
+  startNodeId: string | string[];
   selectedNodeId: string;
   selectedEdge: EdgeRef | null;
   onSelectNode: (nodeId: string) => void;
@@ -1205,7 +1218,7 @@ function MapGraphPreview({
                 <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 7}>
                   {label.length > 10 ? `${label.slice(0, 10)}…` : label}
                 </text>
-                <title>{label} → {targetName}</title>
+                <title>{`${label} → ${targetName}`}</title>
               </g>
             );
           })}
@@ -1239,7 +1252,7 @@ function MapGraphPreview({
                 <text className="id" x="66" y="37">
                   {point.id.length > 18 ? `${point.id.slice(0, 18)}…` : point.id}
                 </text>
-                <title>{name}（{point.id}）</title>
+                <title>{`${name}（${point.id}）`}</title>
               </g>
             );
           })}
@@ -1354,6 +1367,12 @@ function NodeLootEditor({
         </div>
       ) : (
         <>
+      <label className="config-check">
+        <input type="checkbox" checked={node.loot !== undefined}
+          onChange={event => onNodeChange({ loot: event.target.checked ? safeLoot(undefined) : undefined })} />
+        <span>配置节点战利品</span>
+      </label>
+      {node.loot === undefined ? <p className="config-form-note">尚未配置战利品，本节点不产生掉落；可以独立配置事件池。</p> : <>
       <div className="config-loot-mode-switch" role="group" aria-label="掉落模式">
         <button
           type="button"
@@ -1463,6 +1482,8 @@ function NodeLootEditor({
         />
       </div>
 
+      </>}
+      <section className="config-task-block"><strong>条件固定事件（列表顺序优先）</strong><small>首个满足出现条件的事件替代本次随机事件；均不满足则使用下方事件池。</small>{(Array.isArray(node.fixedEventIds) ? node.fixedEventIds as string[] : []).map((id, index, ids) => <div key={id}>{catalog.events[id]?.title ?? id}<button type="button" onClick={() => onNodeChange({ fixedEventIds: ids.filter((_, i) => i !== index) })}>移除</button>{index > 0 && <button type="button" onClick={() => { const next = [...ids]; [next[index-1], next[index]] = [next[index], next[index-1]]; onNodeChange({ fixedEventIds: next }); }}>上移</button>}</div>)}<select value="" onChange={e => { if(e.target.value) onNodeChange({ fixedEventIds: [...(Array.isArray(node.fixedEventIds) ? node.fixedEventIds : []), e.target.value] }); }}><option value="">添加固定事件</option>{Object.values(catalog.events).filter(e => !Array.isArray(node.fixedEventIds) || !node.fixedEventIds.includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.title}</option>)}</select></section>
       <EventPoolPicker
         selected={eventPoolIds}
         catalog={catalog}
@@ -1512,7 +1533,7 @@ function NodeEditorModal({
   node: Record_;
   catalog: Catalog;
   nodes: Record_;
-  startNodeId: string;
+  startNodeId: string | string[];
   role: string;
   canDelete: boolean;
   onSave: (draft: Record_) => void;
@@ -1603,7 +1624,7 @@ function NodeEditorModal({
             node={draft}
             catalog={catalog}
             nodes={nodes}
-            isStart={startNodeId === nodeId}
+            isStart={(Array.isArray(startNodeId) ? startNodeId : [startNodeId]).includes(nodeId)}
             onChange={(loot) => patchNode({ loot })}
             onNodeChange={patchNode}
           />
@@ -1810,6 +1831,7 @@ export function MapForm({
   const [editing, setEditing] = useState<Editing>(null);
   const startNodeId =
     typeof record.startNodeId === "string" ? record.startNodeId : "";
+  const entryIds = mapEntryNodeIds(record);
   const editingNodeId = editing?.kind === "node" ? editing.nodeId : "";
   const editingNode =
     editingNodeId && isRecord(nodes[editingNodeId]) ? nodes[editingNodeId] : null;
@@ -1968,10 +1990,10 @@ export function MapForm({
           <small>每完成一个非起始节点获得的经验；不包含战利品经验。</small>
         </label>
         <label className="config-field">
-          <span>起始节点</span>
+          <span>默认起始节点</span>
           <select
             value={typeof record.startNodeId === "string" ? record.startNodeId : ""}
-            onChange={(event) => updateMap({ startNodeId: event.target.value })}
+            onChange={(event) => updateMap({ startNodeId: event.target.value, ...(Array.isArray(record.startNodeIds) ? { startNodeIds: [...new Set([event.target.value, ...entryIds])] } : {}) })}
           >
             {Object.entries(nodes).map(([nodeId, value]) => (
               <option key={nodeId} value={nodeId}>
@@ -2027,6 +2049,20 @@ export function MapForm({
           />
         </label>
       </div>
+      <div className="config-field">
+        <span>可选入口（默认入口始终保留）</span>
+        <div className="config-field-row">{nodeIds.map(id => <label className="config-check" key={id}>
+          <input type="checkbox" checked={entryIds.includes(id)} disabled={id === startNodeId}
+            onChange={event => updateMap({ startNodeIds: event.target.checked ? [...entryIds, id] : entryIds.filter(entry => entry !== id) })} />
+          {nodeLabel(nodes, id)}
+        </label>)}</div>
+      </div>
+      <label className="config-field">
+        <span>地图画布宽高比</span>
+        <input type="number" min="0.1" step="0.01" value={typeof record.aspectRatio === 'number' ? record.aspectRatio : 16 / 9}
+          onChange={event => updateMap({ aspectRatio: Math.max(0.1, inputNumber(event.target.value)) })} />
+        <small>按矢量草图比例展示节点位置；不影响路线耗时。</small>
+      </label>
       <label className="config-field">
         <span>地图说明</span>
         <textarea
@@ -2036,17 +2072,20 @@ export function MapForm({
         />
       </label>
 
-      {typeof record.id === 'string' && mapArtwork[record.id] && <MapAnchorEditor
+      {typeof record.id === 'string' && <MapAnchorEditor
         key={record.id}
         nodes={nodes}
         artwork={mapArtwork[record.id]}
+        artworkScale={mapArtworkScale[record.id]}
+        entryIds={entryIds}
+        aspectRatio={typeof record.aspectRatio === "number" ? record.aspectRatio : undefined}
         nodePositions={{ ...mapArtworkAnchors[record.id], ...(isRecord(record.nodePositions) ? record.nodePositions : {}) }}
         onChange={(nodePositions) => updateMap({ nodePositions })}
       />}
 
       <MapGraphPreview
         nodes={nodes}
-        startNodeId={startNodeId}
+        startNodeId={entryIds}
         selectedNodeId={editingNodeId}
         selectedEdge={editingEdgeRef}
         onSelectNode={(nodeId) => setEditing({ kind: "node", nodeId })}
@@ -2133,12 +2172,12 @@ export function MapForm({
           node={editingNode}
           catalog={catalog}
           nodes={nodes}
-          startNodeId={startNodeId}
+          startNodeId={entryIds}
           role={nodeRole(
             editingNode,
             editingNodeId,
-            startNodeId,
-            nodeDepths(nodes, startNodeId).has(editingNodeId),
+            entryIds,
+            nodeDepths(nodes, entryIds).has(editingNodeId),
           )}
           canDelete={Object.keys(nodes).length > 1}
           onSave={(draft) => saveNode(editingNodeId, draft)}

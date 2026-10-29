@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "../domain/mapEntries";
 import { START_TRAVEL_DURATION_MS } from '../domain/expeditionTiming';
 import { useEffect, useRef, useState } from 'react';
 import { catalog } from '../domain/catalog';
@@ -142,7 +143,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
   const progress=Math.max(0,Math.min(100,100*(1-(expedition.arriveAt-now)/Math.max(1,duration))));
   const time=Math.max(0,Math.ceil((expedition.arriveAt-now)/1000));
   const countdown=`${String(Math.floor(time/60)).padStart(2,'0')}:${String(time%60).padStart(2,'0')}`;
-  const showJudge=!!judgedChoice && (!showResult || (resultPage!==resultKey && !!result?.check && result.check.type!=='leave'));
+  const showJudge=!!judgedChoice && (!showResult || (resultPage!==resultKey && !!result?.check && result.check.type!=='leave' && result.check.type!=='delivery'));
   const decide=(selected=choice)=>{
     if(!selected || busy.current || arrival)return;
     busy.current=true;
@@ -153,7 +154,7 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
       if(current?.currentEventId!==eventId || current.visitedNodeIds.length!==expedition.visitedNodeIds.length)throw new GameRuleError('事件已变化，请重新选择。');
       return resolveEvent(state,expedition.id,selected.id);
     });
-    if(ok){setChoiceId('');setTip(undefined);setRolling(kind!=='leave');}
+    if(ok){setChoiceId('');setTip(undefined);setRolling(kind==='primary'||kind==='secondary');}
     busy.current=false;
   };
   const autoKey=useRef('');
@@ -207,15 +208,15 @@ export function ExpeditionView({ game, expedition, now, run, onFinished, onDecid
           <div className={`ap-verdict${showResult&&!rolling?' show':''}`} aria-live="polite">{showResult&&!rolling&&<><span>{result?.check?.type==='primary' ? tier===3?`骰点 ${Math.max(...result.check.rolls)} − 风险 ${result.check.risk} ＝ ${Math.max(...result.check.rolls)-result.check.risk}`:`掷出 ${result.check.rolls.join(' / ')}${result.check.rolls.length>1?' · 取最高':''}` : result?.check?.type==='secondary'?`队伍属性 ${result.check.value}`:''}</span><b className={result!.outcome}>{OUTCOMES[result!.outcome]}</b></>}</div>
         </div> : showResult ? <EventResult result={result!}/> : <div className="ap-choices ap-event-choices">{event?.choices.map(c=>{
           const av=isChoiceAvailable(game,expedition,c),r=resolutionOf(c),p=getRiskPreview(game,expedition.id,c.id);
-          const label=r.type==='leave'?'':r.type==='secondary'?SECONDARY_STAT_LABELS[r.stat]:STAT_LABELS[r.stat];
+          const label=(r.type==='leave'||r.type==='delivery')?'':r.type==='secondary'?SECONDARY_STAT_LABELS[r.stat]:STAT_LABELS[r.stat];
           const hasTip=r.type!=='secondary'||!!p.label||!!p.detail;
-          return <button key={c.id} className="ap-choice ap-event-option" aria-disabled={!av.available} onMouseEnter={e=>hasTip&&openTip(e.currentTarget,c.id)} onMouseLeave={()=>setTip(undefined)} onFocus={e=>hasTip&&openTip(e.currentTarget,c.id)} onBlur={()=>setTip(undefined)} onClick={()=>{if(!av.available)return;setTip(undefined);if(r.type==='leave')decide(c);else setChoiceId(`${event!.id}:${expedition.visitedNodeIds.length}:${c.id}`);}}><span className="ap-option-top"><strong>{c.label}</strong>{r.type!=='leave'&&<em><img src={statIcon(r.stat)} alt=""/>{label}</em>}</span><small>{c.description}</small></button>;
+          return <button key={c.id} className="ap-choice ap-event-option" aria-disabled={!av.available} onMouseEnter={e=>hasTip&&openTip(e.currentTarget,c.id)} onMouseLeave={()=>setTip(undefined)} onFocus={e=>hasTip&&openTip(e.currentTarget,c.id)} onBlur={()=>setTip(undefined)} onClick={()=>{if(!av.available)return;setTip(undefined);if(r.type==='leave'||r.type==='delivery')decide(c);else setChoiceId(`${event!.id}:${expedition.visitedNodeIds.length}:${c.id}`);}}><span className="ap-option-top"><strong>{c.label}</strong>{(r.type==='primary'||r.type==='secondary')&&<em><img src={statIcon(r.stat)} alt=""/>{label}</em>}</span><small>{c.description}</small>{r.type==='delivery'&&<small>交付：{Object.entries(r.items).map(([id,q])=>`${catalog.items[id]?.name ?? id} ×${q}`).join('、')}（从探险背包扣除）</small>}{r.type==='delivery'&&!av.available&&<small>{av.reason}</small>}</button>;
         })}</div>}
-      </> : expedition.phase==='traveling' ? <div className="ap-travel"><h2>{expedition.travelingEdgeId?map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.label:`从${map.nodes[map.startNodeId].name}出发`}</h2><p>{map.name}</p><div className="ap-travel-track"><i style={{width:`${progress}%`}}/></div><strong className="ap-countdown">{countdown}<small>剩余时间</small></strong></div> : <>
+      </> : expedition.phase==='traveling' ? <div className="ap-travel"><h2>{expedition.travelingEdgeId?map.nodes[expedition.travelingFromNodeId??'']?.edges.find(e=>e.id===expedition.travelingEdgeId)?.label:`从${map.nodes[expedition.targetNodeId]?.name ?? map.name}出发`}</h2><p>{map.name}</p><div className="ap-travel-track"><i style={{width:`${progress}%`}}/></div><strong className="ap-countdown">{countdown}<small>剩余时间</small></strong></div> : <>
         <div className="ap-sec-h">选择下一段路线 <em>当前位置：{node?.name}</em></div><div className="ap-choices ap-route-choices">{getVisibleRoutes(game,expedition.id).map(edge=>{
           const av=getRouteAvailability(game,expedition.id,edge.id),hint=routeHint(game,expedition.petIds,edge,tier);
           return <button className="ap-choice" key={edge.id} disabled={!av.available||overSlots} onClick={()=>{if(run(s=>chooseRoute(s,expedition.id,edge.id))){setChoiceId('');setShowBag(false);}}}><span><strong>{edge.label}</strong><small>{edge.description}</small>{hint&&<small>{hint}</small>}</span><em><small>行进时间</small>{overSlots?'背包超格':tier===1?'未知':timeLabel(edge.durationMs)}</em></button>;
-        })}{node?.extractable && node.id!==map.startNodeId && <button className="ap-choice" onClick={()=>run(s=>requestExtraction(s,expedition.id))}><span><strong>就地撤离</strong><small>带着现有战利品结束本次冒险</small></span></button>}</div>{node&&lockedHints(node.id)}
+        })}{node?.extractable && !mapEntryNodeIds(map).includes(node.id) && <button className="ap-choice" onClick={()=>run(s=>requestExtraction(s,expedition.id))}><span><strong>就地撤离</strong><small>带着现有战利品结束本次冒险</small></span></button>}</div>{node&&lockedHints(node.id)}
       </>}
     </div>
     <footer className={`ap-footer${expedition.phase==='traveling'&&!showResult?' idle':''}`}><span>{arrival ? opened!==arrivalKey?'开启宝箱获取战利品':used>=slots&&remainder?'背包格子已满，装不下更多战利品':over?`超载，事件风险 +${over}`:remainder?'点击战利品放入背包':'战利品已全部收入背包' : showResult ? rolling?resolution?.type==='secondary'?'比对中…':'掷骰中…':'' : choice?'点击骰子掷出判定':expedition.phase==='awaiting-event'?'选择一个应对方式':`已探索 ${expedition.completedNodeCount} 个节点`}</span>

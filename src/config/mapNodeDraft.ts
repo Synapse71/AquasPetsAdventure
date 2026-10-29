@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "../domain/mapEntries";
 // 节点编辑改成「点拓扑图 → 浮层表单 → 保存」之后，浮层里改的是节点草稿，
 // 只有点保存才写回地图记录。这里放不依赖 React 的纯逻辑，方便单测覆盖。
 type Record_ = Record<string, unknown>;
@@ -75,7 +76,10 @@ export function removeNodeFromMap(
     );
   }
   next.nodes = nextNodes;
-  if (next.startNodeId === nodeId) next.startNodeId = Object.keys(nextNodes)[0];
+  const entries = mapEntryNodeIds(next).filter(id => id !== nodeId && Object.hasOwn(nextNodes, id));
+  if (next.startNodeId === nodeId) next.startNodeId = entries[0] ?? Object.keys(nextNodes)[0];
+  if (Array.isArray(next.startNodeIds)) next.startNodeIds = [...new Set([next.startNodeId, ...entries])];
+  if (isRecord(next.nodePositions)) delete next.nodePositions[nodeId];
   return next;
 }
 
@@ -86,12 +90,12 @@ export function removeNodeFromMap(
  */
 export function nodeDepths(
   nodes: Record_,
-  startNodeId: string,
+  startNodeId: string | string[],
 ): Map<string, number> {
   const depths = new Map<string, number>();
-  if (!Object.hasOwn(nodes, startNodeId)) return depths;
-  depths.set(startNodeId, 0);
-  const queue = [startNodeId];
+  const entries = (Array.isArray(startNodeId) ? startNodeId : [startNodeId]).filter(id => Object.hasOwn(nodes, id));
+  for (const id of entries) depths.set(id, 0);
+  const queue = [...entries];
   while (queue.length) {
     const current = queue.shift()!;
     const value = nodes[current];
@@ -112,10 +116,10 @@ export function nodeDepths(
 export function nodeRole(
   node: unknown,
   nodeId: string,
-  startNodeId: string,
+  startNodeId: string | string[],
   reachable: boolean,
 ): "entry" | "unreachable" | "terminal" | "extractable" | "normal" {
-  if (nodeId === startNodeId) return "entry";
+  if ((Array.isArray(startNodeId) ? startNodeId : [startNodeId]).includes(nodeId)) return "entry";
   if (!reachable) return "unreachable";
   if (isRecord(node) && node.terminal === true) return "terminal";
   if (isRecord(node) && node.extractable === true) return "extractable";

@@ -1,3 +1,5 @@
+import { mapEntryNodeIds } from "../domain/mapEntries";
+import yuwanLayoutPositions from "../domain/yuwan-layout.positions.json";
 import {
   bundledCatalog,
   setCatalog,
@@ -925,6 +927,7 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
 
   for (const [eventId, rawEvent] of Object.entries(events)) {
     if (!isRecord(rawEvent)) continue;
+    if (rawEvent.absentPetIds !== undefined && (!Array.isArray(rawEvent.absentPetIds) || rawEvent.absentPetIds.some(id => typeof id !== "string" || !petIds.has(id)))) issues.push({ level: "error", path: `events.${eventId}.absentPetIds`, message: "未拥有宠物条件必须引用有效的宠物模板。" });
     if (typeof rawEvent.title !== "string" || !rawEvent.title.trim()) {
       issues.push({
         level: "error",
@@ -954,6 +957,9 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
       issues,
     );
     const seenChoiceIds = new Set<string>();
+    if (choices.some(c => isRecord(c) && isRecord(c.resolution) && c.resolution.type === "delivery") && !choices.some(c => isRecord(c) && isRecord(c.resolution) && c.resolution.type === "leave")) {
+      issues.push({ level: "error", path: `events.${eventId}.choices`, message: "含交付选项的事件必须保留直接离开，避免未携带物品时卡住。" });
+    }
     for (const [index, rawChoice] of choices.entries()) {
       if (!isRecord(rawChoice)) {
         issues.push({
@@ -1098,6 +1104,15 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
             message: `大成功门槛 ${String(extraSuccessThreshold)} 高于次要属性上限 ${secondaryStatCap()}，当前无法达到。`,
           });
         }
+      } else if (resolution.type === "delivery") {
+        checkInventoryReferences(resolution.items, `${choicePath}.resolution.items`, itemIds, issues);
+        if (!isRecord(resolution.items) || !Object.keys(resolution.items).length) issues.push({ level: "error", path: choicePath, message: "交付必须配置至少一种物品。" });
+        const task = typeof resolution.completeTaskId === "string" ? tasks[resolution.completeTaskId] : undefined;
+        const req = isRecord(task) && isRecord(task.requirement) ? task.requirement : {};
+        const goals = Array.isArray(req.goals) ? req.goals : [];
+        if (!isRecord(task) || !goals.some(g => isRecord(g) && g.type === "event-choice" && g.eventId === eventId && g.choiceId === rawChoice.id)) issues.push({ level: "error", path: choicePath, message: "关联任务必须存在，且目标包含当前事件交付选项。" });
+        if (Object.keys(isRecord(req.items) ? req.items : {}).length || (typeof req.currency === "number" && req.currency > 0) || goals.length !== 1) issues.push({ level: "error", path: choicePath, message: "即时交付任务只允许当前事件目标，不叠加仓库提交、货币或其他目标。" });
+        if (isRecord(rawChoice.bonusRewards) && Object.keys(rawChoice.bonusRewards).length) issues.push({ level: "error", path: choicePath, message: "确定性交付没有大成功，不能配置额外奖励。" });
       } else if (resolution.type === "leave") {
         if (isRecord(rawChoice.rewards) && Object.keys(rawChoice.rewards).length) {
           issues.push({
@@ -1192,6 +1207,16 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
         message: "起始节点不存在。",
       });
     }
+    const entryIds = mapEntryNodeIds(rawMap);
+    if (rawMap.startNodeIds !== undefined && (!Array.isArray(rawMap.startNodeIds) ||
+      !rawMap.startNodeIds.length || new Set(rawMap.startNodeIds).size !== rawMap.startNodeIds.length ||
+      !rawMap.startNodeIds.includes(rawMap.startNodeId) ||
+      rawMap.startNodeIds.some(id => typeof id !== "string" || !Object.hasOwn(nodes, id)))) {
+      issues.push({ level: "error", path: `maps.${mapId}.startNodeIds`, message: "入口列表必须包含默认入口，且不能重复或引用不存在的节点。" });
+    }
+    if (rawMap.aspectRatio !== undefined && (typeof rawMap.aspectRatio !== "number" || !Number.isFinite(rawMap.aspectRatio) || rawMap.aspectRatio <= 0)) {
+      issues.push({ level: "error", path: `maps.${mapId}.aspectRatio`, message: "画布宽高比必须是正数。" });
+    }
     if (!isRecord(rawMap.informationThresholds)) {
       issues.push({
         level: "error",
@@ -1231,7 +1256,8 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
     const adjacency = new Map<string, string[]>();
     for (const [nodeId, rawNode] of Object.entries(nodes)) {
       if (!isRecord(rawNode)) continue;
-      const isStartNode = rawMap.startNodeId === nodeId;
+      const isStartNode = entryIds.includes(nodeId);
+      if (rawNode.fixedEventIds !== undefined && (!Array.isArray(rawNode.fixedEventIds) || rawNode.fixedEventIds.some(id => typeof id !== "string" || !eventIds.has(id)) || new Set(rawNode.fixedEventIds).size !== rawNode.fixedEventIds.length || (isStartNode && rawNode.fixedEventIds.length > 0))) issues.push({ level: "error", path: `maps.${mapId}.nodes.${nodeId}.fixedEventIds`, message: "固定事件必须引用有效且不重复的事件，起点不能配置固定事件。" });
       if (!isStartNode && rawNode.terminal === true) terminalCount += 1;
       if (
         rawNode.extractable !== undefined &&
@@ -1310,7 +1336,7 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
             }
           }
         }
-        checkNodeLoot(
+        if (rawNode.loot !== undefined) checkNodeLoot(
           rawNode.loot,
           `maps.${mapId}.nodes.${nodeId}.loot`,
           items,
@@ -1610,6 +1636,16 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
           });
           continue;
         }
+        if (goal.type === "event-choice") {
+          const event = typeof goal.eventId === "string" ? events[goal.eventId] : undefined;
+          const choices = isRecord(event) && Array.isArray(event.choices) ? event.choices : [];
+          const choice = choices.find(c => isRecord(c) && c.id === goal.choiceId);
+          if (!isRecord(choice) || !isRecord(choice.resolution) || choice.resolution.type !== "delivery" || choice.resolution.completeTaskId !== taskId) issues.push({ level: "error", path, message: "事件目标必须引用交付选项，且该选项需关联本任务。" });
+          const key = JSON.stringify([goal.eventId, goal.choiceId]);
+          if (seenGoals.has(key)) issues.push({ level: "error", path, message: "事件目标重复。" });
+          seenGoals.add(key);
+          continue;
+        }
         if (goal.type === "clear-map") {
           if (typeof goal.mapId !== "string" || !mapIds.has(goal.mapId)) {
             issues.push({
@@ -1774,6 +1810,7 @@ export function validateCatalog(value: unknown): CatalogIssue[] {
 
   for (const [petId, rawPet] of Object.entries(petTemplates)) {
     if (!isRecord(rawPet)) continue;
+    if (rawPet.visualScale !== undefined && (typeof rawPet.visualScale !== "number" || !Number.isFinite(rawPet.visualScale) || rawPet.visualScale < 0.5 || rawPet.visualScale > 2)) issues.push({ level: "error", path: `petTemplates.${petId}.visualScale`, message: "显示尺寸补偿必须在 0.5～2 之间。" });
     if (rawPet.injury === "critical") {
       issues.push({
         level: "warning",
@@ -1831,7 +1868,60 @@ function readCatalog(key: string): Catalog | undefined {
     if (validateCatalog(parsed).some((issue) => issue.level === "error")) {
       return undefined;
     }
-    return cloneCatalog(parsed as Catalog);
+    const next = cloneCatalog(parsed as Catalog);
+    // 一次性增量接入榆湾，保留本地其他地图和策划尚未发布的修改。
+    // 已迁移后允许策划主动删图，不在每次读取时强行恢复。
+    const migrationKey = `${key}.yuwan-v1`;
+    if (!localStorage.getItem(migrationKey)) {
+      if (!next.maps["map-3"] && bundledCatalog.maps["map-3"]) {
+        next.maps["map-3"] = structuredClone(bundledCatalog.maps["map-3"]);
+        const task = next.tasks["tasks-pass-map-2"];
+        if (task) task.reward.unlockMapIds = [...new Set([...(task.reward.unlockMapIds ?? []), "map-3"])];
+        const daily = next.gachas?.daily;
+        if (daily && !daily.budgets["map-3"]) daily.budgets["map-3"] = structuredClone(daily.budgets["map-2"] ?? bundledCatalog.gachas.daily.budgets["map-3"]);
+        localStorage.setItem(key, JSON.stringify(next));
+      }
+      localStorage.setItem(migrationKey, "1");
+    }
+    const artworkMigrationKey = `${key}.yuwan-artwork-b-v1`;
+    if (!localStorage.getItem(artworkMigrationKey)) {
+      const map = next.maps["map-3"];
+      const defaults = bundledCatalog.maps["map-3"];
+      if (map && defaults) {
+        // 只替换旧矢量图默认锚点，保留策划手调位置及所有节点配置。
+        for (const [id, oldPosition] of Object.entries(yuwanLayoutPositions)) {
+          if (!map.nodes[id]) continue;
+          const position = map.nodePositions?.[id];
+          if (!position || (position.x === oldPosition.x && position.y === oldPosition.y)) {
+            map.nodePositions ??= {};
+            map.nodePositions[id] = { ...defaults.nodePositions![id] };
+          }
+        }
+        if (map.aspectRatio === undefined || Math.abs(map.aspectRatio - 1500 / 1460) < 1e-9) {
+          map.aspectRatio = defaults.aspectRatio;
+        }
+        localStorage.setItem(key, JSON.stringify(next));
+      }
+      localStorage.setItem(artworkMigrationKey, "1");
+    }
+    const recruitmentKey = `${key}.doro-recruitment-v1`;
+    if (!localStorage.getItem(recruitmentKey)) {
+      const candidate = cloneCatalog(next);
+      const node = candidate.maps["map-3"]?.nodes["m3-d2"];
+      if (node && next.items.orange) {
+        candidate.petTemplates.doro ??= structuredClone(bundledCatalog.petTemplates.doro);
+        candidate.events["doro-encounter"] ??= structuredClone(bundledCatalog.events["doro-encounter"]);
+        candidate.tasks["recruit-doro"] ??= structuredClone(bundledCatalog.tasks["recruit-doro"]);
+        // 只补缺省绑定，不覆盖策划已经指定的固定事件列表。
+        node.fixedEventIds ??= ["doro-encounter"];
+        if (!validateCatalog(candidate).some(issue => issue.level === "error")) {
+          Object.assign(next, candidate);
+          localStorage.setItem(key, JSON.stringify(next));
+        }
+      }
+      localStorage.setItem(recruitmentKey, "1");
+    }
+    return next;
   } catch {
     return undefined;
   }

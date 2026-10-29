@@ -31,9 +31,9 @@ function InjuryTip({ current }: { current: InjuryStage }) {
     <b>{INJURY_LABELS[stage]}</b>{stage === 'healthy' ? '属性不受影响' : `主属性与负重上限 ×${injuryMultiplier(stage)}${stage === 'incapacitated' ? '，不能出发' : ''}`}
   </span>)}</span>;
 }
-/** 头像：咕嘎有立绘，其他宠物还没有美术，先用名字的第一个字顶上。 */
+/** 头像统一按宠物 ID 查运行时资源，未接入的形象使用占位。 */
 function Avatar({ pet }: { pet: Pet }) {
-  return pet.id === 'gugugaga' ? <PetPortrait /> : <span className="ps-avatar-initial">{[...pet.name][0] ?? '◇'}</span>;
+  return <PetPortrait petId={pet.id} />;
 }
 /** 多于一只宠物时的头像栏：点哪只看哪只。角标提醒有待分配点数（红点）和伤势（按伤势档上色的点）。 */
 function Roster({ pets, current, onSelect }: { pets: Pet[]; current: string; onSelect: (id: string) => void }) {
@@ -50,9 +50,10 @@ function remaining(ms: number): string {
   if (seconds >= 3600) return `${Math.floor(seconds / 3600)}时 ${Math.floor(seconds % 3600 / 60)}分`;
   return `${Math.floor(seconds / 60)}分 ${seconds % 60}秒`;
 }
-export function PetStatusPanel({ game, now, run, onClose, intent }: {
+export function PetStatusPanel({ game, now, run, onClose, intent, desktopPetId, onSetDesktopPet }: {
   game: GameState; now: number; run: (action: (state: GameState) => GameState) => boolean;
   onClose: () => void; intent?: { petId: string; key: number };
+  desktopPetId?: string; onSetDesktopPet?: (id: string) => void;
 }) {
   const [selected, setSelected] = useUIState('status-pet', '', (value): value is string => typeof value === 'string');
   const [drafts, setDrafts] = useUIState<PetStatusDrafts>('status-drafts', {}, isStatusDrafts);
@@ -106,6 +107,7 @@ export function PetStatusPanel({ game, now, run, onClose, intent }: {
       <div className="ps-avatar" aria-hidden="true"><Avatar pet={pet} /></div>
       <div className="ps-identity">
         <h2>{pet.name}</h2>
+        {onSetDesktopPet && <button className="ps-set-desktop" type="button" disabled={desktopPetId === pet.id} onClick={() => onSetDesktopPet(pet.id)}>{desktopPetId === pet.id ? '当前桌面宠物' : '设为桌面宠物'}</button>}
         <div className="ps-level">Lv.{pet.level}<span>{pet.level >= maxLevel() ? '已满级' : `${number(pet.xp)} / ${number(xpToNextLevel(pet.level))} 经验`}</span></div>
         <div className="ps-xp" role="progressbar" aria-label="升级经验" aria-valuemin={0} aria-valuemax={pet.level >= maxLevel() ? 1 : xpToNextLevel(pet.level)} aria-valuenow={pet.level >= maxLevel() ? 1 : pet.xp}><i style={{ width: `${pet.level >= maxLevel() ? 100 : Math.min(100, pet.xp / xpToNextLevel(pet.level) * 100)}%` }} /></div>
       </div>

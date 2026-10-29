@@ -25,6 +25,7 @@ const STAT_EFFECTS: Record<StatKey, string> = {
 };
 
 interface FormState {
+  visualScale: string;
   name: string;
   baseStats: Stats;
   secondaryStats: SecondaryStats;
@@ -53,6 +54,7 @@ function toForm(record: Record_): FormState {
   const base = isRecord(record.baseStats) ? record.baseStats : {};
   const secondary = isRecord(record.secondaryStats) ? record.secondaryStats : {};
   return {
+    visualScale: String(typeof record.visualScale === "number" ? record.visualScale : record.id === "doro" ? 1.25 : 1),
     name: typeof record.name === "string" ? record.name : "",
     baseStats: {
       fitness: intOf(base.fitness, 2),
@@ -74,6 +76,7 @@ function toForm(record: Record_): FormState {
 function toRecord(form: FormState, base: Record_): Record_ {
   const next: Record_ = { ...base };
   next.name = form.name;
+  next.visualScale = Number(form.visualScale);
   next.baseStats = { ...form.baseStats };
   next.secondaryStats = { ...form.secondaryStats };
   next.growthTagSlots = Math.max(0, toInt(form.growthTagSlots, 1));
@@ -113,6 +116,7 @@ export function PetForm({
 
   return (
     <div className="config-form">
+      <label className="config-field"><span>桌面显示尺寸补偿</span><input type="number" min="0.5" max="2" step="0.05" value={form.visualScale} onChange={e => update({ visualScale: e.target.value })}/><small>咕嘎默认 1；Doro 美术缩到 0.8，默认补偿 1.25。只影响显示，最终尺寸仍受窗口上限约束。</small></label>
       <label className="config-field">
         <span>名称</span>
         <input

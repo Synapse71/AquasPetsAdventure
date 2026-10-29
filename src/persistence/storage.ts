@@ -76,6 +76,28 @@ export function loadGame(): GameState {
     }
     if (parsed.version === VERSION_WITH_ACQUISITION_COUNTS) parsed = migrateVersion9(parsed);
     if (parsed.version !== SUPPORTED_VERSION) return createInitialState();
+    if (import.meta.env.DEV) {
+      // 开发期 Doro 初始属性更新：历史模板是 2/2/2，次要属性为 2/1/2/1。
+      // 只修正匹配旧基础值的已招募宠物，不重置培养数据，也不持续覆盖策划手改。
+      const pet = parsed.pets?.doro;
+      const template = catalog.petTemplates.doro;
+      const oldSecondary = { eloquence: 2, lore: 1, courage: 2, guile: 1 };
+      if (pet && template && pet.baseStats.fitness === 2 && pet.baseStats.perception === 2 && pet.baseStats.technique === 2
+        && (template.baseStats.fitness !== 2 || template.baseStats.perception !== 2 || template.baseStats.technique !== 2)) {
+        // 留存修正前的原始存档，以便开发调试时恢复。
+        localStorage.setItem(`${STORAGE_KEY}.before-doro-base-update`, raw);
+        pet.baseStats = { ...template.baseStats };
+        for (const stat of Object.keys(oldSecondary) as (keyof typeof oldSecondary)[]) {
+          const gained = Math.max(0, (pet.secondaryStats[stat] ?? oldSecondary[stat]) - oldSecondary[stat]);
+          pet.secondaryStats[stat] = template.secondaryStats[stat] + gained;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+    }
+    // Doro 默认先天特质调整：只迁移旧默认，不覆盖其他手动配置或成长特质。
+    if (catalog.petTemplates.doro?.innateTagId === "tag-lucky" && parsed.pets?.doro?.innateTagId === "tags-heartthrob") {
+      parsed.pets.doro.innateTagId = "tag-lucky";
+    }
     const itemAcquisitionCounts = parsed.itemAcquisitionCounts ?? {};
     const discoveredItemIds = Array.from(
       new Set([
@@ -87,10 +109,15 @@ export function loadGame(): GameState {
     );
     return {
       ...parsed,
+      unlockedMapIds: [...new Set([
+        ...(parsed.unlockedMapIds ?? []),
+        ...(parsed.completedTaskIds ?? []).flatMap(id => catalog.tasks[id]?.reward.unlockMapIds ?? []).filter(id => !!catalog.maps[id]),
+      ])],
       statResetCount: Number.isSafeInteger(parsed.statResetCount) && parsed.statResetCount >= 0 ? parsed.statResetCount : 0,
       itemAcquisitionCounts,
       discoveredItemIds,
       completedMilestoneIds: parsed.completedMilestoneIds ?? [],
+      completedEventChoiceKeys: parsed.completedEventChoiceKeys ?? [],
       completedExtractionNodeKeys: parsed.completedExtractionNodeKeys ?? [],
       claimedExtractionRewards: parsed.claimedExtractionRewards ?? {},
       discoveredRouteKeys: parsed.discoveredRouteKeys ?? [],

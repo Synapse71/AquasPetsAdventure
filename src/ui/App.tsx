@@ -7,7 +7,7 @@ import type { GameState, Inventory } from "../domain/types";
 import { gachaStatus } from "../domain/gacha";
 import { clearGame, loadGame, saveGame } from "../persistence/storage";
 import { PetDesktop, PET_MENUS, type PanelId } from "./PetDesktop";
-import { clearUIState } from "./uiState";
+import { clearUIState, useUIState } from "./uiState";
 import { CodexPanel } from "./CodexPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { PetStatusPanel } from "./PetStatusPanel";
@@ -134,7 +134,8 @@ export function App() {
   const pendingTask = Object.values(catalog.tasks).some(task => taskIsAvailable(game, task.id) && taskCanComplete(game, task.id));
   const pendingPoints = Object.values(game.pets).some(pet => pet.unspentPoints > 0);
   const pendingGacha = (gachaStatus(game, now)?.freeLeft ?? 0) > 0;
-  const stagePet = Object.values(game.pets)[0];
+  const [desktopPetId, setDesktopPetId] = useUIState("desktop-pet-id", "", (v): v is string => typeof v === "string");
+  const stagePet = game.pets[desktopPetId] ?? Object.values(game.pets)[0];
   const stageExpedition = game.expeditions.find(entry => entry.petIds.includes(stagePet?.id));
   const traveling = stageExpedition?.phase === "traveling" ? stageExpedition : undefined;
   const travelingMap = traveling && catalog.maps[traveling.mapId];
@@ -147,7 +148,11 @@ export function App() {
   const [statusIntent, setStatusIntent] = useState<{ petId: string; key: number }>();
   const [saveGeneration, setSaveGeneration] = useState(0);
 
-  const openPanel = (panel: PanelId) => {
+  const openPanel = (panel: PanelId, statusPetId = stagePet?.id) => {
+    // 每次打开状态页都定位当前桌面宠物；灯泡入口可显式定位待加点宠物。
+    if (panel === "pets" && statusPetId) {
+      setStatusIntent(previous => ({ petId: statusPetId, key: (previous?.key ?? 0) + 1 }));
+    }
     run(state => recordMilestone(state, PANEL_MILESTONE_IDS[panel]));
     setVisitedPanels(previous => previous.includes(panel) ? previous : [...previous, panel]);
     setActivePanel(panel);
@@ -159,8 +164,7 @@ export function App() {
       openPanel("adventure");
     } else if (pendingPoints) {
       const pet = Object.values(game.pets).find(pet => pet.unspentPoints > 0)!;
-      setStatusIntent({ petId: pet.id, key: Date.now() });
-      openPanel("pets");
+      openPanel("pets", pet.id);
     } else if (pendingGacha) {
       setAdventureIntent({ tab: "gacha", key: Date.now() });
       openPanel("adventure");
@@ -168,7 +172,7 @@ export function App() {
   };
   const resetDemo = () => {
     { // Confirmation belongs to SettingsPanel, not a native blocking dialog.
-      clearGame(); clearUIState();
+      clearGame(); clearUIState(); setDesktopPetId("");
       const next = createInitialState();
       gameRef.current = next;
       saveGame(next);
@@ -183,12 +187,12 @@ export function App() {
   const content = {
     adventure: <AdventurePanel game={game} now={now} run={run} intent={adventureIntent} onClose={closePanel} />,
     inventory: <InventoryPanel game={game} run={run} onClose={closePanel} active={activePanel === "inventory"} />,
-    pets: <PetStatusPanel game={game} now={now} run={run} onClose={closePanel} intent={statusIntent} />,
+    pets: <PetStatusPanel game={game} now={now} run={run} onClose={closePanel} intent={statusIntent} desktopPetId={stagePet?.id} onSetDesktopPet={id => { if (game.pets[id]) setDesktopPetId(id); }} />,
     codex: <CodexPanel game={game} onClose={closePanel} />,
-    settings: <SettingsPanel game={game} onReset={resetDemo} onClose={closePanel} active={activePanel === "settings"} activity={<ActivityPanel game={game} />} />,
+    settings: <SettingsPanel game={game} petId={stagePet?.id} visualScale={catalog.petTemplates[stagePet?.id]?.visualScale} onReset={resetDemo} onClose={closePanel} active={activePanel === "settings"} activity={<ActivityPanel game={game} />} />,
   };
 
-  return <PetDesktop key={saveGeneration} name={stagePet?.name ?? "宠物"}
+  return <PetDesktop key={saveGeneration} petId={stagePet?.id} visualScale={catalog.petTemplates[stagePet?.id]?.visualScale} name={stagePet?.name ?? "宠物"}
     activePanel={activePanel} onOpen={openPanel} onClose={closePanel}
     pending={!!attentionExpedition || pendingTask || pendingPoints || pendingGacha} onPending={openPending}
     travel={traveling ? {

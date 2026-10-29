@@ -1,2 +1,3 @@
 .sp-portrait { width:100%; aspect-ratio:1; display:grid; place-items:center; overflow:hidden; }
 .sp-portrait>img { display:block; width:100%; height:100%; object-fit:contain; }
+.sp-portrait.unknown>img { filter:brightness(0); opacity:.18; }

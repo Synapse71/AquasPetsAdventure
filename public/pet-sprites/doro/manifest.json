@@ -1,0 +1,83 @@
+{
+  "arrive": {
+    "file": "arrive.webp",
+    "frames": 121,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "blink-plain": {
+    "file": "blink-plain.webp",
+    "frames": 122,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "orange-blitz": {
+    "file": "orange-blitz.webp",
+    "frames": 243,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "orange-offer": {
+    "file": "orange-offer.webp",
+    "frames": 294,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "sleep-end": {
+    "file": "sleep-end.webp",
+    "frames": 216,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "sleep-loop": {
+    "file": "sleep-loop.webp",
+    "frames": 192,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": true
+  },
+  "sleep-start": {
+    "file": "sleep-start.webp",
+    "frames": 207,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "start-explore": {
+    "file": "start-explore.webp",
+    "frames": 140,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": false
+  },
+  "walk": {
+    "file": "walk.webp",
+    "frames": 152,
+    "width": 300,
+    "height": 282,
+    "columns": 10,
+    "fps": 24,
+    "loop": true
+  }
+}

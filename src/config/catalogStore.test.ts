@@ -209,7 +209,7 @@ describe("catalog validation", () => {
     const missing = structuredClone(bundledCatalog);
     delete (missing.maps["map-1"].nodes["m1-point-1"] as { loot?: unknown })
       .loot;
-    expect(validateCatalog(missing).map((issue) => issue.path)).toContain(
+    expect(validateCatalog(missing).map((issue) => issue.path)).not.toContain(
       "maps.map-1.nodes.m1-point-1.loot",
     );
 

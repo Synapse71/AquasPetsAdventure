@@ -1,3 +1,4 @@
+import { mapEntryNodeIds } from "../domain/mapEntries";
 import { catalog } from '../domain/catalog';
 import { GameRuleError, SECONDARY_STAT_LABELS, isRouteDiscovered, teamSecondaryStat, teamStatForPets } from '../domain/engine';
 import type { ExtractionPlan } from '../domain/engine';
@@ -5,6 +6,11 @@ import type { GameState, Inventory, MapDefinition, MapEdgeDefinition, StatKey } 
 
 export const STAT_LABELS: Record<StatKey, string> = { fitness: '体能', perception: '感知', technique: '技巧' };
 export const OUTCOMES = { 'extra-success': '大成功', success: '成功', failure: '失败', 'big-failure': '大失败', leave: '已离开' };
+/** 配置台清除门槛可能留下空对象，不能仅按对象是否存在判断虚线。 */
+export function hasRouteRequirement(edge: MapEdgeDefinition): boolean {
+  const req = edge.requirement;
+  return !!req && (!!req.tagId || !!req.secondary || Object.values(req.minimumStat ?? {}).some(value => typeof value === 'number'));
+}
 /** 解锁由引擎按时间追加；跳过已从目录移除的地图，不选择尚未解锁的地图。 */
 export function latestUnlockedMapId(unlockedMapIds: readonly string[], maps: Record<string, MapDefinition> = catalog.maps): string {
   for (let i = unlockedMapIds.length - 1; i >= 0; i--) {
@@ -45,15 +51,16 @@ export function routeHint(game: GameState, pets: string[], edge: MapEdgeDefiniti
 }
 /** 预览只包含普通路线和真正走过的隐藏路线，不受当前特质/情报档位影响。 */
 export function knownMapGraph(game: GameState, map: MapDefinition) {
-  const ids = new Set([map.startNodeId]);
+  const entries = mapEntryNodeIds(map);
+  const ids = new Set(entries);
   const edges: { from: string; edge: MapEdgeDefinition }[] = [];
-  const queue = [map.startNodeId];
+  const queue = [...entries];
   for (let i = 0; i < queue.length; i++) for (const edge of map.nodes[queue[i]]?.edges ?? []) {
     if (!map.nodes[edge.toNodeId] || (edge.hidden && !isRouteDiscovered(game, map.id, queue[i], edge.id))) continue;
     edges.push({ from: queue[i], edge });
     if (!ids.has(edge.toNodeId)) { ids.add(edge.toNodeId); queue.push(edge.toNodeId); }
   }
-  const depth: Record<string, number> = { [map.startNodeId]: 0 };
+  const depth: Record<string, number> = Object.fromEntries(entries.map(id => [id, 0]));
   // 已校验目录是 DAG；有界松弛也能安全处理导入中的坏数据。
   for (let i = 0; i < ids.size; i++) for (const { from, edge } of edges) if (depth[from] !== undefined) depth[edge.toNodeId] = Math.max(depth[edge.toNodeId] ?? 0, depth[from] + 1);
   const max = Math.max(1, ...Object.values(depth));

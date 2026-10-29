@@ -27,6 +27,8 @@ export interface SecondaryRequirement {
 }
 
 export interface Pet {
+  // 模板的显示尺寸补偿，不参与玩法计算；运行时优先读取目录模板。
+  visualScale?: number;
   id: Id;
   name: string;
   level: number;
@@ -158,10 +160,12 @@ export type NodeLootDefinition =
 export interface MapNodeDefinition {
   id: Id;
   name: string;
-  // 起始节点是无收益的路线入口，因此不配置 loot；所有非起始节点必填 loot。
+  // 起始节点不配置 loot；普通节点省略时不产生战利品，可稍后由策划配置。
   loot?: NodeLootDefinition;
   // 省略或为空表示本节点没有随机事件，结算战利品后直接选择路线或撤离。
   eventPoolIds?: Id[];
+  // 按顺序取首个满足条件的事件，替代本次随机事件。
+  fixedEventIds?: Id[];
   edges: MapEdgeDefinition[];
   terminal?: boolean;
   // 非终点只有显式标记后才允许主动撤离；固定终点天然可撤离。
@@ -177,6 +181,10 @@ export interface MapDefinition {
   name: string;
   description: string;
   startNodeId: Id;
+  // 多入口地图的完整入口列表；省略时仅使用默认入口。
+  startNodeIds?: Id[];
+  // 场景画布宽高比；省略时沿用 16:9。
+  aspectRatio?: number;
   // 兼容旧目录字段；运行时固定 15 秒，策划读写会归一化为 15000。
   startDurationMs: number;
   // 选中队伍的有效感知达到 partial / full 时，地图预览分别进入第二 / 第三档。
@@ -192,6 +200,7 @@ export interface MapDefinition {
 }
 
 export type EventChoiceResolution =
+  | { type: "delivery"; items: Inventory; completeTaskId: Id }
   | {
       type: "primary";
       stat: StatKey;
@@ -223,6 +232,7 @@ export interface EventChoiceDefinition {
 }
 
 export interface EventDefinition {
+  absentPetIds?: Id[];
   id: Id;
   title: string;
   description: string;
@@ -247,7 +257,7 @@ export interface MilestoneTaskGoal {
   milestoneId: PlayerMilestoneId;
 }
 
-export type TaskGoalDefinition = ClearMapTaskGoal | MilestoneTaskGoal;
+export type TaskGoalDefinition = ClearMapTaskGoal | MilestoneTaskGoal | { type: "event-choice"; eventId: Id; choiceId: Id };
 
 export interface TaskRequirement {
   items?: Inventory;
@@ -331,6 +341,7 @@ export interface GachaState {
 
 export interface StartExpeditionInput {
   mapId: Id;
+  startNodeId?: Id;
   petIds: Id[];
   // 从仓库带入本轮背包；出发时原子扣除。省略表示空背包出发。
   cargo?: Inventory;
@@ -355,7 +366,7 @@ export interface EventResolution {
   summary: string;
   reward: Inventory;
   // 已提交的真实检定记录。UI 动画只读取，关闭/重启不能重新掷骰。
-  check?: { type: "primary"; rolls: number[]; risk: number } | { type: "secondary"; value: number } | { type: "leave" };
+  check?: { type: "primary"; rolls: number[]; risk: number } | { type: "secondary"; value: number } | { type: "leave" } | { type: "delivery" };
 }
 
 export interface Expedition {
@@ -441,6 +452,7 @@ export interface GameState {
   pets: Record<Id, Pet>;
   unlockedMapIds: Id[];
   completedTaskIds: Id[];
+  completedEventChoiceKeys?: string[];
   // 一次性玩家行为事实。只增不减、重复上报幂等，可作为任务目标。
   completedMilestoneIds: PlayerMilestoneId[];
   reachedEndpointIds: Id[];

@@ -1,12 +1,17 @@
 // 山麓 2026-10-14 按克格纳的画风重出（assets/maps/map1-restyle-2026-10-14 的 A 版），压成 WebP。
 import foothillsArt from './art/foothills-selected.webp';
+import yuwanArt from './art/yuwan-selected.webp';
 import kegnaArt from './art/kegna-selected.png';
 
 // 锚点指向可交互地物；配置台保存 nodePositions 后覆盖这些初始位置。
 export const mapArtwork: Record<string, string> = {
   'map-1': foothillsArt,
   'map-2': kegnaArt,
+  'map-3': yuwanArt,
 };
+
+// B 版锚点按原图标定，不额外放大裁边。
+export const mapArtworkScale: Record<string, number> = { 'map-3': 1 };
 
 export const mapArtworkAnchors: Record<string, Record<string, { x: number; y: number }>> = {
   'map-1': {

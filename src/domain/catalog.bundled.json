@@ -1036,6 +1036,140 @@
       "tags": [
         "collectible"
       ]
+    },
+    "orange": {
+      "id": "orange",
+      "name": "欧润吉",
+      "rarity": "uncommon",
+      "weight": 0.3,
+      "sellable": true,
+      "stackSize": 4,
+      "tags": [
+        "food"
+      ],
+      "sellValue": 33,
+      "foodBuff": {
+        "stat": "technique",
+        "amount": 1
+      }
+    },
+    "fishing-rod-bamboo": {
+      "id": "fishing-rod-bamboo",
+      "name": "简易竹钓竿",
+      "rarity": "common",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 35,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-rod-silverstream": {
+      "id": "fishing-rod-silverstream",
+      "name": "银溪钓竿",
+      "rarity": "rare",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 619,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-rod-moonshadow": {
+      "id": "fishing-rod-moonshadow",
+      "name": "月影钓竿",
+      "rarity": "epic",
+      "weight": 1.2,
+      "sellable": true,
+      "sellValue": 2048,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-rod-tidecaller": {
+      "id": "fishing-rod-tidecaller",
+      "name": "唤潮者钓竿",
+      "rarity": "legendary",
+      "weight": 1.6,
+      "sellable": true,
+      "sellValue": 34560,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-rod-starsea": {
+      "id": "fishing-rod-starsea",
+      "name": "星海垂纶",
+      "rarity": "mythic",
+      "weight": 2,
+      "sellable": true,
+      "tags": [
+        "tool"
+      ],
+      "sellValue": 42960
+    },
+    "fishing-basket-bamboo": {
+      "id": "fishing-basket-bamboo",
+      "name": "粗编竹篓",
+      "rarity": "common",
+      "weight": 1,
+      "sellable": true,
+      "tags": [
+        "tool"
+      ],
+      "sellValue": 43
+    },
+    "fishing-basket-folding-tank": {
+      "id": "fishing-basket-folding-tank",
+      "name": "折叠鱼箱",
+      "rarity": "uncommon",
+      "weight": 0.8,
+      "sellable": true,
+      "sellValue": 107,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-basket-plastic-bucket": {
+      "id": "fishing-basket-plastic-bucket",
+      "name": "大塑料桶",
+      "rarity": "rare",
+      "weight": 2,
+      "sellable": true,
+      "sellValue": 300,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-basket-aerated-cooler": {
+      "id": "fishing-basket-aerated-cooler",
+      "name": "增氧鱼箱",
+      "rarity": "epic",
+      "weight": 1.5,
+      "sellable": true,
+      "sellValue": 1099,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-basket-abyssal-casket": {
+      "id": "fishing-basket-abyssal-casket",
+      "name": "溟渊之匣",
+      "rarity": "legendary",
+      "weight": 1,
+      "sellable": true,
+      "sellValue": 19999,
+      "tags": [
+        "tool"
+      ]
+    },
+    "fishing-basket-guixu-chalice": {
+      "id": "fishing-basket-guixu-chalice",
+      "name": "归墟盏",
+      "rarity": "mythic",
+      "weight": 0.5,
+      "sellable": true,
+      "sellValue": 33333
     }
   },
   "tags": {
@@ -1112,11 +1246,23 @@
               "screwdriver",
               "wrench",
               "iron-sheet",
-              "fishing-rod",
               "honey"
             ],
             "whitelistItemTags": [],
-            "blacklistItemIds": []
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
           },
           "eventPoolIds": [],
           "edges": [
@@ -1152,7 +1298,19 @@
               "food"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [],
@@ -1215,7 +1373,20 @@
             "whitelistItemTags": [
               "food"
             ],
-            "blacklistItemIds": [],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ],
             "blacklistItemTags": []
           },
           "eventPoolIds": [],
@@ -1259,7 +1430,7 @@
       "startDurationMs": 15000,
       "informationThresholds": {
         "partial": 2,
-        "full": 4
+        "full": 6
       },
       "nodeXp": 30,
       "nodes": {
@@ -1323,7 +1494,19 @@
               "food"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [],
@@ -1367,7 +1550,19 @@
               "food"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [],
@@ -1439,7 +1634,19 @@
             ],
             "whitelistItemTags": [],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ],
             "blacklistItemTags": []
           },
@@ -1482,7 +1689,19 @@
               "food"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [
@@ -1532,7 +1751,19 @@
               "rubber-block"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [
@@ -1576,7 +1807,19 @@
               "food"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [],
@@ -1627,7 +1870,19 @@
               "tool"
             ],
             "blacklistItemIds": [
-              "poop"
+              "poop",
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
             ]
           },
           "eventPoolIds": [],
@@ -1670,6 +1925,1067 @@
         "m2-goal-1": {
           "x": 83,
           "y": 10.9
+        }
+      }
+    },
+    "map-3": {
+      "id": "map-3",
+      "number": 3,
+      "name": "榆湾旧镇",
+      "description": "北山驿站以北，河湾与坡地间保留着旧镇的轮廓。临街商铺、河岸住宅和山坡房屋静静伫立，褪色的门牌与窗后的摆设仍留着往日生活的痕迹。",
+      "startNodeId": "m3-s1",
+      "startNodeIds": [
+        "m3-s1",
+        "m3-s2"
+      ],
+      "aspectRatio": 1.0317460317460319,
+      "startDurationMs": 15000,
+      "informationThresholds": {
+        "partial": 2,
+        "full": 8
+      },
+      "nodeXp": 36,
+      "nodes": {
+        "m3-s1": {
+          "id": "m3-s1",
+          "name": "河畔步行桥",
+          "edges": [
+            {
+              "id": "m3-route-s1-a1",
+              "label": "前往河岸公寓",
+              "description": "前往河岸公寓",
+              "toNodeId": "m3-a1",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-s1-a2",
+              "label": "前往街角便利店",
+              "description": "前往街角便利店",
+              "toNodeId": "m3-a2",
+              "durationMs": 3600000
+            }
+          ]
+        },
+        "m3-s2": {
+          "id": "m3-s2",
+          "name": "镇南公交站",
+          "edges": [
+            {
+              "id": "m3-route-s2-a2",
+              "label": "前往街角便利店",
+              "description": "前往街角便利店",
+              "toNodeId": "m3-a2",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-s2-a3",
+              "label": "前往家电维修铺",
+              "description": "前往家电维修铺",
+              "toNodeId": "m3-a3",
+              "durationMs": 3600000
+            }
+          ]
+        },
+        "m3-a1": {
+          "id": "m3-a1",
+          "name": "河岸公寓",
+          "edges": [
+            {
+              "id": "m3-route-a1-b1",
+              "label": "前往藤蔓庭院",
+              "description": "前往藤蔓庭院",
+              "toNodeId": "m3-b1",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.33,
+              "epic": 0.67
+            },
+            "whitelistItemIds": [
+              "paper",
+              "cloth-strip",
+              "battery",
+              "electric-razor",
+              "hair-dryer",
+              "desk-lamp",
+              "smartwatch",
+              "game-controller",
+              "leather-handbag"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-a2": {
+          "id": "m3-a2",
+          "name": "街角便利店",
+          "edges": [
+            {
+              "id": "m3-route-a2-b1",
+              "label": "穿过庭院小巷",
+              "description": "前往藤蔓庭院",
+              "toNodeId": "m3-b1",
+              "durationMs": 3000000
+            },
+            {
+              "id": "m3-route-a2-b2",
+              "label": "前往旧邮局",
+              "description": "前往旧邮局",
+              "toNodeId": "m3-b2",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 17.01,
+              "epic": 2.99
+            },
+            "whitelistItemIds": [
+              "plastic-cup",
+              "soda-can",
+              "paper",
+              "orange",
+              "canned-food",
+              "coffee-beans",
+              "honey",
+              "black-truffle",
+              "caviar",
+              "red-velvet-cake",
+              "aged-whisky"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-a3": {
+          "id": "m3-a3",
+          "name": "家电维修铺",
+          "edges": [
+            {
+              "id": "m3-route-a3-b2",
+              "label": "沿邮局后街前行",
+              "description": "前往旧邮局",
+              "toNodeId": "m3-b2",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-a3-b3",
+              "label": "前往社区活动室",
+              "description": "前往社区活动室",
+              "toNodeId": "m3-b3",
+              "durationMs": 3900000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.65,
+              "epic": 0.35
+            },
+            "whitelistItemIds": [
+              "screw",
+              "wire-cable",
+              "bearing",
+              "electric-razor",
+              "hair-dryer",
+              "desk-lamp",
+              "mechanical-keyboard",
+              "game-controller",
+              "graphics-card"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-b1": {
+          "id": "m3-b1",
+          "name": "藤蔓庭院",
+          "edges": [
+            {
+              "id": "m3-route-b1-e1",
+              "label": "前往河湾接应码头",
+              "description": "前往河湾接应码头",
+              "toNodeId": "m3-e1",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 15.02,
+              "epic": 4.98
+            },
+            "whitelistItemIds": [
+              "wood-strip",
+              "hemp-rope",
+              "cloth-strip",
+              "honey",
+              "umbrella",
+              "plush-toy",
+              "silver-bracelet",
+              "enamel-brooch",
+              "diamond-earrings",
+              "gold-necklace"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-b1"
+          ]
+        },
+        "m3-b2": {
+          "id": "m3-b2",
+          "name": "旧邮局",
+          "edges": [
+            {
+              "id": "m3-route-b2-e2",
+              "label": "前往广场联络站",
+              "description": "前往广场联络站",
+              "toNodeId": "m3-e2",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.16,
+              "epic": 0.84
+            },
+            "whitelistItemIds": [
+              "paper",
+              "old-newspaper",
+              "duct-tape",
+              "thermos",
+              "umbrella",
+              "jigsaw-puzzle",
+              "fountain-pen",
+              "mechanical-watch",
+              "leather-handbag"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-b2"
+          ]
+        },
+        "m3-b3": {
+          "id": "m3-b3",
+          "name": "社区活动室",
+          "edges": [
+            {
+              "id": "m3-route-b3-e3",
+              "label": "前往山坡公路营地",
+              "description": "前往山坡公路营地",
+              "toNodeId": "m3-e3",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-b3-e2",
+              "label": "沿广场东街进入镇中心",
+              "description": "前往广场联络站",
+              "toNodeId": "m3-e2",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.52,
+              "epic": 0.48
+            },
+            "whitelistItemIds": [
+              "paper",
+              "plastic-cup",
+              "hemp-rope",
+              "dumbbell",
+              "rugby-ball",
+              "plush-toy",
+              "portable-speaker",
+              "game-controller",
+              "violin"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-b3"
+          ]
+        },
+        "m3-e1": {
+          "id": "m3-e1",
+          "name": "河湾接应码头",
+          "edges": [
+            {
+              "id": "m3-route-e1-c1",
+              "label": "前往钟表照相馆",
+              "description": "前往钟表照相馆",
+              "toNodeId": "m3-c1",
+              "durationMs": 3600000
+            }
+          ],
+          "extractable": true,
+          "loot": {
+            "mode": "independent",
+            "minCount": 4,
+            "maxCount": 5,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 16.73,
+              "epic": 3.27
+            },
+            "whitelistItemIds": [
+              "iron-sheet",
+              "hemp-rope",
+              "wood-strip",
+              "car-tire",
+              "thermos",
+              "umbrella",
+              "binoculars",
+              "digital-camera",
+              "telephoto-lens",
+              "aged-whisky"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-e2": {
+          "id": "m3-e2",
+          "name": "广场联络站",
+          "edges": [
+            {
+              "id": "m3-route-e2-c2",
+              "label": "前往旧书店",
+              "description": "前往旧书店",
+              "toNodeId": "m3-c2",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-e2-c1",
+              "label": "穿过滨河旧巷",
+              "description": "前往钟表照相馆",
+              "toNodeId": "m3-c1",
+              "durationMs": 3000000,
+              "requirement": {}
+            }
+          ],
+          "extractable": true,
+          "loot": {
+            "mode": "independent",
+            "minCount": 4,
+            "maxCount": 5,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.02,
+              "epic": 0.98
+            },
+            "whitelistItemIds": [
+              "battery",
+              "wire-cable",
+              "duct-tape",
+              "thermos",
+              "umbrella",
+              "electric-razor",
+              "tablet",
+              "mechanical-keyboard",
+              "laptop",
+              "graphics-card"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-e3": {
+          "id": "m3-e3",
+          "name": "山坡公路营地",
+          "edges": [
+            {
+              "id": "m3-route-e3-c3",
+              "label": "前往音乐教师旧居",
+              "description": "前往音乐教师旧居",
+              "toNodeId": "m3-c3",
+              "durationMs": 3600000
+            }
+          ],
+          "extractable": true,
+          "loot": {
+            "mode": "independent",
+            "minCount": 4,
+            "maxCount": 5,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 15.71,
+              "epic": 4.29
+            },
+            "whitelistItemIds": [
+              "hemp-rope",
+              "iron-sheet",
+              "cloth-strip",
+              "canned-food",
+              "honey",
+              "thermos",
+              "binoculars",
+              "smartwatch",
+              "aged-whisky",
+              "telephoto-lens"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-c1": {
+          "id": "m3-c1",
+          "name": "钟表照相馆",
+          "edges": [
+            {
+              "id": "m3-route-c1-d1",
+              "label": "前往镇立学校",
+              "description": "前往镇立学校",
+              "toNodeId": "m3-d1",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-c1-d2",
+              "label": "登上坡间石阶",
+              "description": "前往山坡宅邸",
+              "toNodeId": "m3-d2",
+              "durationMs": 3600000,
+              "requirement": {
+                "secondary": {
+                  "stat": "lore",
+                  "value": 3
+                }
+              }
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 17.13,
+              "epic": 2.87
+            },
+            "whitelistItemIds": [
+              "battery",
+              "gear",
+              "glass-shard",
+              "desk-lamp",
+              "electric-razor",
+              "digital-camera",
+              "mechanical-watch",
+              "telephoto-lens"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-c1"
+          ]
+        },
+        "m3-c2": {
+          "id": "m3-c2",
+          "name": "旧书店",
+          "edges": [
+            {
+              "id": "m3-route-c2-d2",
+              "label": "前往山坡宅邸",
+              "description": "前往山坡宅邸",
+              "toNodeId": "m3-d2",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.09,
+              "epic": 0.91
+            },
+            "whitelistItemIds": [
+              "paper",
+              "old-newspaper",
+              "wood-strip",
+              "coffee-beans",
+              "desk-lamp",
+              "jigsaw-puzzle",
+              "fountain-pen",
+              "tablet",
+              "laptop"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-c2"
+          ]
+        },
+        "m3-c3": {
+          "id": "m3-c3",
+          "name": "音乐教师旧居",
+          "edges": [
+            {
+              "id": "m3-route-c3-d2",
+              "label": "沿山腰小巷向西",
+              "description": "前往山坡宅邸",
+              "toNodeId": "m3-d2",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-c3-d3",
+              "label": "前往观星小楼",
+              "description": "前往观星小楼",
+              "toNodeId": "m3-d3",
+              "durationMs": 4200000,
+              "requirement": {
+                "secondary": {
+                  "stat": "guile",
+                  "value": 3
+                }
+              }
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 18.75,
+              "epic": 1.25
+            },
+            "whitelistItemIds": [
+              "paper",
+              "wire-cable",
+              "wood-strip",
+              "coffee-beans",
+              "desk-lamp",
+              "plush-toy",
+              "portable-speaker",
+              "noise-cancelling-headphones",
+              "violin",
+              "turntable"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-d1": {
+          "id": "m3-d1",
+          "name": "镇立学校",
+          "edges": [
+            {
+              "id": "m3-route-d1-t1",
+              "label": "前往河港转运站",
+              "description": "前往河港转运站",
+              "toNodeId": "m3-t1",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.19,
+              "epic": 0.81
+            },
+            "whitelistItemIds": [
+              "paper",
+              "plastic-cup",
+              "wood-strip",
+              "rugby-ball",
+              "jigsaw-puzzle",
+              "dumbbell",
+              "tablet",
+              "fountain-pen",
+              "laptop"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-d1"
+          ]
+        },
+        "m3-d2": {
+          "id": "m3-d2",
+          "name": "山坡宅邸",
+          "edges": [
+            {
+              "id": "m3-route-d2-t1",
+              "label": "前往河港转运站",
+              "description": "前往河港转运站",
+              "toNodeId": "m3-t1",
+              "durationMs": 3600000
+            },
+            {
+              "id": "m3-route-d2-t2",
+              "label": "前往北口客运站",
+              "description": "前往北口客运站",
+              "toNodeId": "m3-t2",
+              "durationMs": 3600000
+            }
+          ],
+          "fixedEventIds": [
+            "doro-encounter"
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 14.17,
+              "epic": 5.83
+            },
+            "whitelistItemIds": [
+              "cloth-strip",
+              "paper",
+              "plastic-cup",
+              "red-wine",
+              "hair-dryer",
+              "thermos",
+              "cloisonne-ornament",
+              "silver-bracelet",
+              "gold-necklace",
+              "diamond-earrings"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          }
+        },
+        "m3-d3": {
+          "id": "m3-d3",
+          "name": "观星小楼",
+          "edges": [
+            {
+              "id": "m3-route-d3-t2",
+              "label": "前往北口客运站",
+              "description": "前往北口客运站",
+              "toNodeId": "m3-t2",
+              "durationMs": 3600000
+            }
+          ],
+          "loot": {
+            "mode": "independent",
+            "minCount": 3,
+            "maxCount": 4,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 18.72,
+              "epic": 1.28
+            },
+            "whitelistItemIds": [
+              "battery",
+              "wire-cable",
+              "paper",
+              "thermos",
+              "desk-lamp",
+              "coffee-beans",
+              "binoculars",
+              "digital-camera",
+              "telescope"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "eventPoolIds": [
+            "pool-yuwan-d3"
+          ]
+        },
+        "m3-t1": {
+          "id": "m3-t1",
+          "name": "河港转运站",
+          "edges": [],
+          "terminal": true,
+          "loot": {
+            "mode": "independent",
+            "minCount": 5,
+            "maxCount": 6,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 19.73,
+              "epic": 0.27
+            },
+            "whitelistItemIds": [
+              "iron-sheet",
+              "bearing",
+              "gear",
+              "car-tire",
+              "electric-razor",
+              "toy-drone",
+              "camera-drone",
+              "mechanical-keyboard",
+              "graphics-card",
+              "laptop"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "firstExtractionRewards": {
+            "cracked-core": 1
+          }
+        },
+        "m3-t2": {
+          "id": "m3-t2",
+          "name": "北口客运站",
+          "edges": [],
+          "terminal": true,
+          "loot": {
+            "mode": "independent",
+            "minCount": 5,
+            "maxCount": 6,
+            "rarityWeights": {
+              "common": 50,
+              "uncommon": 30,
+              "rare": 17.07,
+              "epic": 2.93
+            },
+            "whitelistItemIds": [
+              "paper",
+              "battery",
+              "hemp-rope",
+              "skateboard",
+              "toy-drone",
+              "umbrella",
+              "tablet",
+              "noise-cancelling-headphones",
+              "leather-handbag",
+              "telephoto-lens"
+            ],
+            "blacklistItemIds": [
+              "fishing-rod",
+              "fishing-rod-bamboo",
+              "fishing-rod-silverstream",
+              "fishing-rod-moonshadow",
+              "fishing-rod-tidecaller",
+              "fishing-rod-starsea",
+              "fishing-basket-bamboo",
+              "fishing-basket-folding-tank",
+              "fishing-basket-plastic-bucket",
+              "fishing-basket-aerated-cooler",
+              "fishing-basket-abyssal-casket",
+              "fishing-basket-guixu-chalice"
+            ]
+          },
+          "firstExtractionRewards": {
+            "icarus-mech-model": 1
+          }
+        }
+      },
+      "nodePositions": {
+        "m3-s1": {
+          "x": 21.713459113832855,
+          "y": 79.21276212709861
+        },
+        "m3-s2": {
+          "x": 84.03672100144092,
+          "y": 83.78049559516136
+        },
+        "m3-a1": {
+          "x": 23.398381213976947,
+          "y": 61.994692125879084
+        },
+        "m3-a2": {
+          "x": 45.332200108069166,
+          "y": 70.89147894562623
+        },
+        "m3-a3": {
+          "x": 71.85726990273776,
+          "y": 71.14090257089264
+        },
+        "m3-b1": {
+          "x": 35.13739418227665,
+          "y": 54.82035110948507
+        },
+        "m3-b2": {
+          "x": 58.55069119236311,
+          "y": 58.372677805072094
+        },
+        "m3-b3": {
+          "x": 78.20830331412104,
+          "y": 53.10893918012509
+        },
+        "m3-e1": {
+          "x": 19.734442543227665,
+          "y": 47.95234527895376
+        },
+        "m3-e2": {
+          "x": 45.50499819884726,
+          "y": 51.0310864881502
+        },
+        "m3-e3": {
+          "x": 90.63,
+          "y": 42.9
+        },
+        "m3-c1": {
+          "x": 29.38,
+          "y": 41.74
+        },
+        "m3-c2": {
+          "x": 58.67874189481268,
+          "y": 40.68363560340772
+        },
+        "m3-c3": {
+          "x": 72.38241849783861,
+          "y": 28.70142917704722
+        },
+        "m3-d1": {
+          "x": 24.579261977665706,
+          "y": 27.750773823005048
+        },
+        "m3-d2": {
+          "x": 49.91922955691643,
+          "y": 18.34526733915225
+        },
+        "m3-d3": {
+          "x": 89.2642853926513,
+          "y": 15.737207965295564
+        },
+        "m3-t1": {
+          "x": 16.63,
+          "y": 14.97
+        },
+        "m3-t2": {
+          "x": 64.1140017110951,
+          "y": 9.038484991027717
         }
       }
     }
@@ -2285,7 +3601,7 @@
             "canned-food": 1
           },
           "bonusRewards": {
-            "fishing-rod": 1
+            "thermos": 1
           }
         },
         {
@@ -2303,7 +3619,7 @@
             "canned-food": 1
           },
           "bonusRewards": {
-            "fishing-rod": 1
+            "thermos": 1
           }
         }
       ]
@@ -2349,6 +3665,38 @@
           }
         }
       ]
+    },
+    "doro-encounter": {
+      "id": "doro-encounter",
+      "title": "宅邸里的新伙伴",
+      "description": "山坡宅邸的门廊里，Doro望着队伍的背包。带一份欧润吉来，或许就能交到这位新朋友。",
+      "absentPetIds": [
+        "doro"
+      ],
+      "choices": [
+        {
+          "id": "give-orange",
+          "label": "递上欧润吉",
+          "description": "从本次探险背包交付欧润吉 ×1，邀请Doro前往基地。",
+          "resolution": {
+            "type": "delivery",
+            "items": {
+              "orange": 1
+            },
+            "completeTaskId": "recruit-doro"
+          },
+          "rewards": {}
+        },
+        {
+          "id": "leave",
+          "label": "下次再来",
+          "description": "不交付任何物品，继续探索。",
+          "resolution": {
+            "type": "leave"
+          },
+          "rewards": {}
+        }
+      ]
     }
   },
   "eventPools": {
@@ -2374,6 +3722,52 @@
         "event-collapsing-passage",
         "event-feral-dog-pack",
         "event-rigged-roadblock"
+      ]
+    },
+    "pool-yuwan-b1": {
+      "id": "pool-yuwan-b1",
+      "eventIds": [
+        "event-thicket-distress",
+        "event-high-perched-parcel"
+      ]
+    },
+    "pool-yuwan-b2": {
+      "id": "pool-yuwan-b2",
+      "eventIds": [
+        "event-roadside-bandits",
+        "event-rigged-roadblock"
+      ]
+    },
+    "pool-yuwan-b3": {
+      "id": "pool-yuwan-b3",
+      "eventIds": [
+        "event-locked-toolbox",
+        "event-unstable-scrap-pile"
+      ]
+    },
+    "pool-yuwan-c1": {
+      "id": "pool-yuwan-c1",
+      "eventIds": [
+        "event-unclaimed-travel-bag",
+        "event-roadside-exchange"
+      ]
+    },
+    "pool-yuwan-c2": {
+      "id": "pool-yuwan-c2",
+      "eventIds": [
+        "event-scattered-pages"
+      ]
+    },
+    "pool-yuwan-d1": {
+      "id": "pool-yuwan-d1",
+      "eventIds": [
+        "event-collapsing-passage"
+      ]
+    },
+    "pool-yuwan-d3": {
+      "id": "pool-yuwan-d3",
+      "eventIds": [
+        "event-strange-tracks"
       ]
     }
   },
@@ -2467,7 +3861,10 @@
         "currency": 500,
         "items": {
           "exploration-manuscripts": 1
-        }
+        },
+        "unlockMapIds": [
+          "map-3"
+        ]
       },
       "prerequisiteTaskIds": [
         "tasks-pass-map-1"
@@ -2493,6 +3890,28 @@
       "prerequisiteTaskIds": [
         "tasks-expand-storehouse-1"
       ]
+    },
+    "recruit-doro": {
+      "id": "recruit-doro",
+      "prerequisiteTaskIds": [
+        "tasks-pass-map-2"
+      ],
+      "title": "山坡宅邸的新伙伴",
+      "description": "携带欧润吉（orange）×1前往榆湾旧镇的山坡宅邸，在相遇事件中交给Doro。交付后立即解锁Doro，无需成功撤离。",
+      "requirement": {
+        "goals": [
+          {
+            "type": "event-choice",
+            "eventId": "doro-encounter",
+            "choiceId": "give-orange"
+          }
+        ]
+      },
+      "reward": {
+        "addPetIds": [
+          "doro"
+        ]
+      }
     }
   },
   "petTemplates": {
@@ -2521,6 +3940,34 @@
       "injury": "healthy",
       "growthTagIds": [],
       "growthTagSlots": 2
+    },
+    "doro": {
+      "id": "doro",
+      "visualScale": 1,
+      "name": "Doro",
+      "level": 1,
+      "xp": 0,
+      "unspentPoints": 0,
+      "baseStats": {
+        "fitness": 2,
+        "perception": 3,
+        "technique": 3
+      },
+      "allocatedStats": {
+        "fitness": 0,
+        "perception": 0,
+        "technique": 0
+      },
+      "secondaryStats": {
+        "eloquence": 1,
+        "lore": 1,
+        "courage": 1,
+        "guile": 3
+      },
+      "injury": "healthy",
+      "innateTagId": "tag-lucky",
+      "growthTagIds": [],
+      "growthTagSlots": 1
     }
   },
   "gachas": {
@@ -2762,6 +4209,10 @@
           "xp": 22
         },
         "map-2": {
+          "currency": 955,
+          "xp": 29
+        },
+        "map-3": {
           "currency": 955,
           "xp": 29
         }

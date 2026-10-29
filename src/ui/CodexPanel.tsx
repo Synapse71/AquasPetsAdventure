@@ -54,7 +54,7 @@ export function CodexPanel({ game, onClose }: { game: GameState; onClose: () => 
       </> : <div className="cd-pet-grid">{Object.values(catalog.petTemplates).map(pet => {
         const known = Object.hasOwn(game.pets,pet.id);
         return <article className={`cd-pet${known ? '' : ' unknown'}`} key={pet.id}>
-          {pet.id === 'gugugaga' ? <PetPortrait known={known} /> : <div className="cd-pet-placeholder" aria-hidden="true">◇</div>}
+          <PetPortrait petId={pet.id} known={known} />
           <div className="cd-pet-info"><h2>{known ? pet.name : '？？？'}</h2>
             {known ? <><div className="cd-pet-stats">{(['fitness','perception','technique'] as StatKey[]).map(stat => <span key={stat}>{STAT_LABELS[stat]} <b>{pet.baseStats[stat]}</b></span>)}</div>
               <div className="cd-pet-stats cd-pet-secondary">{SECONDARY_STAT_KEYS.map(stat => <span key={stat}>{SECONDARY_STAT_LABELS[stat]} <b>{pet.secondaryStats[stat]}</b></span>)}</div>

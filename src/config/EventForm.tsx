@@ -247,7 +247,7 @@ function nextChoiceId(choices: Record_[]): string {
   return `choice-${index}`;
 }
 
-type ResolutionType = "primary" | "secondary" | "leave";
+type ResolutionType = "primary" | "secondary" | "leave" | "delivery";
 
 function resolutionValue(choice: Record_): Record_ {
   if (isRecord(choice.resolution)) return choice.resolution;
@@ -318,6 +318,7 @@ export function EventForm({
     delete next.stat;
     delete next.difficulty;
     delete next.requiredSecondary;
+    if (resolution.type === "delivery") delete next.bonusRewards;
     if (resolution.type === "leave") {
       delete next.requiredTagId;
       delete next.bonusRewards;
@@ -342,6 +343,8 @@ export function EventForm({
         successThreshold: 3,
         extraSuccessThreshold: 5,
       });
+    } else if (type === "delivery") {
+      setChoiceResolution(index, { type, items: {}, completeTaskId: "" });
     } else {
       setChoiceResolution(index, { type });
     }
@@ -394,6 +397,7 @@ export function EventForm({
         />
       </label>
 
+      <section className="config-task-block"><strong>出现条件：存档尚未拥有以下宠物（全部满足）</strong>{Object.values(catalog.petTemplates).map(pet => <label key={pet.id} className="config-check"><input type="checkbox" checked={Array.isArray(record.absentPetIds) && record.absentPetIds.includes(pet.id)} onChange={e => updateRecord({ absentPetIds: e.target.checked ? [...(Array.isArray(record.absentPetIds) ? record.absentPetIds : []), pet.id] : (Array.isArray(record.absentPetIds) ? record.absentPetIds : []).filter(id => id !== pet.id) })}/>{pet.name}</label>)}</section>
       <SecondaryGateEditor
         title="设置事件抽取门槛"
         description="不达标时，这个事件不进入节点随机池；地图情报会显示所需次要属性。"
@@ -407,7 +411,7 @@ export function EventForm({
       />
 
       <section className="config-event-outcomes">
-        <strong>三类选项结算规则</strong>
+        <strong>四类选项结算规则</strong>
         <div>
           <span>主属性</span>
           <small>掷骰，可能出现大成功、成功、失败和大失败</small>
@@ -415,6 +419,8 @@ export function EventForm({
           <small>低于成功门槛置灰；达标后只会成功或大成功</small>
           <span>直接离开</span>
           <small>始终可选，无检定、无奖励、无损失</small>
+          <span>交付物品</span>
+          <small>从本次探险背包扣除物品，免检定，即时完成关联任务</small>
         </div>
       </section>
 
@@ -431,7 +437,7 @@ export function EventForm({
       {choices.map((choice, index) => {
         const resolution = resolutionValue(choice);
         const resolutionType =
-          resolution.type === "secondary" || resolution.type === "leave"
+          resolution.type === "secondary" || resolution.type === "leave" || resolution.type === "delivery"
             ? resolution.type
             : "primary";
         const primaryStat = STAT_KEYS.includes(resolution.stat as StatKey)
@@ -544,7 +550,7 @@ export function EventForm({
               >
                 <option value="primary">主属性检定</option>
                 <option value="secondary">次要属性判定</option>
-                <option value="leave">直接离开</option>
+                <option value="leave">直接离开</option><option value="delivery">交付物品并完成任务（免检定）</option>
               </select>
             </label>
 
@@ -662,6 +668,7 @@ export function EventForm({
               </div>
             )}
 
+            {resolutionType === "delivery" && <><InventoryEditor title="现场交付物品" description="只扣当前探险背包；锁定物品不可提交。成功后即时完成关联任务。" value={resolution.items} catalog={catalog} onChange={items => setChoiceResolution(index, { ...resolution, items })}/><label className="config-field"><span>即时完成任务</span><select value={String(resolution.completeTaskId ?? "")} onChange={e => setChoiceResolution(index, { ...resolution, completeTaskId: e.target.value })}><option value="">请选择任务</option>{Object.values(catalog.tasks).map(task => <option key={task.id} value={task.id}>{task.title}（{task.id}）</option>)}</select><small>请在任务中选择本事件选项作为目标；前置任务不阻止现场交付。</small></label></>}
             {resolutionType === "leave" && (
               <div className="config-event-leave-note">
                 这个选项始终可用。选择后不掷骰、不发放奖励，也不会造成伤势或其他损失。
@@ -705,7 +712,7 @@ export function EventForm({
                   catalog={catalog}
                   onChange={(next) => updateChoice(index, { rewards: next })}
                 />
-                <InventoryEditor
+                {resolutionType !== "delivery" && <InventoryEditor
                   title="额外奖励"
                   description="只有大成功获得，会和事件奖励叠加。"
                   value={choice.bonusRewards}
@@ -713,7 +720,7 @@ export function EventForm({
                   onChange={(next) =>
                     setOptionalChoiceField(index, "bonusRewards", next)
                   }
-                />
+                />}
               </div>
             )}
           </section>

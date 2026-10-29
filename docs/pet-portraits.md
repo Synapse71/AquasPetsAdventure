@@ -5,7 +5,8 @@
 
 - 咕嘎：`public/pet-portraits/gugugaga.webp`，512×512，WebP quality 90，约 39 KiB。
 - 来源：`assets/gugugaga/avatar-yellow-review-2026-09-15/v2-wink.png`。原图不覆盖。
-- 统一组件：`src/ui/PetPortrait.tsx`，状态面板、探险配队和宠物图鉴共用。设置中的尺寸预览使用 `public/pet-sprites/standing.png` 静止帧，不使用头像。
+- Doro：`public/pet-portraits/doro.webp`，512×512，WebP quality 90，约 55 KiB。来源：`assets/doro/portrait-review/r2-orange-wink.png`（gpt-image-2.5-sunburst，捧着咬了一口的橙子单眼眨眼，玫红粉 #FF5C9A 背景；提示词见同目录 `calls.json` 的 round2）。已接入状态面板、探险配队和宠物图鉴，组件按宠物 ID 取图。
+- 统一组件：`src/ui/PetPortrait.tsx`，状态面板、探险配队和宠物图鉴共用。设置中的尺寸预览按当前桌面宠物选择 `standing.png`，不使用头像。
 - 图鉴未解锁时继续使用旧轮廓剪影，不泄露头像；桌宠本体、动画、菜单栏和应用 logo 不变。
 - 新宠物沿用 ID 命名规则，优先正方形 512×512；保留构图，不拉伸。
 - Vite 构建将此目录复制到 `dist/pet-portraits`，现有安装包白名单 `dist/**/*` 自动包含。
